@@ -129,6 +129,18 @@ Until M06, user management is administrator-only and other roles see every scree
 | M06-05 | Manager override prompt (supervisor PIN/credentials) for restricted actions at POS | M06-03 | M |
 | M06-06 | Tests: cashier cannot perform restricted actions via direct IPC calls | M06-03 | S |
 
+**Status (2026-10-19):** M06-01 to M06-06 are implemented. See `docs/permissions.md` and migration 0003.
+
+- **Catalogue:** 29 permissions in `src/shared/permissions.ts`, seeded by migration 0003. A test keeps the code and the database identical.
+- **Roles:** administrators get everything. Managers get everything except changing settings, restoring a backup and importing data. Cashiers bill, look after customers and look up products and stock. Inventory operators look after products, stock, purchases and suppliers.
+- **Guard:** every IPC handler must declare an access rule (the compiler enforces it). The service host checks it before the handler runs and passes the actor to the service, which checks again. Refused requests are audited.
+- **No escalation:** you can only give a role, or change the account of someone who has it, if it grants nothing beyond your own permissions. So managers manage staff but can't create or touch administrators.
+- **UI:** navigation, routes and the Users screen follow the user's permissions. Home is the first screen the role can open. A read-only "What each role can do" matrix is on the Users screen.
+- **Manager approval:** a single-use, two-minute approval tied to one permission and one cashier, given with the approver's own password (throttled and audited). The renderer prompt and the `useManagerApproval()` hook are ready; POS (M11) is the first to use them.
+- **Tests:** every channel is called directly over IPC as signed-out, cashier and inventory-operator users, which proves each restricted one is refused and nothing changes. End-to-end tests cover the same in the real app.
+
+Roles are fixed in this version, so the mapping is explicit rather than configurable. Supervisor PINs are not supported; approvals use the approver's password.
+
 ### M07 · Audit Logging
 
 | ID | Task | Depends on | Size |

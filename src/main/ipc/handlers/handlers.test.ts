@@ -3,9 +3,8 @@ import { IPC_CHANNELS } from '@shared/ipc/contract'
 import type { AuthService } from '../../auth/authService'
 import { createTestLogger } from '../../test/helpers'
 import type { UserService } from '../../users/userService'
+import { createIpcHarness } from '../test/harness'
 import { createHandlers } from '.'
-
-const context = { webContentsId: 1 }
 
 function setup() {
   const logger = createTestLogger()
@@ -30,7 +29,8 @@ function setup() {
     auth: {} as AuthService,
     users: {} as UserService
   })
-  return { handlers, logger, appInfo, startup }
+  const { invoke } = createIpcHarness(handlers)
+  return { handlers, logger, appInfo, startup, invoke }
 }
 
 describe('IPC handlers', () => {
@@ -38,18 +38,19 @@ describe('IPC handlers', () => {
     expect(Object.keys(setup().handlers).sort()).toEqual([...IPC_CHANNELS].sort())
   })
 
-  it('return app info and startup status', async () => {
-    const { handlers, appInfo, startup } = setup()
-    expect(await handlers['app:get-info'].handle(undefined, context)).toEqual(appInfo)
-    expect(await handlers['app:get-startup-status'].handle(undefined, context)).toEqual(startup)
+  it('return app info and startup status, before anyone signs in', async () => {
+    const { invoke, appInfo, startup } = setup()
+    expect(await invoke('app:get-info')).toEqual(appInfo)
+    expect(await invoke('app:get-startup-status')).toEqual(startup)
   })
 
   it('write renderer log entries at the requested level', async () => {
-    const { handlers, logger } = setup()
-    await handlers['log:write'].handle(
-      { level: 'warn', message: 'Printer offline', context: { port: 'USB1' } },
-      context
-    )
+    const { invoke, logger } = setup()
+    await invoke('log:write', {
+      level: 'warn',
+      message: 'Printer offline',
+      context: { port: 'USB1' }
+    })
     expect(logger.warn).toHaveBeenCalledWith('Printer offline', { port: 'USB1' })
   })
 

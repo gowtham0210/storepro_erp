@@ -5,6 +5,7 @@
 import { z } from 'zod'
 import type { RoleCode } from '../ipc/contract'
 import { PASSWORD_MAX_LENGTH, passwordProblem } from '../passwordPolicy'
+import { PERMISSION_CODES, type PermissionCode } from '../permissions'
 import { requiredText } from '../validation'
 
 export const ROLE_CODES = [
@@ -79,3 +80,11 @@ export const setActiveSchema = z.object({
   userId: z.number().int().positive(),
   active: z.boolean()
 })
+
+export const permissionCode = z.enum(PERMISSION_CODES as [PermissionCode, ...PermissionCode[]])
+
+/** The approving user's credentials, as typed into the manager approval prompt. */
+export const overrideRequestSchema = credentialsSchema.extend({ permission: permissionCode })
+
+/** Added to the input of a request that a manager approval can unlock. */
+export const overrideId = z.uuid().optional()

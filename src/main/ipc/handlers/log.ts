@@ -13,6 +13,8 @@ export function createLogHandlers(rendererLogger: Logger): {
 } {
   return {
     'log:write': {
+      // Open to all: the sign-in screens log too.
+      access: 'public',
       input: rendererLogEntry,
       handle: ({ level, message, context }) => {
         rendererLogger[level](message, context)

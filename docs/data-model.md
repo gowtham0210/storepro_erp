@@ -282,8 +282,12 @@ Migrations so far:
 - 0001: the initial schema.
 - 0002: authentication. Adds `must_change_password` and `last_sign_in_at` to `users`, plus the
   `login_throttles` table.
+- 0003: permissions. Seeds the permission catalogue into `permissions` and each role's grants
+  into `role_permissions` (data only, no schema change). The codes and descriptions must match
+  `src/shared/permissions.ts`, and a test fails if they drift. The mapping is in
+  [`permissions.md`](permissions.md).
 
-Neither has shipped yet, so they may still be edited until the first release. A test upgrades a
+None has shipped yet, so they may still be edited until the first release. A test upgrades a
 populated v1 database to v2.
 
 ## 9. Performance

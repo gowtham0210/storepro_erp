@@ -1,9 +1,11 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { KeyRound, Pencil, UserCheck, UserPlus, UserX } from 'lucide-react'
+import { Check, KeyRound, Pencil, ShieldCheck, UserCheck, UserPlus, UserX } from 'lucide-react'
 import { useState } from 'react'
 import { z } from 'zod'
-import type { RoleCode, UserSummary } from '@shared/ipc/contract'
+import type { RoleCode, RoleSummary, UserSummary } from '@shared/ipc/contract'
+import { canGrant, PERMISSION_GROUPS } from '@shared/permissions'
 import { displayName, roleCode, username } from '@shared/schemas/users'
+import { usePermissions } from '../auth/permissions'
 import { withConfirmedPassword, PASSWORD_HINT } from '../auth/SetupAdminScreen'
 import { useCurrentUser, useRefreshAuth } from '../auth/useAuth'
 import {
@@ -33,16 +35,37 @@ type DialogState =
   | { kind: 'create' }
   | { kind: 'edit'; user: UserSummary }
   | { kind: 'reset'; user: UserSummary }
+  | { kind: 'roles' }
   | null
 
-/** M05-05: who can sign in on this computer, and with which role. Administrators only. */
+const ADMINISTRATORS_ONLY = 'Only an administrator can change this account.'
+
+/**
+ * Roles the signed-in user may give out, and so whose accounts they may
+ * change: those granting nothing beyond their own permissions (M06). The main
+ * process enforces the same rule.
+ */
+function useGrantableRoles(): { roles: RoleSummary[]; grantable: Set<RoleCode> } {
+  const mine = usePermissions()
+  const roles = useIpcQuery('users:list-roles').data ?? []
+  return {
+    roles,
+    grantable: new Set(
+      roles.filter((role) => canGrant(mine, role.permissions)).map((role) => role.roleCode)
+    )
+  }
+}
+
+/** M05-05, M06: who can sign in on this computer, with which role, and what each role allows. */
 export default function UsersPage(): React.JSX.Element {
   const me = useCurrentUser()
   const queryClient = useQueryClient()
   const confirm = useConfirm()
   const toast = useToast()
   const users = useIpcQuery('users:list')
+  const { grantable } = useGrantableRoles()
   const [dialog, setDialog] = useState<DialogState>(null)
+  const canChange = (user: UserSummary): boolean => grantable.has(user.roleCode)
 
   const reload = () => queryClient.invalidateQueries({ queryKey: ['users:list'] })
 
@@ -104,36 +127,39 @@ export default function UsersPage(): React.JSX.Element {
       id: 'actions',
       header: 'Actions',
       align: 'right',
-      cell: (user) => (
-        <span className="inline-flex gap-1" onClick={(event) => event.stopPropagation()}>
-          <Button
-            size="sm"
-            variant="ghost"
-            icon={<Pencil />}
-            onClick={() => setDialog({ kind: 'edit', user })}
-          >
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            icon={<KeyRound />}
-            onClick={() => setDialog({ kind: 'reset', user })}
-          >
-            Reset password
-          </Button>
-          {user.userId !== me.userId && (
+      cell: (user) =>
+        !canChange(user) ? (
+          <span className="text-sm text-fg-muted">{ADMINISTRATORS_ONLY}</span>
+        ) : (
+          <span className="inline-flex gap-1" onClick={(event) => event.stopPropagation()}>
             <Button
               size="sm"
               variant="ghost"
-              icon={user.active ? <UserX /> : <UserCheck />}
-              onClick={() => void toggleActive(user)}
+              icon={<Pencil />}
+              onClick={() => setDialog({ kind: 'edit', user })}
             >
-              {user.active ? 'Deactivate' : 'Reactivate'}
+              Edit
             </Button>
-          )}
-        </span>
-      )
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<KeyRound />}
+              onClick={() => setDialog({ kind: 'reset', user })}
+            >
+              Reset password
+            </Button>
+            {user.userId !== me.userId && (
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={user.active ? <UserX /> : <UserCheck />}
+                onClick={() => void toggleActive(user)}
+              >
+                {user.active ? 'Deactivate' : 'Reactivate'}
+              </Button>
+            )}
+          </span>
+        )
     }
   ]
 
@@ -143,13 +169,18 @@ export default function UsersPage(): React.JSX.Element {
         title="Users"
         description="People who can sign in to StorePro on this computer, and what they can do."
         actions={
-          <Button
-            variant="primary"
-            icon={<UserPlus />}
-            onClick={() => setDialog({ kind: 'create' })}
-          >
-            Add user
-          </Button>
+          <>
+            <Button icon={<ShieldCheck />} onClick={() => setDialog({ kind: 'roles' })}>
+              What each role can do
+            </Button>
+            <Button
+              variant="primary"
+              icon={<UserPlus />}
+              onClick={() => setDialog({ kind: 'create' })}
+            >
+              Add user
+            </Button>
+          </>
         }
       />
       {users.error ? (
@@ -163,7 +194,10 @@ export default function UsersPage(): React.JSX.Element {
           rows={users.data ?? []}
           getRowId={(user) => user.userId}
           loading={users.isPending}
-          onRowActivate={(user) => setDialog({ kind: 'edit', user })}
+          onRowActivate={(user) => {
+            if (canChange(user)) setDialog({ kind: 'edit', user })
+            else toast.info(ADMINISTRATORS_ONLY)
+          }}
           empty={<EmptyState title="No users yet" />}
         />
       )}
@@ -181,13 +215,89 @@ export default function UsersPage(): React.JSX.Element {
       {dialog?.kind === 'reset' && (
         <ResetPasswordDialog user={dialog.user} onClose={() => setDialog(null)} onSaved={reload} />
       )}
+      {dialog?.kind === 'roles' && <RolePermissionsDialog onClose={() => setDialog(null)} />}
     </>
   )
 }
 
+/** Only the roles you may give out are offered, so a choice never fails on save. */
 function useRoleOptions() {
-  const roles = useIpcQuery('users:list-roles')
-  return (roles.data ?? []).map((role) => ({ value: role.roleCode, label: role.name }))
+  const { roles, grantable } = useGrantableRoles()
+  return roles
+    .filter((role) => grantable.has(role.roleCode))
+    .map((role) => ({ value: role.roleCode, label: role.name }))
+}
+
+/** Read-only: the roles are fixed in this version (docs/permissions.md). */
+function RolePermissionsDialog({ onClose }: { onClose: () => void }): React.JSX.Element {
+  const { roles } = useGrantableRoles()
+  return (
+    <Dialog
+      open
+      onClose={onClose}
+      size="lg"
+      title="What each role can do"
+      description="Give each person the role with the least access they need. Restricted actions at the counter can be approved by a manager for one sale."
+      footer={<Button onClick={onClose}>Close</Button>}
+    >
+      <table className="w-full border-collapse text-sm">
+        <caption className="sr-only">Permissions of each role</caption>
+        <thead className="sticky top-0 bg-surface">
+          <tr>
+            <th scope="col" className="border-b border-divider py-2 pr-3 text-left font-semibold">
+              Permission
+            </th>
+            {roles.map((role) => (
+              <th
+                key={role.roleCode}
+                scope="col"
+                className="border-b border-divider px-2 py-2 text-center font-semibold"
+              >
+                {role.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        {PERMISSION_GROUPS.map((group) => (
+          <tbody key={group.id}>
+            <tr>
+              <th
+                scope="colgroup"
+                colSpan={roles.length + 1}
+                className="pt-4 pb-1 text-left font-semibold text-fg-muted"
+              >
+                {group.label}
+              </th>
+            </tr>
+            {group.permissions.map((permission) => (
+              <tr key={permission.code} className="border-b border-divider">
+                <th scope="row" className="py-1.5 pr-3 text-left font-normal">
+                  {permission.description}
+                </th>
+                {roles.map((role) => (
+                  <td key={role.roleCode} className="px-2 py-1.5 text-center">
+                    {role.permissions.includes(permission.code) ? (
+                      <>
+                        <Check aria-hidden className="inline size-4 text-success" />
+                        <span className="sr-only">Allowed</span>
+                      </>
+                    ) : (
+                      <>
+                        <span aria-hidden className="text-fg-muted">
+                          –
+                        </span>
+                        <span className="sr-only">Not allowed</span>
+                      </>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        ))}
+      </table>
+    </Dialog>
+  )
 }
 
 interface DialogProps {
@@ -277,17 +387,22 @@ function EditUserDialog({
   const confirm = useConfirm()
   const refreshAuth = useRefreshAuth()
   const roleOptions = useRoleOptions()
+  const { roles } = useGrantableRoles()
+  const myPermissions = usePermissions()
   const [error, setError] = useState<string | null>(null)
   const form = useForm({
     schema: editSchema,
     initialValues: { displayName: user.displayName, roleCode: user.roleCode },
     onSubmit: async (changes) => {
       setError(null)
-      if (isMe && user.roleCode === 'administrator' && changes.roleCode !== 'administrator') {
+      const newRole = roles.find((role) => role.roleCode === changes.roleCode)
+      // Taking away your own access can't be undone by you: say so first.
+      if (isMe && newRole && !canGrant(newRole.permissions, myPermissions)) {
         const ok = await confirm({
-          title: 'Remove your own administrator role?',
-          description:
-            "You'll lose access to user management straight away. Another administrator will have to give it back.",
+          title: `Remove your own ${user.roleName.toLowerCase()} role?`,
+          description: newRole.permissions.includes('user.manage')
+            ? "You'll lose some of your access straight away, and only someone with more access can give it back."
+            : "You'll lose access to user management straight away. Someone else will have to give it back.",
           confirmLabel: 'Change my role',
           tone: 'danger'
         })

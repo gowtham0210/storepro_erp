@@ -1,6 +1,7 @@
 import type { Migration } from '../migrator'
 import initialSchema from './0001_initial_schema.sql?raw'
 import authentication from './0002_authentication.sql?raw'
+import permissions from './0003_permissions.sql?raw'
 
 /**
  * Every schema change, in order. Rules:
@@ -12,5 +13,6 @@ import authentication from './0002_authentication.sql?raw'
  */
 export const migrations: readonly Migration[] = [
   { version: 1, name: 'initial_schema', sql: initialSchema },
-  { version: 2, name: 'authentication', sql: authentication }
+  { version: 2, name: 'authentication', sql: authentication },
+  { version: 3, name: 'permissions', sql: permissions }
 ]

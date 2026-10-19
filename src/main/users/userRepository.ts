@@ -1,4 +1,5 @@
-import type { RoleCode, RoleSummary, SessionUser, UserSummary } from '@shared/ipc/contract'
+import type { RoleCode, SessionUser, UserSummary } from '@shared/ipc/contract'
+import type { PermissionCode } from '@shared/permissions'
 import { Repository } from '../db/repository'
 
 interface UserRow {
@@ -42,14 +43,15 @@ export function toSummary({ passwordHash: _hash, ...summary }: UserRecord): User
   return summary
 }
 
-export function toSessionUser(user: UserRecord): SessionUser {
+export function toSessionUser(user: UserRecord, permissions: PermissionCode[]): SessionUser {
   return {
     userId: user.userId,
     username: user.username,
     displayName: user.displayName,
     roleCode: user.roleCode,
     roleName: user.roleName,
-    mustChangePassword: user.mustChangePassword
+    mustChangePassword: user.mustChangePassword,
+    permissions
   }
 }
 
@@ -78,14 +80,6 @@ export class UserRepository extends Repository {
         `${SELECT_USER} ORDER BY u.archived_at IS NOT NULL, u.display_name COLLATE NOCASE`
       )
       .map(toRecord)
-  }
-
-  listRoles(): RoleSummary[] {
-    return this.db
-      .all<{ role_code: RoleCode; name: string }>(
-        'SELECT role_code, name FROM roles ORDER BY role_id'
-      )
-      .map((r) => ({ roleCode: r.role_code, name: r.name }))
   }
 
   countActiveAdministrators(): number {

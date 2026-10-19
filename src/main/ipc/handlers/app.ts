@@ -13,10 +13,12 @@ export function createAppHandlers(deps: AppHandlerDeps): {
 } {
   return {
     'app:get-info': {
+      access: 'public',
       input: z.void(),
       handle: () => deps.getAppInfo()
     },
     'app:get-startup-status': {
+      access: 'public',
       input: z.void(),
       handle: () => deps.getStartupStatus()
     }

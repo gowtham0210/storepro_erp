@@ -13,7 +13,8 @@ import {
   Warehouse
 } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { hasPermission, type AccessState } from '../state/accessStore'
+import type { PermissionCode } from '@shared/permissions'
+import { hasPermission } from '../auth/permissions'
 
 export interface NavItem {
   id: string
@@ -23,7 +24,7 @@ export interface NavItem {
   /** Fixed per item, so muscle memory survives items being hidden. */
   shortcut?: string
   /** Hidden unless the user has this permission. */
-  permission?: string
+  permission?: PermissionCode
   /** Hidden unless this business module is enabled. */
   module?: string
   /** Planned module that builds the screen; shown on placeholders. */
@@ -184,21 +185,21 @@ export const DEV_NAVIGATION: NavGroup = {
   ]
 }
 
-export function isItemVisible(
-  item: NavItem,
-  access: Pick<AccessState, 'modules' | 'permissions'>
-): boolean {
+/** What decides which screens someone sees: enabled modules and their permissions. */
+export interface Access {
+  modules: readonly string[]
+  permissions: readonly PermissionCode[]
+}
+
+export function isItemVisible(item: NavItem, access: Access): boolean {
   return (
-    hasPermission(access, item.permission) &&
+    hasPermission(access.permissions, item.permission) &&
     (item.module === undefined || access.modules.includes(item.module))
   )
 }
 
 /** Groups and items the user may see; empty groups are dropped. */
-export function visibleNavigation(
-  groups: readonly NavGroup[],
-  access: Pick<AccessState, 'modules' | 'permissions'>
-): NavGroup[] {
+export function visibleNavigation(groups: readonly NavGroup[], access: Access): NavGroup[] {
   return groups
     .map((group) => ({
       ...group,

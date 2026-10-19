@@ -2,21 +2,29 @@ import type {
   AuthState,
   Credentials,
   NewAdministrator,
+  OverrideApproval,
+  OverrideRequest,
   PasswordChange,
   SessionUser
 } from '@shared/ipc/contract'
 import { AppError } from '@shared/ipc/errors'
 import { passwordProblem } from '@shared/passwordPolicy'
+import type { PermissionCode } from '@shared/permissions'
 import type { AuditLog } from '../audit/auditLog'
 import type { Database } from '../db/database'
 import type { Logger } from '../logging/logger'
 import { toSessionUser, type UserRecord, type UserRepository } from '../users/userRepository'
+import { can, forbidden, type Actor, type HandlerAccess } from './access'
 import type { LoginThrottle } from './loginThrottle'
+import type { OverrideGrants } from './overrideGrants'
 import type { PasswordHasher } from './passwords'
+import type { RoleRepository } from './roleRepository'
 
 export interface AuthServiceDeps {
   db: Database
   users: UserRepository
+  roles: RoleRepository
+  overrides: OverrideGrants
   hasher: PasswordHasher
   throttle: LoginThrottle
   audit: AuditLog
@@ -26,10 +34,10 @@ export interface AuthServiceDeps {
 const WRONG_CREDENTIALS = 'The username or password is incorrect.'
 
 /**
- * Sign-in and the session (M05-02, M05-03). There is one session per app: the
- * person at this computer. It lives only in the main process and ends when the
- * app closes. The renderer is told who is signed in but never holds a token
- * it could leak.
+ * Sign-in, the session and authorization (M05-02, M05-03, M06-03, M06-05).
+ * There is one session per app: the person at this computer. It lives only in
+ * the main process and ends when the app closes. The renderer is told who is
+ * signed in but never holds a token it could leak.
  */
 export class AuthService {
   private session: { userId: number; locked: boolean } | null = null
@@ -41,7 +49,10 @@ export class AuthService {
     const user = this.sessionUser()
     if (!user)
       return this.deps.users.count() === 0 ? { status: 'setup-required' } : { status: 'signed-out' }
-    return { status: this.session?.locked ? 'locked' : 'signed-in', user: toSessionUser(user) }
+    return {
+      status: this.session?.locked ? 'locked' : 'signed-in',
+      user: toSessionUser(user, this.deps.roles.permissionsOf(user.roleCode))
+    }
   }
 
   /** First run only (M05-04): creates the first administrator and signs them in. */
@@ -64,7 +75,7 @@ export class AuthService {
       audit.record({ action: 'user.sign_in', userId: id, entity: { type: 'user', id } })
       return id
     })
-    this.session = { userId, locked: false }
+    this.startSession(userId)
     return this.requireSessionUser()
   }
 
@@ -84,13 +95,14 @@ export class AuthService {
         entity: { type: 'user', id: user.userId }
       })
     })
-    this.session = { userId: user.userId, locked: false }
+    this.startSession(user.userId)
     return this.requireSessionUser()
   }
 
   signOut(): void {
     const userId = this.session?.userId
     this.session = null
+    this.deps.overrides.clear()
     if (userId !== undefined) {
       this.deps.audit.record({
         action: 'user.sign_out',
@@ -103,6 +115,7 @@ export class AuthService {
   /** Lock the screen without signing out (Ctrl+L, or after inactivity). */
   lock(): void {
     if (this.session && this.sessionUser()) this.session.locked = true
+    this.deps.overrides.clear()
   }
 
   async unlock(password: string): Promise<SessionUser> {
@@ -140,7 +153,7 @@ export class AuthService {
   /**
    * The signed-in, unlocked user, re-read from the database on every call so
    * deactivation and role changes take effect immediately. Every handler that
-   * needs a user goes through this (or requireAdministrator).
+   * needs a user goes through this, usually via authorize().
    */
   requireUser(options: { allowPasswordChangeRequired?: boolean } = {}): UserRecord {
     const user = this.sessionUser()
@@ -155,13 +168,115 @@ export class AuthService {
     return user
   }
 
-  /** Until M06 introduces permissions, managing users is for administrators. */
-  requireAdministrator(): UserRecord {
-    const user = this.requireUser()
-    if (user.roleCode !== 'administrator') {
-      throw new AppError('FORBIDDEN', 'Only an administrator can do this.')
+  /**
+   * The permission guard (M06-03). The service host calls this for every
+   * request before the handler runs, with the access the handler declared.
+   * Returns who the request runs as (null for public channels), or throws
+   * UNAUTHENTICATED or FORBIDDEN.
+   *
+   * A request the user's role doesn't allow can still go ahead if the handler
+   * is `overridable` and the request carries a valid manager approval.
+   */
+  authorize(
+    access: HandlerAccess,
+    { overridable = false, overrideId }: { overridable?: boolean; overrideId?: string } = {}
+  ): Actor | null {
+    if (access === 'public') return null
+    const user = this.requireUser({ allowPasswordChangeRequired: access === 'password-change' })
+    const actor = this.actorFor(user)
+    if (access === 'password-change' || access === 'signed-in' || can(actor, access)) return actor
+    if (overridable && overrideId !== undefined) return this.useOverride(actor, access, overrideId)
+    this.deps.audit.record({
+      action: 'access.denied',
+      userId: actor.userId,
+      details: { permission: access }
+    })
+    throw forbidden(access, overridable)
+  }
+
+  /**
+   * Another user approves one restricted request for the signed-in user by
+   * typing their own username and password (M06-05). Throttled and audited
+   * like a sign-in. Returns a single-use approval id.
+   */
+  async approveOverride(
+    actor: Actor,
+    { permission, username, password }: OverrideRequest
+  ): Promise<OverrideApproval> {
+    const { roles, overrides, audit } = this.deps
+    if (can(actor, permission)) {
+      throw new AppError('CONFLICT', 'You can already do this without approval.')
     }
-    return user
+    const approver = await this.checkPassword(username, password, WRONG_CREDENTIALS, {
+      action: 'override.denied',
+      details: { permission, requestedBy: actor.userId }
+    })
+    if (approver.mustChangePassword) {
+      throw new AppError(
+        'FORBIDDEN',
+        `${approver.displayName} must choose a new password before approving anything.`
+      )
+    }
+    if (!roles.permissionsOf(approver.roleCode).includes(permission)) {
+      audit.record({
+        action: 'override.denied',
+        userId: approver.userId,
+        details: { permission, requestedBy: actor.userId, reason: 'not_permitted' }
+      })
+      throw new AppError('FORBIDDEN', `${approver.displayName} isn't allowed to approve this.`)
+    }
+    const { overrideId, expiresAt } = overrides.issue({
+      permission,
+      requestedBy: actor.userId,
+      approvedBy: approver.userId
+    })
+    audit.record({
+      action: 'override.approved',
+      userId: approver.userId,
+      entity: { type: 'user', id: actor.userId },
+      details: { permission }
+    })
+    return { overrideId, approvedBy: approver.displayName, expiresAt }
+  }
+
+  private useOverride(actor: Actor, permission: PermissionCode, overrideId: string): Actor {
+    const grant = this.deps.overrides.take(overrideId, actor.userId, permission)
+    // The approver must still be active and still allowed to do this.
+    const approver = grant ? this.deps.users.findById(grant.approvedBy) : null
+    if (
+      !approver?.active ||
+      !this.deps.roles.permissionsOf(approver.roleCode).includes(permission)
+    ) {
+      throw new AppError(
+        'FORBIDDEN',
+        'That approval has expired or was already used. Ask for approval again.',
+        { permission, overridable: true }
+      )
+    }
+    return {
+      ...actor,
+      permissions: new Set([...actor.permissions, permission]),
+      override: {
+        permission,
+        approvedBy: { userId: approver.userId, displayName: approver.displayName }
+      }
+    }
+  }
+
+  private actorFor(user: UserRecord): Actor {
+    return {
+      userId: user.userId,
+      username: user.username,
+      displayName: user.displayName,
+      roleCode: user.roleCode,
+      permissions: new Set(this.deps.roles.permissionsOf(user.roleCode)),
+      override: null
+    }
+  }
+
+  private startSession(userId: number): void {
+    this.deps.overrides.clear()
+    this.session = { userId, locked: false }
   }
 
   /**
@@ -171,7 +286,10 @@ export class AuthService {
   private async checkPassword(
     username: string,
     password: string,
-    wrongMessage: string
+    wrongMessage: string,
+    failure: { action: string; details?: Record<string, unknown> } = {
+      action: 'user.sign_in_failed'
+    }
   ): Promise<UserRecord> {
     const { users, hasher, throttle, audit } = this.deps
     const retryAfterMs = throttle.retryAfterMs(username)
@@ -185,9 +303,9 @@ export class AuthService {
     if (!user || !valid || !user.active) {
       throttle.recordFailure(username)
       audit.record({
-        action: 'user.sign_in_failed',
+        action: failure.action,
         userId: user?.userId ?? null,
-        details: { username: username.trim().slice(0, 64) }
+        details: { ...failure.details, username: username.trim().slice(0, 64) }
       })
       const lockedFor = throttle.retryAfterMs(username)
       throw new AppError(
@@ -219,6 +337,6 @@ export class AuthService {
   private requireSessionUser(): SessionUser {
     const user = this.sessionUser()
     if (!user) throw new AppError('UNAUTHENTICATED', 'Sign in to continue.')
-    return toSessionUser(user)
+    return toSessionUser(user, this.deps.roles.permissionsOf(user.roleCode))
   }
 }

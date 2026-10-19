@@ -2,11 +2,11 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useAccessStore } from '../state/accessStore'
 import { useUiStore } from '../state/uiStore'
-import { ADMIN, fakeBackend } from '../test/fakeBackend'
+import { fakeBackend, userWithRole } from '../test/fakeBackend'
 import { renderApp } from '../test/renderApp'
 
 afterEach(() => {
-  useAccessStore.setState({ modules: ['grocery'], permissions: 'all' })
+  useAccessStore.setState({ modules: ['grocery'] })
   useUiStore.setState({ uiScale: 100, sidebarCollapsed: false })
 })
 
@@ -39,7 +39,7 @@ describe('AppShell', () => {
   it('hides screens the user may not open, and explains when one is opened directly', async () => {
     fakeBackend.authState = {
       status: 'signed-in',
-      user: { ...ADMIN, userId: 2, username: 'cashier1', roleCode: 'cashier', roleName: 'Cashier' }
+      user: userWithRole('cashier')
     }
     renderApp('/users')
     expect(await screen.findByText("You don't have access to Users")).toBeTruthy()

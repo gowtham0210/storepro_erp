@@ -2,9 +2,8 @@ import { useEffect, useRef, type ReactNode } from 'react'
 import { Spinner } from '../components/ui/Spinner'
 import { invoke } from '../ipc/client'
 import { useShortcut } from '../shortcuts/ShortcutProvider'
-import { useAccessStore } from '../state/accessStore'
 import { ForcedPasswordChangeScreen } from './ForcedPasswordChangeScreen'
-import { interimPermissionsFor } from './interimPermissions'
+import { ManagerApprovalProvider } from './ManagerApproval'
 import { LockScreen } from './LockScreen'
 import { SetupAdminScreen } from './SetupAdminScreen'
 import { SignInScreen } from './SignInScreen'
@@ -19,12 +18,6 @@ export const IDLE_LOCK_MS = 15 * 60_000
  */
 export function AuthGate({ children }: { children: ReactNode }): React.JSX.Element {
   const { state } = useAuthState()
-  const setAccess = useAccessStore((s) => s.setAccess)
-  const user = state?.status === 'signed-in' || state?.status === 'locked' ? state.user : null
-
-  useEffect(() => {
-    if (user) setAccess({ modules: ['grocery'], permissions: interimPermissionsFor(user.roleCode) })
-  }, [user, setAccess])
 
   if (!state) {
     return (
@@ -42,7 +35,7 @@ export function AuthGate({ children }: { children: ReactNode }): React.JSX.Eleme
     <>
       <div inert={locked} aria-hidden={locked || undefined} className="contents">
         <SessionControls enabled={!locked} />
-        {children}
+        <ManagerApprovalProvider>{children}</ManagerApprovalProvider>
       </div>
       {locked && <LockScreen user={state.user} />}
     </>

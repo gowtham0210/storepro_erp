@@ -3,10 +3,12 @@ import type {
   IpcChannel,
   IpcInput,
   IpcOutput,
+  RoleSummary,
   SessionUser,
   StoreProBridge
 } from '@shared/ipc/contract'
 import { AppError, type IpcResult } from '@shared/ipc/errors'
+import { PERMISSION_CODES, type PermissionCode } from '@shared/permissions'
 
 export const ADMIN: SessionUser = {
   userId: 1,
@@ -14,7 +16,61 @@ export const ADMIN: SessionUser = {
   displayName: 'Ravi Kumar',
   roleCode: 'administrator',
   roleName: 'Administrator',
-  mustChangePassword: false
+  mustChangePassword: false,
+  permissions: [...PERMISSION_CODES]
+}
+
+/** What the seeded roles allow (migration 0003), for tests that sign in as someone else. */
+export const ROLE_PERMISSIONS = {
+  administrator: [...PERMISSION_CODES],
+  manager: PERMISSION_CODES.filter(
+    (code) => !['settings.edit', 'backup.restore', 'data.import'].includes(code)
+  ),
+  cashier: [
+    'sale.create',
+    'sale.view',
+    'discount.apply',
+    'customer.view',
+    'customer.manage',
+    'product.view',
+    'inventory.view'
+  ],
+  inventory_operator: [
+    'product.view',
+    'product.manage',
+    'inventory.view',
+    'stock.adjust',
+    'purchase.view',
+    'purchase.manage',
+    'supplier.view',
+    'supplier.manage'
+  ]
+} satisfies Record<SessionUser['roleCode'], PermissionCode[]>
+
+export const ROLES: RoleSummary[] = (
+  [
+    ['administrator', 'Administrator'],
+    ['manager', 'Manager'],
+    ['cashier', 'Cashier'],
+    ['inventory_operator', 'Inventory operator']
+  ] as const
+).map(([roleCode, name]) => ({ roleCode, name, permissions: [...ROLE_PERMISSIONS[roleCode]] }))
+
+/** A signed-in user with the given role and that role's permissions. */
+export function userWithRole(
+  roleCode: SessionUser['roleCode'],
+  overrides: Partial<SessionUser> = {}
+): SessionUser {
+  return {
+    ...ADMIN,
+    userId: 2,
+    username: roleCode.replace('_', '-'),
+    displayName: 'Meena Sundar',
+    roleCode,
+    roleName: ROLES.find((role) => role.roleCode === roleCode)?.name ?? roleCode,
+    permissions: [...ROLE_PERMISSIONS[roleCode]],
+    ...overrides
+  }
 }
 
 type Handler<C extends IpcChannel> = (input: IpcInput<C>) => IpcOutput<C> | Promise<IpcOutput<C>>
@@ -77,8 +133,9 @@ class FakeBackend {
       case 'auth:get-state':
         return this.authState
       case 'users:list':
-      case 'users:list-roles':
         return []
+      case 'users:list-roles':
+        return ROLES
       default:
         return undefined
     }

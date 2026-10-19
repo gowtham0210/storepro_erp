@@ -94,23 +94,27 @@ docs/                 Data model, UI guidelines, testing guide, planning documen
 - **Sessions.** The session lives only in the main process and ends when the app closes. Ctrl+L
   or 15 minutes of inactivity locks the screen without losing work underneath. A password reset by
   an administrator must be changed at the next sign-in.
-- **Enforcement.** Handlers call `auth.requireUser()` / `auth.requireAdministrator()` on every
-  request, re-reading the user, so deactivation and role changes apply immediately. Hiding
-  screens in the UI is only a convenience. M06 replaces the administrator check with role
-  permissions.
-- **Audit.** Sign-ins (including failures), sign-outs and every user change are written to
-  `audit_logs`. Passwords never are.
+- **Permissions.** Every IPC handler declares who may call it, and the service host checks it
+  before the handler runs. The user is re-read on every request, so deactivation and role changes
+  apply immediately. Hiding screens in the UI is only a convenience. See
+  [`docs/permissions.md`](docs/permissions.md) for the roles, the no-escalation rule and manager
+  approvals.
+- **Audit.** Sign-ins (including failures), sign-outs, refused requests, manager approvals and
+  every user change are written to `audit_logs`. Passwords never are.
 
 ### Adding an IPC channel
 
 1. Declare it in `IpcContract` and `channelRegistry` in `src/shared/ipc/contract.ts`.
-2. Add a handler with a Zod `input` schema under `src/main/ipc/handlers/` and include it in
-   `createHandlers`. The compiler reports a channel that has no handler.
+2. Add a handler under `src/main/ipc/handlers/` and include it in `createHandlers`. It needs a Zod
+   `input` schema and an `access` rule: `'public'`, `'signed-in'` or a permission code such as
+   `'stock.adjust'`. The compiler reports a channel that has no handler or no access rule.
 3. Call it from the renderer with `invoke('channel:name', input)` from `src/renderer/src/ipc/client.ts`.
    Failures throw `AppError` with a `code`.
 
-A handler that needs a signed-in user gets it from `AuthService` (`requireUser()` or
-`requireAdministrator()`). Permission checks (M06) will plug in the same way.
+A guarded handler receives the signed-in user as `context.actor` and passes it to the service. The
+service checks the permission again with `assertCan(actor, ...)`. Add a sample input for the new
+channel to `SAMPLE_INPUTS` in `src/main/ipc/accessControl.test.ts`, which proves the channel
+refuses signed-out users and roles without the permission.
 
 ### Reliability
 

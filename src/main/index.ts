@@ -4,7 +4,9 @@ import type { AppInfo, StartupStatus } from '@shared/ipc/contract'
 import { AuditLog } from './audit/auditLog'
 import { AuthService } from './auth/authService'
 import { LoginThrottle } from './auth/loginThrottle'
+import { OverrideGrants } from './auth/overrideGrants'
 import { PasswordHasher } from './auth/passwords'
+import { RoleRepository } from './auth/roleRepository'
 import { DatabaseIntegrityError, DatabaseTooNewError, openStoreDatabase, type Database } from './db'
 import { createHandlers } from './ipc/handlers'
 import { systemClock } from './lib/clock'
@@ -141,6 +143,7 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
     createHandlers({ logger, getAppInfo, getStartupStatus: () => startupStatus, ...services }),
     {
       isTrustedSender: (event) => isAllowedOrigin(event.senderFrame?.url ?? '', allowedOrigins),
+      authorizer: services.auth,
       logger: logger.child('ipc')
     }
   )
@@ -164,17 +167,20 @@ function createServices(db: Database, logger: Logger): { auth: AuthService; user
   const clock = systemClock
   const audit = new AuditLog(db, clock)
   const userRepository = new UserRepository(db, clock)
+  const roles = new RoleRepository(db, clock)
   const hasher = new PasswordHasher()
   const throttle = new LoginThrottle(db, clock)
   const auth = new AuthService({
     db,
     users: userRepository,
+    roles,
+    overrides: new OverrideGrants(clock),
     hasher,
     throttle,
     audit,
     logger: logger.child('auth')
   })
-  const users = new UserService({ db, users: userRepository, auth, hasher, throttle, audit })
+  const users = new UserService({ db, users: userRepository, roles, hasher, throttle, audit })
   return { auth, users }
 }
 

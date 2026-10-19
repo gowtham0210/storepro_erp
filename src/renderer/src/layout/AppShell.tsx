@@ -1,6 +1,7 @@
 import { Keyboard } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router'
+import { usePermissions } from '../auth/permissions'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { useIpcQuery } from '../ipc/hooks'
@@ -36,7 +37,7 @@ export function AppShell(): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
   const modules = useAccessStore((s) => s.modules)
-  const permissions = useAccessStore((s) => s.permissions)
+  const permissions = usePermissions()
   const {
     sidebarCollapsed,
     uiScale,

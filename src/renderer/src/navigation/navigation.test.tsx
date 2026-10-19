@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { PERMISSION_CODES } from '@shared/permissions'
 import { NAVIGATION, visibleNavigation, type NavGroup } from './navigation'
+
+const everything = { modules: ['grocery'], permissions: PERMISSION_CODES }
 
 describe('visibleNavigation', () => {
   it('shows everything when the user has every permission', () => {
-    const groups = visibleNavigation(NAVIGATION, { modules: ['grocery'], permissions: 'all' })
+    const groups = visibleNavigation(NAVIGATION, everything)
     expect(groups.flatMap((g) => g.items).length).toBe(11)
   })
 
@@ -34,10 +37,10 @@ describe('visibleNavigation', () => {
         ]
       }
     ]
-    expect(visibleNavigation(withModule, { modules: ['grocery'], permissions: 'all' })).toEqual([])
-    expect(
-      visibleNavigation(withModule, { modules: ['restaurant'], permissions: 'all' })
-    ).toHaveLength(1)
+    expect(visibleNavigation(withModule, everything)).toEqual([])
+    expect(visibleNavigation(withModule, { ...everything, modules: ['restaurant'] })).toHaveLength(
+      1
+    )
   })
 
   it('never gives two screens the same shortcut', () => {

@@ -12,6 +12,7 @@
  * sandboxed preload script.
  */
 
+import type { PermissionCode } from '../permissions'
 import type { IpcResult } from './errors'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -53,6 +54,8 @@ export interface SessionUser {
   roleName: string
   /** Set after an administrator reset the password: the user must choose a new one. */
   mustChangePassword: boolean
+  /** What the user's role allows, in catalogue order. Shapes the UI only; the main process enforces. */
+  permissions: PermissionCode[]
 }
 
 export type AuthState =
@@ -93,6 +96,21 @@ export interface UserSummary {
 export interface RoleSummary {
   roleCode: RoleCode
   name: string
+  permissions: PermissionCode[]
+}
+
+/** Another user's credentials, approving one restricted request (M06-05). */
+export interface OverrideRequest {
+  permission: PermissionCode
+  username: string
+  password: string
+}
+
+export interface OverrideApproval {
+  /** Pass as `overrideId` with the request it approves. Single use. */
+  overrideId: string
+  approvedBy: string
+  expiresAt: number
 }
 
 export interface NewUser {
@@ -119,6 +137,7 @@ export interface IpcContract {
   'auth:lock': { input: void; output: void }
   'auth:unlock': { input: { password: string }; output: SessionUser }
   'auth:change-password': { input: PasswordChange; output: SessionUser }
+  'auth:approve-override': { input: OverrideRequest; output: OverrideApproval }
   'users:list': { input: void; output: UserSummary[] }
   'users:list-roles': { input: void; output: RoleSummary[] }
   'users:create': { input: NewUser; output: UserSummary }
@@ -146,6 +165,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'auth:lock': true,
   'auth:unlock': true,
   'auth:change-password': true,
+  'auth:approve-override': true,
   'users:list': true,
   'users:list-roles': true,
   'users:create': true,

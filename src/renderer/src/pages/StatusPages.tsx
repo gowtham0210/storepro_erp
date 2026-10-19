@@ -26,6 +26,22 @@ export function NotFoundPage(): React.JSX.Element {
   )
 }
 
+/** For a role that can open no screen at all: nothing is broken, they just need access. */
+export function NoScreensPage(): React.JSX.Element {
+  return (
+    <>
+      <PageHeader title="Welcome" />
+      <Card>
+        <EmptyState
+          icon={<Lock />}
+          title="Your role doesn't include any screens yet"
+          description="Ask a manager or administrator to give you the access you need."
+        />
+      </Card>
+    </>
+  )
+}
+
 export function AccessDeniedPage({ screen }: { screen: string }): React.JSX.Element {
   return (
     <>

@@ -117,14 +117,9 @@ describe('users page dialogs', () => {
     lastSignInAt: Date.UTC(2026, 9, 19, 4, 30),
     createdAt: 0
   }
-  const roles = [
-    { roleCode: 'administrator' as const, name: 'Administrator' },
-    { roleCode: 'manager' as const, name: 'Manager' }
-  ]
 
   it('warns before you remove your own administrator role', async () => {
     fakeBackend.on('users:list', () => [owner])
-    fakeBackend.on('users:list-roles', () => roles)
     fakeBackend.on('users:update', (input) => ({ ...owner, ...input, roleName: 'Manager' }))
     renderApp('/users')
     await screen.findByText('(you)')

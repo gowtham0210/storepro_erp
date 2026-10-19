@@ -76,6 +76,13 @@ test.describe('accessibility (WCAG 2.2 AA)', () => {
     expect(await axeViolations(ui)).toEqual([])
   })
 
+  test('the role permissions dialog has no violations', async ({ ui }) => {
+    await goTo(ui, '/users')
+    await ui.getByRole('button', { name: 'What each role can do' }).click()
+    await expect(ui.getByRole('table', { name: 'Permissions of each role' })).toBeVisible()
+    expect(await axeViolations(ui)).toEqual([])
+  })
+
   test('the offline state has no violations', async ({ ui }) => {
     await ui.context().setOffline(true)
     await expect(ui.getByText('Offline · billing still works')).toBeVisible()

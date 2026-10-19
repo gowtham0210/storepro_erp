@@ -2,6 +2,7 @@ import type { IpcMainInvokeEvent } from 'electron'
 import type { z } from 'zod'
 import type { IpcChannel, IpcInput, IpcOutput } from '@shared/ipc/contract'
 import { AppError, type IpcResult } from '@shared/ipc/errors'
+import type { Actor, HandlerAccess } from '../auth/access'
 import type { Logger } from '../logging/logger'
 
 export interface HandlerContext {
@@ -9,11 +10,35 @@ export interface HandlerContext {
   webContentsId: number
 }
 
-export interface HandlerDefinition<C extends IpcChannel> {
+/** Context for a guarded handler: who the request runs as. */
+export interface ActorContext extends HandlerContext {
+  actor: Actor
+}
+
+type Result<C extends IpcChannel> = IpcOutput<C> | Promise<IpcOutput<C>>
+
+interface PublicHandler<C extends IpcChannel> {
+  access: 'public'
   /** Runtime validation for the renderer's input. The renderer is never trusted. */
   input: z.ZodType<IpcInput<C>>
-  handle(input: IpcInput<C>, context: HandlerContext): IpcOutput<C> | Promise<IpcOutput<C>>
+  handle(input: IpcInput<C>, context: HandlerContext): Result<C>
 }
+
+interface GuardedHandler<C extends IpcChannel> {
+  /** Checked by the service host before the handler runs (M06-03). */
+  access: Exclude<HandlerAccess, 'public'>
+  /**
+   * A manager approval can unlock this request for someone whose role lacks
+   * the permission (M06-05). The input must then accept an optional
+   * `overrideId` (see `overrideId` in @shared/schemas/users).
+   */
+  overridable?: true
+  input: z.ZodType<IpcInput<C>>
+  handle(input: IpcInput<C>, context: ActorContext): Result<C>
+}
+
+/** Every handler declares who may call it; there is no default. */
+export type HandlerDefinition<C extends IpcChannel> = PublicHandler<C> | GuardedHandler<C>
 
 /** One handler per channel; a missing channel is a compile error. */
 export type HandlerMap = { [C in IpcChannel]: HandlerDefinition<C> }
@@ -27,14 +52,23 @@ export interface IpcMainLike {
   removeHandler(channel: string): void
 }
 
+/** Resolves who a request runs as, or throws UNAUTHENTICATED / FORBIDDEN. AuthService implements it. */
+export interface Authorizer {
+  authorize(
+    access: HandlerAccess,
+    options: { overridable?: boolean; overrideId?: string }
+  ): Actor | null
+}
+
 export interface ServiceHostOptions {
   isTrustedSender(event: IpcMainInvokeEvent): boolean
+  authorizer: Authorizer
   logger: Logger
 }
 
 /**
  * Registers every handler on `ipcMain` behind a common pipeline:
- * sender check → input validation → handler → error envelope.
+ * sender check → input validation → permission guard → handler → error envelope.
  *
  * Returns a function that unregisters all handlers.
  */
@@ -65,7 +99,7 @@ async function dispatch(
   handler: HandlerDefinition<IpcChannel>,
   event: IpcMainInvokeEvent,
   rawInput: unknown,
-  { isTrustedSender, logger }: ServiceHostOptions
+  { isTrustedSender, authorizer, logger }: ServiceHostOptions
 ): Promise<IpcResult<unknown>> {
   if (!isTrustedSender(event)) {
     logger.warn('Rejected IPC call from untrusted sender', {
@@ -90,7 +124,19 @@ async function dispatch(
   }
 
   try {
-    const data = await handler.handle(parsed.data, { webContentsId: event.sender.id })
+    const context = { webContentsId: event.sender.id }
+    let data: unknown
+    if (handler.access === 'public') {
+      data = await handler.handle(parsed.data, context)
+    } else {
+      const overrideId = handler.overridable ? overrideIdOf(parsed.data) : undefined
+      const actor = authorizer.authorize(handler.access, {
+        overridable: handler.overridable === true,
+        ...(overrideId === undefined ? {} : { overrideId })
+      })
+      if (!actor) throw new Error(`No actor for guarded channel ${channel}`)
+      data = await handler.handle(parsed.data, { ...context, actor })
+    }
     return { ok: true, data }
   } catch (error) {
     if (error instanceof AppError) return failure(error)
@@ -98,6 +144,12 @@ async function dispatch(
     logger.error('Unhandled error in IPC handler', { channel, error })
     return failure(new AppError('INTERNAL', 'An unexpected error occurred. Please try again.'))
   }
+}
+
+function overrideIdOf(input: unknown): string | undefined {
+  if (typeof input !== 'object' || input === null) return undefined
+  const { overrideId } = input as { overrideId?: unknown }
+  return typeof overrideId === 'string' ? overrideId : undefined
 }
 
 function failure(error: AppError): IpcResult<never> {

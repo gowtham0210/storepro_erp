@@ -195,10 +195,6 @@ describe('users page', () => {
         roleName: 'Administrator'
       }
     ])
-    fakeBackend.on('users:list-roles', () => [
-      { roleCode: 'administrator', name: 'Administrator' },
-      { roleCode: 'cashier', name: 'Cashier' }
-    ])
     fakeBackend.on('users:create', (input) => {
       attempts++
       if (attempts === 1) {

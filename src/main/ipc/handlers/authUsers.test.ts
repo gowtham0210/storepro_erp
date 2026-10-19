@@ -1,64 +1,53 @@
 import { describe, expect, it } from 'vitest'
 import { createTestbed, OWNER } from '../../auth/test/testbed'
 import { useMigratedDb } from '../../db/test/testDb'
-import { createAuthHandlers } from './auth'
-import { createUserHandlers } from './users'
-
-const context = { webContentsId: 1 }
+import { createRealIpc } from '../test/realHandlers'
 
 describe('auth and user IPC handlers', () => {
   const getDb = useMigratedDb()
 
   function setup() {
-    const bed = createTestbed(getDb())
-    return {
-      ...bed,
-      authHandlers: createAuthHandlers(bed.auth),
-      userHandlers: createUserHandlers(bed.userService)
-    }
+    return createRealIpc(createTestbed(getDb()))
   }
 
   it('run the whole session lifecycle through the handlers', async () => {
-    const { authHandlers: h } = setup()
-    expect(await h['auth:get-state'].handle(undefined, context)).toEqual({
-      status: 'setup-required'
+    const { invoke } = setup()
+    expect(await invoke('auth:get-state')).toEqual({ status: 'setup-required' })
+    await invoke('auth:create-initial-admin', OWNER)
+    await invoke('auth:lock')
+    expect(await invoke('auth:get-state')).toMatchObject({ status: 'locked' })
+    await invoke('auth:unlock', { password: OWNER.password })
+    await invoke('auth:change-password', {
+      currentPassword: OWNER.password,
+      newPassword: 'fresh-start-88'
     })
-    await h['auth:create-initial-admin'].handle(OWNER, context)
-    await h['auth:lock'].handle(undefined, context)
-    expect(await h['auth:get-state'].handle(undefined, context)).toMatchObject({ status: 'locked' })
-    await h['auth:unlock'].handle({ password: OWNER.password }, context)
-    await h['auth:change-password'].handle(
-      { currentPassword: OWNER.password, newPassword: 'fresh-start-88' },
-      context
-    )
-    await h['auth:sign-out'].handle(undefined, context)
+    await invoke('auth:sign-out')
     expect(
-      await h['auth:sign-in'].handle({ username: 'owner', password: 'fresh-start-88' }, context)
-    ).toMatchObject({
-      username: 'owner'
-    })
+      await invoke('auth:sign-in', { username: 'owner', password: 'fresh-start-88' })
+    ).toMatchObject({ username: 'owner' })
   })
 
   it('run user management through the handlers', async () => {
-    const { authHandlers, userHandlers: h } = setup()
-    await authHandlers['auth:create-initial-admin'].handle(OWNER, context)
-    expect(
-      (await h['users:list-roles'].handle(undefined, context)).map((r) => r.roleCode)
-    ).toContain('cashier')
-    const created = await h['users:create'].handle(
-      { username: 'meena', displayName: 'Meena', roleCode: 'cashier', password: 'till-drawer-77' },
-      context
-    )
-    await h['users:update'].handle(
-      { userId: created.userId, displayName: 'Meena S', roleCode: 'manager' },
-      context
-    )
-    await h['users:reset-password'].handle(
-      { userId: created.userId, newPassword: 'temporary-pass-1' },
-      context
-    )
-    await h['users:set-active'].handle({ userId: created.userId, active: false }, context)
-    expect(await h['users:list'].handle(undefined, context)).toEqual(
+    const { invoke } = setup()
+    await invoke('auth:create-initial-admin', OWNER)
+    expect((await invoke('users:list-roles')).map((r) => r.roleCode)).toContain('cashier')
+    const created = await invoke('users:create', {
+      username: 'meena',
+      displayName: 'Meena',
+      roleCode: 'cashier',
+      password: 'till-drawer-77'
+    })
+    await invoke('users:update', {
+      userId: created.userId,
+      displayName: 'Meena S',
+      roleCode: 'manager'
+    })
+    await invoke('users:reset-password', {
+      userId: created.userId,
+      newPassword: 'temporary-pass-1'
+    })
+    await invoke('users:set-active', { userId: created.userId, active: false })
+    expect(await invoke('users:list')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ displayName: 'Meena S', active: false, mustChangePassword: true })
       ])
@@ -66,8 +55,8 @@ describe('auth and user IPC handlers', () => {
   })
 
   it('validate input with the shared schemas', () => {
-    const { authHandlers, userHandlers } = setup()
-    const create = userHandlers['users:create'].input
+    const { handlers } = setup()
+    const create = handlers['users:create'].input
     expect(
       create.safeParse({
         username: 'ab',
@@ -93,8 +82,15 @@ describe('auth and user IPC handlers', () => {
       }).success
     ).toBe(false)
     expect(
-      authHandlers['auth:sign-in'].input.safeParse({ username: 'owner', password: '' }).success
+      handlers['auth:sign-in'].input.safeParse({ username: 'owner', password: '' }).success
     ).toBe(false)
-    expect(authHandlers['auth:get-state'].input.safeParse({ extra: 1 }).success).toBe(false)
+    expect(handlers['auth:get-state'].input.safeParse({ extra: 1 }).success).toBe(false)
+    expect(
+      handlers['auth:approve-override'].input.safeParse({
+        permission: 'sale.fly',
+        username: 'owner',
+        password: 'x'
+      }).success
+    ).toBe(false)
   })
 })
