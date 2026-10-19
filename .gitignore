@@ -7,3 +7,6 @@ dist
 playwright-report
 test-results
 coverage
+
+# TypeScript incremental build state
+*.tsbuildinfo
