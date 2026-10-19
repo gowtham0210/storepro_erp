@@ -8,7 +8,15 @@
 
 ---
 
-## Phase 1 — Foundation
+## Phase 1 — Foundation ✅ Completed (2026-10-19)
+
+**Phase 1 is complete.** M01, M02, M23 and M30-01 to M30-04 are implemented and pushed to `main` of `gowtham0210/storepro_erp`. CI runs on Ubuntu and Windows: checks, end-to-end tests, performance targets and the Windows installer. Items deliberately left for later phases:
+
+- Code signing (M01-09) and an app icon.
+- Installing the NSIS installer on a clean Windows machine (M30-09).
+- Real data for navigation filtering (M04, M05/M06).
+- The main-process connectivity monitor (M08).
+
 
 ### M01 · Desktop Shell & Application Runtime
 
@@ -25,7 +33,7 @@
 
 **Done when:** App installs on clean Windows, renderer has no Node.js access, IPC calls are typed end-to-end.
 
-**Status (2026-10-19):** M01-01 to M01-08 implemented in ``. 43 unit tests pass, and the app was smoke-tested on Linux in dev, built and packaged modes. Still open: installing and running the NSIS installer on a real Windows machine (it is built but unsigned, with the default Electron icon), code signing (M01-09), and an app icon.
+**Status (2026-10-19):** M01-01 to M01-08 implemented. Unit tests pass, and the app was smoke-tested on Linux in dev, built and packaged modes. Still open: installing and running the NSIS installer on a real Windows machine (it is built but unsigned, with the default Electron icon), code signing (M01-09), and an app icon.
 
 ### M02 · Database & Migrations
 
@@ -79,10 +87,10 @@
 
 - Vitest has Node and jsdom projects, with coverage thresholds.
 - The SQLite harness provides in-memory and file-backed migrated databases.
-- 24 Playwright end-to-end tests run against real Electron with isolated data folders.
+- 25 Playwright end-to-end tests run against real Electron with isolated data folders.
 - `.github/workflows/ci.yml` runs on Ubuntu and Windows: checks, end-to-end, performance, then the installer.
 
-Two fixes came out of this work. Tests broken by Windows paths and file locks were fixed; the first Windows CI run had failed on them. A `postinstall` step now downloads Electron, because Electron 44 no longer does so on `npm install`.
+Two fixes came out of this work. Tests broken by Windows paths and file locks were fixed; the first Windows CI run had failed on them. A `postinstall` step now downloads Electron, because Electron 44 no longer does so on `npm install`. End-to-end tests now stub the system browser and kill the whole process tree when simulating a crash on Windows.
 
 ---
 
