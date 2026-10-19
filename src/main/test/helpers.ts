@@ -21,7 +21,8 @@ export function createTestLogger(): Logger & {
 export function useTempDir(): () => string {
   let dir: string | undefined
   afterEach(() => {
-    if (dir) rmSync(dir, { recursive: true, force: true })
+    // Windows can hold file handles briefly after close (antivirus, WAL files): retry.
+    if (dir) rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
     dir = undefined
   })
   return () => (dir ??= mkdtempSync(join(tmpdir(), 'storepro-test-')))

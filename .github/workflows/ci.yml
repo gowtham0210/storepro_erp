@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes older runs pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Checks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      - name: Lint
+        if: runner.os == 'Linux'
+        run: npm run lint
+      - name: Formatting
+        if: runner.os == 'Linux'
+        run: npm run format:check
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Unit and integration tests, with coverage
+        if: runner.os == 'Linux'
+        run: npm run test:coverage
+      - name: Unit and integration tests
+        if: runner.os == 'Windows'
+        run: npm test
+
+      - name: Upload coverage report
+        if: runner.os == 'Linux' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: ignore
+
+  e2e:
+    name: End-to-end (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+
+      - name: Allow Electron's sandbox on Ubuntu
+        if: runner.os == 'Linux'
+        # Ubuntu 24.04 restricts unprivileged user namespaces; give Chromium's
+        # sandbox helper the setuid bit instead of disabling the sandbox.
+        run: |
+          sudo chown root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+
+      - name: Build the app
+        run: npx electron-vite build
+
+      - name: Run end-to-end tests
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npx playwright test
+      - name: Run end-to-end tests
+        if: runner.os == 'Windows'
+        run: npx playwright test
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.os }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+
+  performance:
+    name: Performance targets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:perf
+
+  package-windows:
+    name: Windows installer
+    needs: [checks, e2e, performance]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StorePro-Setup
+          path: dist/*.exe
+          if-no-files-found: error

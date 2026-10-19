@@ -26,6 +26,14 @@ const devServerUrl = app.isPackaged ? null : process.env['ELECTRON_RENDERER_URL'
 const devServerOrigin = devServerUrl === null ? null : originOf(devServerUrl)
 const allowedOrigins = [devServerOrigin ?? APP_ORIGIN]
 
+// End-to-end tests give every launch its own data folder (database, logs,
+// single-instance lock). Never honoured by packaged builds.
+const testUserDataDir = app.isPackaged ? undefined : process.env['STOREPRO_USER_DATA_DIR']
+if (testUserDataDir) {
+  app.setPath('userData', testUserDataDir)
+  app.setAppLogsPath(join(testUserDataDir, 'logs'))
+}
+
 // These must run before the `ready` event.
 // `--no-sandbox` is only needed in development containers running as root; every
 // window still sets `sandbox: true` in its webPreferences.

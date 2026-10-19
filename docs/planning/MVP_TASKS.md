@@ -75,6 +75,15 @@
 | M30-03 | Playwright setup for Electron end-to-end tests | M01-01 | M |
 | M30-04 | CI pipeline: lint, type-check, unit, integration, build installer | M30-01 | M |
 
+**Status (2026-10-19):** M30-01 to M30-04 are implemented; see `docs/testing.md`.
+
+- Vitest has Node and jsdom projects, with coverage thresholds.
+- The SQLite harness provides in-memory and file-backed migrated databases.
+- 24 Playwright end-to-end tests run against real Electron with isolated data folders.
+- `.github/workflows/ci.yml` runs on Ubuntu and Windows: checks, end-to-end, performance, then the installer.
+
+Two fixes came out of this work. Tests broken by Windows paths and file locks were fixed; the first Windows CI run had failed on them. A `postinstall` step now downloads Electron, because Electron 44 no longer does so on `npm install`.
+
 ---
 
 ## Phase 2 — Identity & Configuration

@@ -12,6 +12,28 @@ export default defineConfig({
   test: {
     // node:sqlite prints an ExperimentalWarning on Node 22 (not in Electron's newer Node).
     execArgv: ['--disable-warning=ExperimentalWarning'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.d.ts',
+        'src/**/test/**',
+        'src/main/db/dev/**',
+        'src/renderer/src/pages/dev/**',
+        // Thin Electron wiring, exercised by the end-to-end tests instead.
+        'src/main/index.ts',
+        'src/main/security/hardening.ts',
+        'src/main/window/mainWindow.ts',
+        'src/main/lifecycle/processHandlers.ts',
+        'src/preload/index.ts',
+        'src/renderer/src/main.tsx'
+      ],
+      // Set just below the measured level: coverage may grow, never quietly shrink.
+      thresholds: { statements: 89, branches: 83, functions: 87, lines: 91 },
+      reporter: ['text-summary', 'html', 'lcov'],
+      reportsDirectory: 'coverage'
+    },
     projects: [
       {
         extends: true,

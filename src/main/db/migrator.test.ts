@@ -128,10 +128,16 @@ describe('migrate', () => {
       join(dir, 'garbage.db'),
       'this is not sqlite at all, just text padding'.repeat(20)
     )
-    expect(() => {
-      const db = Database.open(join(dir, 'garbage.db'))
-      migrate(db, [v1], options())
-    }).toThrow()
+    let garbage: Database | undefined
+    try {
+      expect(() => {
+        garbage = Database.open(join(dir, 'garbage.db'))
+        migrate(garbage, [v1], options())
+      }).toThrow()
+    } finally {
+      // An open handle would stop the temp folder being deleted on Windows.
+      garbage?.close()
+    }
   })
 
   it('rejects migration lists with gaps', () => {

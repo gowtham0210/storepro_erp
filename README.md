@@ -25,8 +25,9 @@ See [`docs/planning/PRD.md`](docs/planning/PRD.md), [`docs/planning/MODULES.md`]
 | `npm run dist:win`  | Build the Windows x64 NSIS installer into `dist/`                  |
 | `npm run dist:dir`  | Build an unpacked app for the current OS (packaging smoke test)    |
 
-Building the Windows installer on Linux needs Wine (32- and 64-bit). The
-`Build Windows installer` GitHub Actions workflow builds it on a Windows runner instead.
+`npm install` also downloads the Electron binary (Electron 44 no longer does this by itself).
+Building the Windows installer on Linux needs Wine (32- and 64-bit); CI builds it on a Windows
+runner instead. See [`docs/testing.md`](docs/testing.md) for the test layers and the CI pipeline.
 
 ## Project layout
 
@@ -55,6 +56,8 @@ src/
     shortcuts/        Scoped keyboard shortcut framework
     forms/            useForm (Zod schemas shared with the main process)
     styles/           Design tokens (theme.css) and contrast tests
+e2e/                  Playwright end-to-end tests against the built app
+docs/                 Data model, UI guidelines, testing guide, planning documents
 ```
 
 ## Architecture notes
