@@ -1,0 +1,126 @@
+/*
+ * StorePro design tokens. Components use these semantic names only
+ * (bg-surface, text-fg-muted, border-input, ...); the default Tailwind palette
+ * is switched off so raw colours cannot creep in.
+ *
+ * Contrast (WCAG 2.2 AA) is verified by styles/contrast.test.ts:
+ * text >= 4.5:1, control borders and focus rings >= 3:1.
+ */
+@theme {
+  --color-*: initial;
+
+  /* Workspace */
+  --color-canvas: #f6f8fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef2f7;
+  --color-divider: #e2e8f0; /* decorative only; never the sole boundary of a control */
+  --color-input: #7b8798; /* control borders: 3.65:1 on surface */
+
+  /* Text */
+  --color-fg: #0f172a;
+  --color-fg-muted: #475569;
+  --color-fg-subtle: #5b6b82;
+  --color-fg-inverse: #ffffff;
+
+  /* Primary action */
+  --color-accent: #1d4ed8;
+  --color-accent-hover: #1e40af;
+  --color-accent-soft: #dbeafe;
+  --color-accent-fg: #1e3a8a;
+
+  /* Status: always paired with an icon or text, never colour alone */
+  --color-success: #15803d;
+  --color-success-soft: #dcfce7;
+  --color-success-fg: #14532d;
+  --color-warning: #b45309;
+  --color-warning-soft: #fef3c7;
+  --color-warning-fg: #78350f;
+  --color-danger: #b91c1c;
+  --color-danger-hover: #991b1b;
+  --color-danger-soft: #fee2e2;
+  --color-danger-fg: #7f1d1d;
+
+  /* Navigation sidebar (dark navy) */
+  --color-nav: #0f1e3d;
+  --color-nav-hover: #172b52;
+  --color-nav-active: #1d3366;
+  --color-nav-fg: #cbd5e1;
+  --color-nav-fg-active: #ffffff;
+  --color-nav-fg-muted: #9fb1d1;
+  --color-nav-divider: #233a66;
+
+  /* Keyboard focus */
+  --color-focus: #2563eb;
+  --color-focus-on-dark: #93c5fd;
+
+  /* Typography: Windows system fonts (offline, native rendering); Nirmala UI covers Indic scripts */
+  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', 'Nirmala UI', system-ui, sans-serif;
+  --font-mono: 'Cascadia Mono', Consolas, ui-monospace, monospace;
+  --text-display: 2.75rem;
+  --text-display--line-height: 1.1;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@layer base {
+  html {
+    /* Text size setting (Ctrl+= / Ctrl+-) scales this; every size is in rem. */
+    font-size: var(--ui-scale, 100%);
+  }
+
+  body {
+    @apply bg-canvas text-fg font-sans antialiased;
+    line-height: 1.5;
+  }
+
+  /* One visible focus style everywhere (keyboard users only). */
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+  .on-dark :focus-visible {
+    outline-color: var(--color-focus-on-dark);
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
+  }
+
+  dialog::backdrop {
+    background: rgb(15 23 42 / 0.55);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Windows High Contrast: let the OS colours through; keep boundaries visible. */
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline-color: Highlight;
+    }
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@utility animate-enter {
+  animation: enter 150ms var(--ease-out);
+}

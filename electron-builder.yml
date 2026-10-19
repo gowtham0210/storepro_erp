@@ -1,0 +1,52 @@
+# Packaging for StorePro. Windows x64 (NSIS installer) is the supported target;
+# the Linux `dir` target exists only to test packaging in CI/dev containers.
+appId: com.storepro.desktop
+productName: StorePro
+copyright: Copyright © 2026 StorePro
+
+directories:
+  output: dist
+  buildResources: build
+
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+
+asar: true
+
+# No update server yet: auto-update and licensing are an open decision (M29).
+publish: null
+
+# Electron fuses are flipped in the binary at package time and cannot be
+# changed at runtime.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableCookieEncryption: true
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
+
+win:
+  executableName: StorePro
+  artifactName: ${productName}-Setup-${version}-${arch}.${ext}
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: StorePro
+  runAfterFinish: true
+  # Business data lives in %APPDATA%\StorePro and must survive uninstall/upgrade.
+  deleteAppDataOnUninstall: false
+
+linux:
+  target: dir
