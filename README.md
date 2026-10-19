@@ -104,6 +104,14 @@ docs/                 Data model, UI guidelines, testing guide, planning documen
   change. Passwords never are. Administrators and managers can read it under **Manage → Audit
   log**. See [`docs/audit-log.md`](docs/audit-log.md).
 
+### Store setup
+
+On first launch a short wizard sets up the store: details, business type, currency, time zone,
+GST, receipts and the administrator account. It works offline and saves everything at once.
+Until it's done, the main process refuses every other request. Administrators change the details
+later under **Manage → Settings**. Dates follow the store's time zone, not the computer's. See
+[`docs/store-setup.md`](docs/store-setup.md).
+
 ### Adding an IPC channel
 
 1. Declare it in `IpcContract` and `channelRegistry` in `src/shared/ipc/contract.ts`.
@@ -116,7 +124,8 @@ docs/                 Data model, UI guidelines, testing guide, planning documen
 A guarded handler receives the signed-in user as `context.actor` and passes it to the service. The
 service checks the permission again with `assertCan(actor, ...)`. Add a sample input for the new
 channel to `SAMPLE_INPUTS` in `src/main/ipc/accessControl.test.ts`, which proves the channel
-refuses signed-out users and roles without the permission.
+refuses signed-out users and roles without the permission. Guarded channels are also refused until
+store setup is complete; mark a handler `beforeSetup: true` only if setup itself needs it.
 
 ### Reliability
 

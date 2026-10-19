@@ -1,3 +1,4 @@
+import { TEST_STORE } from '@shared/test/stores'
 import { describe, expect, it } from 'vitest'
 import { createTestbed, OWNER } from '../../auth/test/testbed'
 import { useMigratedDb } from '../../db/test/testDb'
@@ -13,7 +14,7 @@ describe('auth and user IPC handlers', () => {
   it('run the whole session lifecycle through the handlers', async () => {
     const { invoke } = setup()
     expect(await invoke('auth:get-state')).toEqual({ status: 'setup-required' })
-    await invoke('auth:create-initial-admin', OWNER)
+    await invoke('setup:complete', { store: TEST_STORE, administrator: OWNER })
     await invoke('auth:lock')
     expect(await invoke('auth:get-state')).toMatchObject({ status: 'locked' })
     await invoke('auth:unlock', { password: OWNER.password })
@@ -29,7 +30,7 @@ describe('auth and user IPC handlers', () => {
 
   it('run user management through the handlers', async () => {
     const { invoke } = setup()
-    await invoke('auth:create-initial-admin', OWNER)
+    await invoke('setup:complete', { store: TEST_STORE, administrator: OWNER })
     expect((await invoke('users:list-roles')).map((r) => r.roleCode)).toContain('cashier')
     const created = await invoke('users:create', {
       username: 'meena',

@@ -135,7 +135,20 @@ describe('describeAuditEntry', () => {
         { action: 'access.denied', details: { permission: 'not.a_permission' } },
         'Tried to not.a_permission'
       ],
-      [{ action: 'user.password_changed' }, '']
+      [{ action: 'user.password_changed' }, ''],
+      [{ action: 'store.set_up', details: { name: 'Lakshmi Stores' } }, 'Lakshmi Stores'],
+      [
+        {
+          action: 'store.updated',
+          details: {
+            changes: {
+              receiptFooter: { from: null, to: 'Thank you' },
+              allowNegativeStock: { from: 'no', to: 'yes' }
+            }
+          }
+        },
+        'Receipt footer from nothing to Thank you; sell when stock runs out from no to yes'
+      ]
     ]
     for (const [overrides, sentence] of cases) {
       expect(describeAuditEntry(entry(1, overrides)), overrides.action).toBe(sentence)
@@ -215,8 +228,9 @@ describe('audit log page (M07-04)', () => {
       expect(fakeBackend.callsTo('audit:list').at(-1)).toEqual({
         person: ARJUN.userId,
         action: 'override.approved',
-        from: new Date(2026, 9, 1).getTime(),
-        to: new Date(2026, 9, 20).getTime(),
+        // The store's days (Asia/Kolkata), whatever the computer's time zone.
+        from: Date.UTC(2026, 8, 30, 18, 30),
+        to: Date.UTC(2026, 9, 19, 18, 30),
         limit: 50
       })
     )

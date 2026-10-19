@@ -5,10 +5,13 @@ import type {
   IpcOutput,
   RoleSummary,
   SessionUser,
+  SetupOptions,
+  StoreProfile,
   StoreProBridge
 } from '@shared/ipc/contract'
 import { AppError, type IpcResult } from '@shared/ipc/errors'
 import { PERMISSION_CODES, type PermissionCode } from '@shared/permissions'
+import { TEST_STORE } from '@shared/test/stores'
 
 export const ADMIN: SessionUser = {
   userId: 1,
@@ -71,6 +74,27 @@ export function userWithRole(
     permissions: [...ROLE_PERMISSIONS[roleCode]],
     ...overrides
   }
+}
+
+/** The set-up store every renderer test starts with. */
+export const STORE: StoreProfile = {
+  ...TEST_STORE,
+  currency: { currencyCode: 'INR', name: 'Indian rupee', symbol: '₹', minorUnits: 2 },
+  businessTypeName: 'Grocery / retail',
+  setUpAt: Date.UTC(2026, 9, 1, 4, 30),
+  updatedAt: Date.UTC(2026, 9, 1, 4, 30)
+}
+
+export const SETUP_OPTIONS: SetupOptions = {
+  currencies: [
+    { currencyCode: 'INR', name: 'Indian rupee', symbol: '₹', minorUnits: 2 },
+    { currencyCode: 'USD', name: 'US dollar', symbol: '$', minorUnits: 2 },
+    { currencyCode: 'AED', name: 'UAE dirham', symbol: 'AED', minorUnits: 2 }
+  ],
+  businessTypes: [
+    { businessTypeCode: 'grocery', name: 'Grocery / retail', available: true },
+    { businessTypeCode: 'restaurant', name: 'Restaurant', available: false }
+  ]
 }
 
 type Handler<C extends IpcChannel> = (input: IpcInput<C>) => IpcOutput<C> | Promise<IpcOutput<C>>
@@ -136,6 +160,10 @@ class FakeBackend {
         return []
       case 'users:list-roles':
         return ROLES
+      case 'store:get-profile':
+        return STORE
+      case 'setup:get-options':
+        return SETUP_OPTIONS
       case 'audit:list':
         return { entries: [], nextBefore: null }
       case 'audit:filter-options':

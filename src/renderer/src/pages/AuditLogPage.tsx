@@ -4,6 +4,12 @@ import { useMemo } from 'react'
 import { useSearchParams } from 'react-router'
 import type { AuditLogEntry, AuditLogFilter } from '@shared/ipc/contract'
 import { AUDIT_CATEGORIES, auditActionLabel, isAuditAction } from '@shared/audit'
+import {
+  addDays as addDaysTo,
+  formatStoreTime,
+  isBusinessDate,
+  startOfBusinessDay
+} from '@shared/storeTime'
 import { describeAuditEntry } from '../audit/describeAuditEntry'
 import {
   Alert,
@@ -20,21 +26,13 @@ import {
 import { invoke } from '../ipc/client'
 import { useIpcQuery } from '../ipc/hooks'
 import { describeError } from '../lib/describeError'
+import { useStoreTimeZone } from '../store/storeContext'
 
 const PAGE_SIZE = 50
-const when = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'medium' })
-
-/** A yyyy-mm-dd date input value as local midnight, or undefined if it isn't a real date. */
-function localMidnight(value: string | null, addDays = 0): number | undefined {
-  const match = value ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(value) : null
-  if (!match) return undefined
-  const [year, month, day] = [Number(match[1]), Number(match[2]) - 1, Number(match[3])]
-  // Date rolls 2026-13-45 over into 2027; refuse it instead.
-  const date = new Date(year, month, day)
-  if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) {
-    return undefined
-  }
-  return new Date(year, month, day + addDays).getTime()
+/** A yyyy-mm-dd date from the address as the start of that day at the store, if it is a real date. */
+function startOf(value: string | null, timeZone: string, addDays = 0): number | undefined {
+  if (!value || !isBusinessDate(value)) return undefined
+  return startOfBusinessDay(addDaysTo(value, addDays), timeZone)
 }
 
 /**
@@ -42,56 +40,63 @@ function localMidnight(value: string | null, addDays = 0): number | undefined {
  * so Back works, and other screens can link to a filtered view, such as one
  * user's history.
  */
-function filterFrom(params: URLSearchParams): AuditLogFilter {
+function filterFrom(params: URLSearchParams, timeZone: string): AuditLogFilter {
   const filter: AuditLogFilter = {}
   const person = params.get('person')
   if (person === 'system') filter.person = 'system'
   else if (person && /^\d+$/.test(person)) filter.person = Number(person)
   const action = params.get('action')
   if (action) filter.action = action
-  const from = localMidnight(params.get('from'))
+  // Days are the store's days, in its time zone (M03-05).
+  const from = startOf(params.get('from'), timeZone)
   if (from !== undefined) filter.from = from
   // The "to" date is inclusive: up to the start of the next day.
-  const to = localMidnight(params.get('to'), 1)
+  const to = startOf(params.get('to'), timeZone, 1)
   if (to !== undefined) filter.to = to
   const entity = /^([a-z_]+):(\d+)$/.exec(params.get('entity') ?? '')
   if (entity) filter.entity = { type: entity[1] ?? '', id: Number(entity[2]) }
   return filter
 }
 
-const columns: Column<AuditLogEntry>[] = [
-  {
-    id: 'when',
-    header: 'When',
-    width: '13rem',
-    cell: (entry) => (
-      <span className="tabular whitespace-nowrap">{when.format(entry.occurredAt)}</span>
-    )
-  },
-  {
-    id: 'who',
-    header: 'Who',
-    cell: (entry) => (
-      <div>
-        <span className="font-medium">{entry.actor?.displayName ?? 'StorePro'}</span>
-        {entry.approvedBy && (
-          <div className="text-sm text-fg-muted">Approved by {entry.approvedBy.displayName}</div>
-        )}
-      </div>
-    )
-  },
-  { id: 'what', header: 'What', cell: (entry) => auditActionLabel(entry.action) },
-  {
-    id: 'details',
-    header: 'Details',
-    cell: (entry) => <span className="text-fg-muted">{describeAuditEntry(entry)}</span>
-  }
-]
+function columnsFor(timeZone: string): Column<AuditLogEntry>[] {
+  return [
+    {
+      id: 'when',
+      header: 'When',
+      width: '13rem',
+      cell: (entry) => (
+        <span className="tabular whitespace-nowrap">
+          {formatStoreTime(entry.occurredAt, timeZone, 'dateTimeSeconds')}
+        </span>
+      )
+    },
+    {
+      id: 'who',
+      header: 'Who',
+      cell: (entry) => (
+        <div>
+          <span className="font-medium">{entry.actor?.displayName ?? 'StorePro'}</span>
+          {entry.approvedBy && (
+            <div className="text-sm text-fg-muted">Approved by {entry.approvedBy.displayName}</div>
+          )}
+        </div>
+      )
+    },
+    { id: 'what', header: 'What', cell: (entry) => auditActionLabel(entry.action) },
+    {
+      id: 'details',
+      header: 'Details',
+      cell: (entry) => <span className="text-fg-muted">{describeAuditEntry(entry)}</span>
+    }
+  ]
+}
 
 /** M07-04: who did what, and when. Read-only: entries can never be changed or removed. */
 export default function AuditLogPage(): React.JSX.Element {
   const [params, setParams] = useSearchParams()
-  const filter = useMemo(() => filterFrom(params), [params])
+  const timeZone = useStoreTimeZone()
+  const filter = useMemo(() => filterFrom(params, timeZone), [params, timeZone])
+  const columns = useMemo(() => columnsFor(timeZone), [timeZone])
   const options = useIpcQuery('audit:filter-options')
 
   const log = useInfiniteQuery({

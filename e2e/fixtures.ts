@@ -9,7 +9,10 @@ import {
   type Page
 } from '@playwright/test'
 
+import { TEST_STORE } from '../src/shared/test/stores'
+
 export { expect } from '@playwright/test'
+export { TEST_STORE }
 
 export const APP_DIR = resolve(import.meta.dirname, '..')
 /** The Electron binary from node_modules (`require('electron')` returns its path). */
@@ -73,13 +76,18 @@ export async function launchStorePro(
   return { app, window, userDataDir }
 }
 
-/** Create the first administrator on the setup screen. */
+/**
+ * Finish first-run setup with TEST_STORE and OWNER, the quick way: one call
+ * to the main process, as the wizard's Finish button makes, then a reload.
+ * e2e/setup.spec.ts drives the wizard itself.
+ */
 export async function completeSetup(ui: Page, owner = OWNER): Promise<void> {
-  await ui.getByLabel(/Your name/).fill(owner.displayName)
-  await ui.getByLabel(/^Username/).fill(owner.username)
-  await ui.getByLabel(/^Password/).fill(owner.password)
-  await ui.getByLabel(/Confirm password/).fill(owner.password)
-  await ui.getByRole('button', { name: 'Create account and continue' }).click()
+  const result = await ui.evaluate((input) => window.storepro.invoke('setup:complete', input), {
+    store: TEST_STORE,
+    administrator: owner
+  })
+  if (!result.ok) throw new Error(`Setup failed: ${JSON.stringify(result.error)}`)
+  await ui.reload()
   await ui.getByRole('heading', { level: 1, name: 'Billing' }).waitFor()
 }
 

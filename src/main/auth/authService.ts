@@ -55,8 +55,15 @@ export class AuthService {
     }
   }
 
-  /** First run only (M05-04): creates the first administrator and signs them in. */
-  async createInitialAdmin(input: NewAdministrator): Promise<SessionUser> {
+  /**
+   * First run only (M05-04): creates the first administrator and signs them
+   * in. `alsoSave` runs in the same transaction (the store profile, M03), so
+   * setup is saved completely or not at all.
+   */
+  async createInitialAdmin(
+    input: NewAdministrator,
+    alsoSave?: (adminId: number) => void
+  ): Promise<SessionUser> {
     const { db, users, hasher, audit } = this.deps
     if (users.count() > 0) throw new AppError('CONFLICT', 'StorePro already has an administrator.')
     const passwordHash = await hasher.hash(input.password)
@@ -73,6 +80,7 @@ export class AuthService {
         details: { username: input.username, role: 'Administrator', initialSetup: true }
       })
       audit.change({ action: 'user.sign_in', userId: id, entity: { type: 'user', id } })
+      alsoSave?.(id)
       return id
     })
     this.startSession(userId)

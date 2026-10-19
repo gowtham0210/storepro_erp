@@ -8,6 +8,8 @@ export interface UseFormOptions<S extends z.ZodType<unknown, FieldValues>> {
   /** Usually a schema from src/shared, the same one the main-process handler uses. */
   schema: S
   initialValues: z.input<S>
+  /** Errors to show straight away, e.g. ones the main process reported for a step shown again. */
+  initialErrors?: Record<string, string>
   onSubmit: (values: z.output<S>) => Promise<void> | void
 }
 
@@ -30,10 +32,11 @@ export interface FieldBinding {
 export function useForm<S extends z.ZodType<unknown, FieldValues>>({
   schema,
   initialValues,
+  initialErrors,
   onSubmit
 }: UseFormOptions<S>) {
   const [values, setValues] = useState<z.input<S>>(initialValues)
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errors, setErrors] = useState<Record<string, string>>(initialErrors ?? {})
   const [submitting, setSubmitting] = useState(false)
   const elements = useRef(new Map<string, HTMLElement>())
 

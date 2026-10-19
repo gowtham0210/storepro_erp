@@ -1,3 +1,4 @@
+import { TEST_STORE } from '@shared/test/stores'
 import { describe, expect, it } from 'vitest'
 import { IPC_CHANNELS, type IpcArgs, type IpcChannel, type RoleCode } from '@shared/ipc/contract'
 import { isPermissionCode } from '@shared/permissions'
@@ -19,7 +20,6 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'app:get-startup-status': [],
   'log:write': [{ level: 'info', message: 'hello' }],
   'auth:get-state': [],
-  'auth:create-initial-admin': [{ username: 'second', displayName: 'Second', password: PASSWORD }],
   'auth:sign-in': [{ username: 'owner', password: 'wrong-password' }],
   'auth:sign-out': [],
   'auth:lock': [],
@@ -35,7 +35,17 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'users:set-active': [{ userId: 1, active: false }],
   'users:reset-password': [{ userId: 1, newPassword: 'taken-over-123' }],
   'audit:list': [{ person: 1 }],
-  'audit:filter-options': []
+  'audit:filter-options': [],
+  'setup:get-options': [],
+  'setup:complete': [
+    {
+      store: TEST_STORE,
+      administrator: { username: 'second', displayName: 'Second', password: PASSWORD }
+    }
+  ],
+  'setup:complete-store': [TEST_STORE],
+  'store:get-profile': [],
+  'store:update': [{ ...TEST_STORE, name: 'Hijacked Stores' }]
 }
 
 describe('access control over IPC', () => {
@@ -44,7 +54,7 @@ describe('access control over IPC', () => {
   async function storeWith(...roles: RoleCode[]) {
     const bed = createTestbed(getDb())
     const ipc = createRealIpc(bed)
-    await ipc.invoke('auth:create-initial-admin', OWNER)
+    await ipc.invoke('setup:complete', { store: TEST_STORE, administrator: OWNER })
     for (const roleCode of roles) {
       await ipc.invoke('users:create', {
         username: roleCode.replace('_', '-'),
@@ -78,11 +88,12 @@ describe('access control over IPC', () => {
       'app:get-startup-status',
       'log:write',
       'auth:get-state',
-      'auth:create-initial-admin',
       'auth:sign-in',
       'auth:sign-out',
       'auth:lock',
-      'auth:unlock'
+      'auth:unlock',
+      'setup:get-options',
+      'setup:complete'
     ])
   })
 

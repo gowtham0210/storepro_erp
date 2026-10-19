@@ -19,42 +19,6 @@ async function axeViolations(): Promise<string[]> {
   )
 }
 
-describe('first run', () => {
-  it('asks for the administrator account, checks the password, and signs in', async () => {
-    fakeBackend.authState = { status: 'setup-required' }
-    fakeBackend.on('auth:create-initial-admin', (input) => {
-      fakeBackend.authState = {
-        status: 'signed-in',
-        user: { ...ADMIN, username: input.username, displayName: input.displayName }
-      }
-      return fakeBackend.authState.user
-    })
-    renderApp('/')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Set up StorePro' })).toBeTruthy()
-    expect(await axeViolations()).toEqual([])
-
-    await userEvent.type(screen.getByLabelText(/Your name/), 'Ravi Kumar')
-    await userEvent.type(screen.getByLabelText(/^Username/), 'owner')
-    await userEvent.type(screen.getByLabelText(/^Password/), 'owner-pass-1')
-    await userEvent.type(screen.getByLabelText(/Confirm password/), 'different-1')
-    await userEvent.click(screen.getByRole('button', { name: 'Create account and continue' }))
-    expect(screen.getByText("Don't include your username in the password")).toBeTruthy()
-
-    await userEvent.clear(screen.getByLabelText(/^Password/))
-    await userEvent.type(screen.getByLabelText(/^Password/), 'counter-top-42')
-    await userEvent.click(screen.getByRole('button', { name: 'Create account and continue' }))
-    expect(screen.getByText("The passwords don't match")).toBeTruthy()
-
-    await userEvent.clear(screen.getByLabelText(/Confirm password/))
-    await userEvent.type(screen.getByLabelText(/Confirm password/), 'counter-top-42')
-    await userEvent.click(screen.getByRole('button', { name: 'Create account and continue' }))
-    expect(await screen.findByRole('heading', { level: 1, name: 'Billing' })).toBeTruthy()
-    expect(fakeBackend.callsTo('auth:create-initial-admin')).toEqual([
-      { displayName: 'Ravi Kumar', username: 'owner', password: 'counter-top-42' }
-    ])
-  })
-})
-
 describe('sign in', () => {
   it('shows one message for any wrong username or password', async () => {
     fakeBackend.authState = { status: 'signed-out' }

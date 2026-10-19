@@ -290,6 +290,10 @@ Migrations so far:
   an action through a manager approval, and indexes for filtering by action and approver. See
   [`audit-log.md`](audit-log.md).
 
+Store setup (M03) needed no migration: `businesses` already held every field. Its single row
+existing is what "set up" means, and `region_code` holds the ISO 3166-2 subdivision code (`TN`).
+See [`store-setup.md`](store-setup.md).
+
 None has shipped yet, so they may still be edited until the first release. A test upgrades a
 populated v1 database to v2.
 

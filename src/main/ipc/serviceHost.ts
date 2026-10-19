@@ -33,6 +33,12 @@ interface GuardedHandler<C extends IpcChannel> {
    * `overrideId` (see `overrideId` in @shared/schemas/users).
    */
   overridable?: true
+  /**
+   * Allowed before the store is set up. Every other guarded channel is
+   * refused with SETUP_REQUIRED until then (M03-03, FR-005), so a new
+   * screen's requests are blocked by default.
+   */
+  beforeSetup?: true
   input: z.ZodType<IpcInput<C>>
   handle(input: IpcInput<C>, context: ActorContext): Result<C>
 }
@@ -63,12 +69,14 @@ export interface Authorizer {
 export interface ServiceHostOptions {
   isTrustedSender(event: IpcMainInvokeEvent): boolean
   authorizer: Authorizer
+  /** Whether first-run setup has been completed. */
+  isSetupComplete(): boolean
   logger: Logger
 }
 
 /**
  * Registers every handler on `ipcMain` behind a common pipeline:
- * sender check → input validation → permission guard → handler → error envelope.
+ * sender check → input validation → permission guard → setup guard → handler → error envelope.
  *
  * Returns a function that unregisters all handlers.
  */
@@ -99,7 +107,7 @@ async function dispatch(
   handler: HandlerDefinition<IpcChannel>,
   event: IpcMainInvokeEvent,
   rawInput: unknown,
-  { isTrustedSender, authorizer, logger }: ServiceHostOptions
+  { isTrustedSender, authorizer, isSetupComplete, logger }: ServiceHostOptions
 ): Promise<IpcResult<unknown>> {
   if (!isTrustedSender(event)) {
     logger.warn('Rejected IPC call from untrusted sender', {
@@ -135,6 +143,9 @@ async function dispatch(
         ...(overrideId === undefined ? {} : { overrideId })
       })
       if (!actor) throw new Error(`No actor for guarded channel ${channel}`)
+      if (!handler.beforeSetup && !isSetupComplete()) {
+        throw new AppError('SETUP_REQUIRED', 'Finish setting up the store first.')
+      }
       data = await handler.handle(parsed.data, { ...context, actor })
     }
     return { ok: true, data }

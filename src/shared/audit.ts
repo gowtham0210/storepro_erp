@@ -35,6 +35,14 @@ export const AUDIT_CATEGORIES = [
     ]
   },
   {
+    id: 'settings',
+    label: 'Store settings',
+    actions: [
+      { code: 'store.set_up', label: 'Set up the store' },
+      { code: 'store.updated', label: 'Changed store settings' }
+    ]
+  },
+  {
     id: 'system',
     label: 'StorePro',
     actions: [

@@ -1,3 +1,4 @@
+import { TEST_STORE } from '@shared/test/stores'
 import { describe, expect, it } from 'vitest'
 import { AppError } from '@shared/ipc/errors'
 import { createTestbed, OWNER } from '../auth/test/testbed'
@@ -135,7 +136,7 @@ describe('the audit log viewer (M07-04)', () => {
   it('is open to managers and administrators only', async () => {
     const bed = createTestbed(getDb())
     const ipc = createRealIpc(bed)
-    await ipc.invoke('auth:create-initial-admin', OWNER)
+    await ipc.invoke('setup:complete', { store: TEST_STORE, administrator: OWNER })
     await ipc.invoke('users:create', CASHIER)
     await expect(ipc.invoke('audit:list', {})).resolves.toMatchObject({ nextBefore: null })
     await ipc.invoke('auth:sign-out')

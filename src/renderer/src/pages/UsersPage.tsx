@@ -16,7 +16,7 @@ import type { RoleCode, RoleSummary, UserSummary } from '@shared/ipc/contract'
 import { canGrant, PERMISSION_GROUPS } from '@shared/permissions'
 import { displayName, roleCode, username } from '@shared/schemas/users'
 import { useCan, usePermissions } from '../auth/permissions'
-import { withConfirmedPassword, PASSWORD_HINT } from '../auth/SetupAdminScreen'
+import { PASSWORD_HINT, withConfirmedPassword } from '../auth/passwordFields'
 import { useCurrentUser, useRefreshAuth } from '../auth/useAuth'
 import {
   Alert,

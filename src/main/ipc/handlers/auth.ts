@@ -2,7 +2,6 @@ import { z } from 'zod'
 import {
   credentialsSchema,
   enteredPassword,
-  newAdministratorSchema,
   overrideRequestSchema,
   passwordChangeSchema
 } from '@shared/schemas/users'
@@ -11,7 +10,6 @@ import type { HandlerDefinition } from '../serviceHost'
 
 type Channel =
   | 'auth:get-state'
-  | 'auth:create-initial-admin'
   | 'auth:sign-in'
   | 'auth:sign-out'
   | 'auth:lock'
@@ -26,11 +24,6 @@ type Channel =
 export function createAuthHandlers(auth: AuthService): { [C in Channel]: HandlerDefinition<C> } {
   return {
     'auth:get-state': { access: 'public', input: z.void(), handle: () => auth.getState() },
-    'auth:create-initial-admin': {
-      access: 'public',
-      input: newAdministratorSchema,
-      handle: (input) => auth.createInitialAdmin(input)
-    },
     'auth:sign-in': {
       access: 'public',
       input: credentialsSchema,
@@ -45,6 +38,7 @@ export function createAuthHandlers(auth: AuthService): { [C in Channel]: Handler
     },
     'auth:change-password': {
       access: 'password-change',
+      beforeSetup: true,
       input: passwordChangeSchema,
       handle: (input) => auth.changePassword(input)
     },

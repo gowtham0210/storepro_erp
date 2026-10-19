@@ -3,6 +3,8 @@ import { AuditLog } from '../../audit/auditLog'
 import { AuditLogReader } from '../../audit/auditLogReader'
 import { AuditLogService } from '../../audit/auditLogService'
 import { createTestLogger } from '../../test/helpers'
+import { StoreRepository } from '../../store/storeRepository'
+import { StoreService } from '../../store/storeService'
 import { UserRepository } from '../../users/userRepository'
 import { UserService } from '../../users/userService'
 import type { Actor } from '../access'
@@ -26,6 +28,8 @@ export interface Testbed {
   clock: { time: number; now(): number }
   auditLog: AuditLog
   auditLogService: AuditLogService
+  storeService: StoreService
+  stores: StoreRepository
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -56,6 +60,8 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
     logger: createTestLogger()
   })
   const userService = new UserService({ db, users, roles, hasher, throttle, audit })
+  const stores = new StoreRepository(db, clock)
+  const storeService = new StoreService({ db, store: stores, auth, audit })
   return {
     auth,
     userService,
@@ -67,6 +73,8 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
     clock,
     auditLog: audit,
     auditLogService: new AuditLogService(new AuditLogReader(db, clock)),
+    storeService,
+    stores,
     actor: () => {
       const actor = auth.authorize('signed-in')
       if (!actor) throw new Error('authorize returned no actor')

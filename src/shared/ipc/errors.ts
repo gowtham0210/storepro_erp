@@ -17,6 +17,8 @@ export const ERROR_CODES = [
   'FORBIDDEN',
   'NOT_FOUND',
   'CONFLICT',
+  /** The store hasn't been set up yet (FR-005): finish setup first. */
+  'SETUP_REQUIRED',
   'INTERNAL'
 ] as const
 

@@ -47,6 +47,11 @@ export function describeError(error: unknown): FriendlyError {
         title: "That can't be done",
         message: specific('Reload to see the latest details, then try again.')
       }
+    case 'SETUP_REQUIRED':
+      return {
+        title: 'StorePro isn’t set up yet',
+        message: specific('Finish setting up the store first.')
+      }
     case 'UNKNOWN_CHANNEL':
     case 'INTERNAL':
       return SOMETHING_WENT_WRONG

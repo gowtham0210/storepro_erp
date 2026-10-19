@@ -49,13 +49,18 @@ export interface IpcHarness {
  */
 export function createIpcHarness(
   handlers: HandlerMap,
-  { authorizer = signedOutAuthorizer, trusted = true } = {}
+  {
+    authorizer = signedOutAuthorizer,
+    trusted = true,
+    isSetupComplete = () => true
+  }: { authorizer?: Authorizer; trusted?: boolean; isSetupComplete?: () => boolean } = {}
 ): IpcHarness {
   const ipc = fakeIpcMain()
   const logger = createTestLogger()
   const unregister = registerIpcHandlers(ipc, handlers, {
     isTrustedSender: () => trusted,
     authorizer,
+    isSetupComplete,
     logger
   })
 

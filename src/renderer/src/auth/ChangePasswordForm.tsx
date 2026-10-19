@@ -10,7 +10,7 @@ import { PasswordInput } from '../components/ui/PasswordInput'
 import { useForm } from '../forms/useForm'
 import { invoke } from '../ipc/client'
 import { describeError } from '../lib/describeError'
-import { PASSWORD_HINT } from './SetupAdminScreen'
+import { PASSWORD_HINT } from './passwordFields'
 
 interface ChangePasswordFormProps {
   username: string

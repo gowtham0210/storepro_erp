@@ -498,6 +498,7 @@ const SAMPLE_MESSAGES: Record<(typeof ERROR_CODES)[number], string> = {
   FORBIDDEN: 'Only an administrator can do this.',
   NOT_FOUND: 'That user no longer exists.',
   CONFLICT: 'That username is already taken',
+  SETUP_REQUIRED: 'Finish setting up the store first.',
   INTERNAL: 'SQLITE_CORRUPT: database disk image is malformed'
 }
 

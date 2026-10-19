@@ -12,7 +12,7 @@ export function insertBusiness(db: Database, overrides: { pricesIncludeTax?: boo
   db.run(
     `INSERT INTO businesses (business_id, name, address_line1, city, region_code, country_code, phone,
        currency_code, time_zone, business_type_code, prices_include_tax, created_at, updated_at)
-     VALUES (1, 'Test Store', '1 Market Road', 'Chennai', '33', 'IN', '+91 44 0000 0000',
+     VALUES (1, 'Test Store', '1 Market Road', 'Chennai', 'TN', 'IN', '+91 44 0000 0000',
        'INR', 'Asia/Kolkata', 'grocery', ?, ?, ?)`,
     [overrides.pricesIncludeTax === false ? 0 : 1, BASE_TIME, BASE_TIME]
   )

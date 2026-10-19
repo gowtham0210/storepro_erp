@@ -170,6 +170,17 @@ Voids, stock adjustments, price changes, settings, reprints and restores don't e
 | M03-04 | Settings screen: business profile, receipt, tax, stock policy | M03-01, M06-03 | M |
 | M03-05 | Time-zone-aware date utilities used by reports and invoices | M03-01 | S |
 
+**Status (2026-10-19):** M03-01 to M03-05 are implemented. See `docs/store-setup.md`.
+
+- **Repositories:** the store profile is the single `businesses` row plus the invoice prefix. Setup counts as done once that row exists. No migration was needed.
+- **Wizard:** six steps (store details, business and region, tax, receipts with a live preview, the administrator account, then a review). Each step is checked before moving on. Everything is saved in one transaction, so an interrupted setup leaves nothing behind. It works offline. It replaces the M05 first-run screen.
+- **Guard (FR-005):** until setup is complete, the main process refuses every guarded request except the few marked `beforeSetup`, so new screens are blocked by default. The UI shows the app only once the store is set up. A store with an administrator but no profile (from before M03) gets a shorter wizard; other roles can only sign out.
+- **Settings:** five sections that save separately, read-only for managers. Every change is audited with readable before-and-after values. The currency is locked after the first sale.
+- **Validation:** Indian states and PIN codes, GSTIN format and check character matched against the state, and IANA time zones saved under current names (Asia/Kolkata, not Asia/Calcutta).
+- **Store time:** `src/shared/storeTime.ts` handles business dates and day ranges, including DST and half-hour offsets. The header clock and the audit log already use the store's time zone.
+
+Receipt paper width and printer belong to the computer and come with M13/M21. Other business types are listed but disabled. Exact GST invoice rules are still an open decision (PRD §15).
+
 ### M04 · Module Registry & Feature Activation
 
 | ID | Task | Depends on | Size |

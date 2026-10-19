@@ -59,7 +59,7 @@ export interface SessionUser {
 }
 
 export type AuthState =
-  /** No users exist yet: the first administrator must be created. */
+  /** First run: the store and its first administrator must be set up. */
   | { status: 'setup-required' }
   | { status: 'signed-out' }
   | { status: 'locked'; user: SessionUser }
@@ -126,6 +126,53 @@ export interface UserUpdate {
   roleCode: RoleCode
 }
 
+/** The store's details as entered in setup or Settings (M03). */
+export interface StoreProfileInput {
+  name: string
+  addressLine1: string
+  addressLine2: string | null
+  city: string
+  /** ISO 3166-2 subdivision code for India ("TN"); free text elsewhere. */
+  regionCode: string | null
+  postalCode: string | null
+  countryCode: string
+  phone: string
+  email: string | null
+  /** GSTIN in India. Null when the store isn't registered for tax. */
+  taxRegistrationNumber: string | null
+  currencyCode: string
+  /** IANA time zone, e.g. "Asia/Kolkata". */
+  timeZone: string
+  businessTypeCode: string
+  pricesIncludeTax: boolean
+  allowNegativeStock: boolean
+  receiptHeader: string | null
+  receiptFooter: string | null
+  invoicePrefix: string
+}
+
+export interface CurrencyInfo {
+  currencyCode: string
+  name: string
+  symbol: string
+  minorUnits: number
+}
+
+export interface StoreProfile extends StoreProfileInput {
+  currency: CurrencyInfo
+  businessTypeName: string
+  /** When first-run setup finished. */
+  setUpAt: number
+  updatedAt: number
+}
+
+/** Reference data the setup wizard offers. */
+export interface SetupOptions {
+  currencies: CurrencyInfo[]
+  /** Only grocery/retail is available in the first release (FR-003). */
+  businessTypes: { businessTypeCode: string; name: string; available: boolean }[]
+}
+
 /** Which audit entries to show (M07-04). Newest first. */
 export interface AuditLogFilter {
   /** Done or approved by this user; 'system' for StorePro itself. */
@@ -178,7 +225,6 @@ export interface IpcContract {
   'app:get-startup-status': { input: void; output: StartupStatus }
   'log:write': { input: RendererLogEntry; output: void }
   'auth:get-state': { input: void; output: AuthState }
-  'auth:create-initial-admin': { input: NewAdministrator; output: SessionUser }
   'auth:sign-in': { input: Credentials; output: SessionUser }
   'auth:sign-out': { input: void; output: void }
   'auth:lock': { input: void; output: void }
@@ -191,6 +237,14 @@ export interface IpcContract {
   'users:update': { input: UserUpdate; output: UserSummary }
   'users:set-active': { input: { userId: number; active: boolean }; output: UserSummary }
   'users:reset-password': { input: { userId: number; newPassword: string }; output: UserSummary }
+  'setup:get-options': { input: void; output: SetupOptions }
+  'setup:complete': {
+    input: { store: StoreProfileInput; administrator: NewAdministrator }
+    output: SessionUser
+  }
+  'setup:complete-store': { input: StoreProfileInput; output: StoreProfile }
+  'store:get-profile': { input: void; output: StoreProfile | null }
+  'store:update': { input: StoreProfileInput; output: StoreProfile }
   'audit:list': { input: AuditLogFilter; output: AuditLogPage }
   'audit:filter-options': { input: void; output: AuditFilterOptions }
 }
@@ -208,7 +262,6 @@ const channelRegistry: Record<IpcChannel, true> = {
   'app:get-startup-status': true,
   'log:write': true,
   'auth:get-state': true,
-  'auth:create-initial-admin': true,
   'auth:sign-in': true,
   'auth:sign-out': true,
   'auth:lock': true,
@@ -221,6 +274,11 @@ const channelRegistry: Record<IpcChannel, true> = {
   'users:update': true,
   'users:set-active': true,
   'users:reset-password': true,
+  'setup:get-options': true,
+  'setup:complete': true,
+  'setup:complete-store': true,
+  'store:get-profile': true,
+  'store:update': true,
   'audit:list': true,
   'audit:filter-options': true
 }

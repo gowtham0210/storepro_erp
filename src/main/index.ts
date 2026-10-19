@@ -25,6 +25,8 @@ import {
   serveRendererFromAppScheme
 } from './security/hardening'
 import { APP_ENTRY_URL, APP_ORIGIN, isAllowedOrigin, originOf } from './security/origins'
+import { StoreRepository } from './store/storeRepository'
+import { StoreService } from './store/storeService'
 import { UserRepository } from './users/userRepository'
 import { UserService } from './users/userService'
 import { createMainWindow } from './window/mainWindow'
@@ -148,6 +150,7 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
     {
       isTrustedSender: (event) => isAllowedOrigin(event.senderFrame?.url ?? '', allowedOrigins),
       authorizer: services.auth,
+      isSetupComplete: () => services.store.isConfigured(),
       logger: logger.child('ipc')
     }
   )
@@ -170,7 +173,13 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
 function createServices(
   db: Database,
   logger: Logger
-): { audit: AuditLog; auth: AuthService; users: UserService; auditLog: AuditLogService } {
+): {
+  audit: AuditLog
+  auth: AuthService
+  users: UserService
+  auditLog: AuditLogService
+  store: StoreService
+} {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
   const userRepository = new UserRepository(db, clock)
@@ -189,7 +198,8 @@ function createServices(
   })
   const users = new UserService({ db, users: userRepository, roles, hasher, throttle, audit })
   const auditLog = new AuditLogService(new AuditLogReader(db, clock))
-  return { audit, auth, users, auditLog }
+  const store = new StoreService({ db, store: new StoreRepository(db, clock), auth, audit })
+  return { audit, auth, users, auditLog, store }
 }
 
 function startupFailureMessage(error: unknown): string {

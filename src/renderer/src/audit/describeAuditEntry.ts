@@ -1,8 +1,9 @@
 import type { AuditLogEntry } from '@shared/ipc/contract'
 import { isPermissionCode, permissionDescription } from '@shared/permissions'
+import { STORE_FIELD_LABELS } from '@shared/schemas/store'
 
 /** How changed fields are named in sentences. Unknown fields use their key. */
-const FIELD_NAMES: Record<string, string> = { name: 'name', role: 'role' }
+const USER_FIELDS: Record<string, string> = { name: 'name', role: 'role' }
 
 const dateTime = new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
 
@@ -21,12 +22,12 @@ function lowerFirst(value: string): string {
   return value.charAt(0).toLowerCase() + value.slice(1)
 }
 
-function changes(value: unknown): string {
+function changes(value: unknown, names: Record<string, string> = USER_FIELDS): string {
   if (typeof value !== 'object' || value === null) return ''
   return Object.entries(value as Record<string, { from?: unknown; to?: unknown }>)
     .map(
       ([field, change]) =>
-        `${FIELD_NAMES[field] ?? field} from ${text(change.from)} to ${text(change.to)}`
+        `${names[field] ?? field} from ${text(change.from)} to ${text(change.to)}`
     )
     .join('; ')
 }
@@ -73,6 +74,12 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
     case 'user.deactivated':
     case 'user.reactivated':
       return subject
+    case 'store.set_up':
+      return text(d['name'])
+    case 'store.updated': {
+      const described = changes(d['changes'], STORE_FIELD_LABELS)
+      return described.charAt(0).toUpperCase() + described.slice(1)
+    }
     case 'system.database_upgraded':
       return `From version ${text(d['fromVersion'])} to ${text(d['toVersion'])}${d['backupFile'] ? `. A backup was saved first (${text(d['backupFile'])})` : ''}`
     case 'system.unclean_shutdown': {
