@@ -1,5 +1,6 @@
 import type { AuditLogEntry } from '@shared/ipc/contract'
 import { isPermissionCode, permissionDescription } from '@shared/permissions'
+import { PRODUCT_FIELD_LABELS } from '@shared/schemas/catalog'
 import { STORE_FIELD_LABELS } from '@shared/schemas/store'
 
 /** How changed fields are named in sentences. Unknown fields use their key. */
@@ -83,6 +84,29 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       const described = changes(d['changes'], STORE_FIELD_LABELS)
       return described.charAt(0).toUpperCase() + described.slice(1)
     }
+    case 'product.created': {
+      const items = Array.isArray(d['items']) ? (d['items'] as unknown[]).map(text) : []
+      return [text(d['name']), items.join(', ')].filter(Boolean).join(': ')
+    }
+    case 'product.updated':
+    case 'product.price_changed':
+      return `${text(d['item'] ?? d['name'] ?? subject)}: ${changes(d['changes'], PRODUCT_FIELD_LABELS)}`
+    case 'product.archived':
+    case 'product.restored':
+    case 'category.created':
+    case 'category.archived':
+    case 'category.restored':
+      return text(d['name'] ?? subject)
+    case 'category.updated':
+      return changes(d['changes'], { name: 'name' })
+    case 'variant.created':
+    case 'variant.archived':
+    case 'variant.restored':
+      return text(d['item'])
+    case 'unit.created':
+      return `${text(d['name'])} (${text(d['code'])})${d['fractions'] === 'yes' ? ', sold in fractions' : ''}`
+    case 'unit.updated':
+      return `${text(d['code'])}: ${changes(d['changes'], { name: 'name' })}`
     case 'system.database_upgraded':
       return `From version ${text(d['fromVersion'])} to ${text(d['toVersion'])}${d['backupFile'] ? `. A backup was saved first (${text(d['backupFile'])})` : ''}`
     case 'system.unclean_shutdown': {

@@ -11,6 +11,9 @@ export interface CurrencyFormat {
   minorUnits: number
 }
 
+/** Until the store is set up, amounts are shown in rupees. */
+export const DEFAULT_CURRENCY: CurrencyFormat = { currencyCode: 'INR', minorUnits: 2 }
+
 export const MAX_SAFE_MINOR = Number.MAX_SAFE_INTEGER
 
 export function assertMinorUnits(value: number, label = 'amount'): void {

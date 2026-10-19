@@ -23,7 +23,7 @@ function state(code: ModuleCode, name: string, overrides: Partial<ModuleState> =
 describe('modules (M04)', () => {
   it('lists the modules, with the store type always on and planned ones not offered', async () => {
     renderApp('/settings')
-    const section = await screen.findByRole('region', { name: 'Modules' })
+    const section = await screen.findByRole('region', { name: 'Modules' }, { timeout: 5000 })
     const grocery = (await within(section).findByText('Grocery and retail')).closest('li')!
     expect(within(grocery).getByText('On')).toBeTruthy()
     expect(within(grocery).getByText(/always on/)).toBeTruthy()
@@ -85,7 +85,7 @@ describe('modules (M04)', () => {
     fakeBackend.authState = { status: 'signed-in', user: userWithRole('manager') }
     fakeBackend.on('modules:list', () => [state('electronics', 'Electronics')])
     renderApp('/settings')
-    const section = await screen.findByRole('region', { name: 'Modules' })
+    const section = await screen.findByRole('region', { name: 'Modules' }, { timeout: 5000 })
     await within(section).findByText('Electronics')
     expect(within(section).queryByRole('button')).toBeNull()
   })

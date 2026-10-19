@@ -10,12 +10,15 @@ import { countryByCode, indianStateByCode } from '@shared/regions'
 import { changesBetween, type AuditLog, type AuditSubject } from '../audit/auditLog'
 import { assertCan, type Actor } from '../auth/access'
 import type { AuthService } from '../auth/authService'
+import type { TaxClassRepository } from '../catalog/taxClassRepository'
 import type { Database } from '../db/database'
 import type { StoreRepository } from './storeRepository'
 
 export interface StoreServiceDeps {
   db: Database
   store: StoreRepository
+  /** Setup gives a new store the tax classes for its country. */
+  taxClasses: TaxClassRepository
   auth: AuthService
   audit: AuditLog
 }
@@ -97,6 +100,7 @@ export class StoreService {
 
   private createStore(store: StoreProfileInput, by: AuditSubject): void {
     this.deps.store.create(store)
+    this.deps.taxClasses.seedDefaults(store.countryCode)
     this.deps.audit.change({
       action: 'store.set_up',
       ...by,

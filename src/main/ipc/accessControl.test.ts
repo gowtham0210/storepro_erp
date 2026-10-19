@@ -14,6 +14,17 @@ import { createRealIpc } from './test/realHandlers'
 
 const PASSWORD = 'till-drawer-77'
 
+const SAMPLE_VARIANT = {
+  variantName: null,
+  sku: null,
+  unitCode: 'pcs',
+  sellingPriceMinor: 4500,
+  mrpMinor: null,
+  costPriceMinor: null,
+  reorderLevelMilli: null,
+  barcodes: []
+}
+
 /** A valid request for every channel. A new channel must add one here, which brings it under these tests. */
 const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'app:get-info': [],
@@ -48,7 +59,43 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'store:update': [{ ...TEST_STORE, name: 'Hijacked Stores' }],
   'modules:list': [],
   'modules:set-enabled': [{ code: 'grocery', enabled: false }],
-  'connectivity:get-status': []
+  'connectivity:get-status': [],
+  'catalog:list-categories': [],
+  'catalog:create-category': [{ name: 'Snacks' }],
+  'catalog:rename-category': [{ categoryId: 1, name: 'Renamed' }],
+  'catalog:set-category-active': [{ categoryId: 1, active: false }],
+  'catalog:list-units': [],
+  'catalog:create-unit': [{ unitCode: 'tray', name: 'Trays', allowsFraction: false }],
+  'catalog:rename-unit': [{ unitCode: 'pcs', name: 'Units' }],
+  'tax:list-classes': [],
+  'products:list': [{}],
+  'products:get': [{ productId: 1 }],
+  'products:create': [
+    {
+      name: 'Rogue product',
+      categoryId: null,
+      taxClassId: 1,
+      hsnCode: null,
+      tracksInventory: true,
+      variants: [SAMPLE_VARIANT]
+    }
+  ],
+  'products:update': [
+    {
+      productId: 1,
+      name: 'Hijacked',
+      categoryId: null,
+      taxClassId: 1,
+      hsnCode: null,
+      tracksInventory: true
+    }
+  ],
+  'products:add-variant': [{ productId: 1, ...SAMPLE_VARIANT, variantName: '5 kg' }],
+  'products:update-variant': [{ variantId: 1, ...SAMPLE_VARIANT, sellingPriceMinor: 1 }],
+  'products:set-active': [{ productId: 1, active: false }],
+  'products:set-variant-active': [{ variantId: 1, active: false }],
+  'products:find-by-barcode': [{ barcode: '8901234567890' }],
+  'products:search': [{ query: 'rice' }]
 }
 
 describe('access control over IPC', () => {

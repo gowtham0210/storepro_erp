@@ -10,6 +10,7 @@ import {
   type BrowserWindow
 } from 'electron'
 import type { AppInfo, StartupStatus } from '@shared/ipc/contract'
+import { DEFAULT_CURRENCY } from '@shared/money'
 import { AuditLog } from './audit/auditLog'
 import { AuditLogReader } from './audit/auditLogReader'
 import { AuditLogService } from './audit/auditLogService'
@@ -19,6 +20,11 @@ import { LoginThrottle } from './auth/loginThrottle'
 import { OverrideGrants } from './auth/overrideGrants'
 import { PasswordHasher } from './auth/passwords'
 import { RoleRepository } from './auth/roleRepository'
+import { CatalogRepository } from './catalog/catalogRepository'
+import { CatalogService } from './catalog/catalogService'
+import { ProductRepository } from './catalog/productRepository'
+import { ProductService } from './catalog/productService'
+import { TaxClassRepository } from './catalog/taxClassRepository'
 import { ConnectivityMonitor } from './connectivity/connectivityMonitor'
 import { DatabaseIntegrityError, DatabaseTooNewError, openStoreDatabase, type Database } from './db'
 import { createEventPublisher } from './ipc/events'
@@ -217,6 +223,8 @@ function createServices(
   auditLog: AuditLogService
   store: StoreService
   modules: ModuleService
+  catalog: CatalogService
+  products: ProductService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -236,9 +244,21 @@ function createServices(
   })
   const users = new UserService({ db, users: userRepository, roles, hasher, throttle, audit })
   const auditLog = new AuditLogService(new AuditLogReader(db, clock))
-  const store = new StoreService({ db, store: new StoreRepository(db, clock), auth, audit })
+  const storeRepository = new StoreRepository(db, clock)
+  const taxClasses = new TaxClassRepository(db, clock)
+  const store = new StoreService({ db, store: storeRepository, taxClasses, auth, audit })
   const modules = new ModuleService({ db, modules: new ModuleRepository(db, clock), audit })
-  return { audit, auth, users, auditLog, store, modules }
+  const catalogRepository = new CatalogRepository(db, clock)
+  const catalog = new CatalogService({ db, catalog: catalogRepository, taxClasses, audit })
+  const products = new ProductService({
+    db,
+    products: new ProductRepository(db, clock),
+    catalog: catalogRepository,
+    taxClasses,
+    audit,
+    currency: () => storeRepository.get()?.currency ?? DEFAULT_CURRENCY
+  })
+  return { audit, auth, users, auditLog, store, modules, catalog, products }
 }
 
 function startupFailureMessage(error: unknown): string {

@@ -1,9 +1,7 @@
 import { createContext, useContext } from 'react'
-import { formatMoney, type CurrencyFormat } from '@shared/money'
+import { DEFAULT_CURRENCY, formatMoney, type CurrencyFormat } from '@shared/money'
 import { formatQuantity } from '@shared/quantity'
 import { cx } from '../../lib/cx'
-
-const DEFAULT_CURRENCY: CurrencyFormat = { currencyCode: 'INR', minorUnits: 2 }
 
 /** The store's currency. Provided from the business profile once M03 exists; INR until then. */
 export const CurrencyContext = createContext<CurrencyFormat>(DEFAULT_CURRENCY)

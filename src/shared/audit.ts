@@ -45,6 +45,26 @@ export const AUDIT_CATEGORIES = [
     ]
   },
   {
+    id: 'catalogue',
+    label: 'Products and prices',
+    actions: [
+      { code: 'product.created', label: 'Added a product' },
+      { code: 'product.updated', label: 'Changed a product' },
+      { code: 'product.price_changed', label: 'Changed a price' },
+      { code: 'product.archived', label: 'Archived a product' },
+      { code: 'product.restored', label: 'Restored a product' },
+      { code: 'variant.created', label: 'Added a pack size' },
+      { code: 'variant.archived', label: 'Archived a pack size' },
+      { code: 'variant.restored', label: 'Restored a pack size' },
+      { code: 'category.created', label: 'Added a category' },
+      { code: 'category.updated', label: 'Renamed a category' },
+      { code: 'category.archived', label: 'Archived a category' },
+      { code: 'category.restored', label: 'Restored a category' },
+      { code: 'unit.created', label: 'Added a unit' },
+      { code: 'unit.updated', label: 'Renamed a unit' }
+    ]
+  },
+  {
     id: 'system',
     label: 'StorePro',
     actions: [

@@ -290,6 +290,11 @@ Migrations so far:
   an action through a manager approval, and indexes for filtering by action and approver. See
   [`audit-log.md`](audit-log.md).
 
+- 0005: catalogue. Adds `tax_classes.cess_rate_bp` (a cess on top of GST, which belongs to the
+  class like the GST rate), an index for listing products by name, and default tax classes for a
+  store set up before it. New stores get the same classes from setup
+  (`TaxClassRepository.seedDefaults`, `src/shared/tax.ts`). See [`catalogue.md`](catalogue.md).
+
 Store setup (M03) needed no migration: `businesses` already held every field. Its single row
 existing is what "set up" means, and `region_code` holds the ISO 3166-2 subdivision code (`TN`).
 See [`store-setup.md`](store-setup.md).
@@ -320,8 +325,8 @@ It is not built pre-emptively.
 
 ## 10. Open items
 
-- **Tax classes are not seeded.** GST rates and component splits must be confirmed with a domain
-  expert (M10-07). The setup wizard creates them.
+- **Tax classes are provisional.** Setup seeds the GST 2.0 slabs (0, 5, 18, 40%) for Indian
+  stores; they must be confirmed with a GST practitioner (M10-07).
 - Purchase-side tax (input credit) is not modelled. Goods receipts record net cost only.
 - Quarantined returns are recorded but are not a separate stock location yet.
 - Multi-store sync (Release 2) may need globally unique ids alongside the integer keys.

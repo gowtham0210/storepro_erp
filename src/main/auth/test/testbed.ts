@@ -1,3 +1,9 @@
+import { DEFAULT_CURRENCY } from '@shared/money'
+import { CatalogRepository } from '../../catalog/catalogRepository'
+import { CatalogService } from '../../catalog/catalogService'
+import { ProductRepository } from '../../catalog/productRepository'
+import { ProductService } from '../../catalog/productService'
+import { TaxClassRepository } from '../../catalog/taxClassRepository'
 import type { Database } from '../../db/database'
 import { AuditLog } from '../../audit/auditLog'
 import { AuditLogReader } from '../../audit/auditLogReader'
@@ -33,6 +39,11 @@ export interface Testbed {
   storeService: StoreService
   stores: StoreRepository
   moduleService: ModuleService
+  taxClasses: TaxClassRepository
+  catalog: CatalogRepository
+  products: ProductRepository
+  catalogService: CatalogService
+  productService: ProductService
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -64,8 +75,23 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
   })
   const userService = new UserService({ db, users, roles, hasher, throttle, audit })
   const stores = new StoreRepository(db, clock)
-  const storeService = new StoreService({ db, store: stores, auth, audit })
+  const taxClasses = new TaxClassRepository(db, clock)
+  const storeService = new StoreService({ db, store: stores, taxClasses, auth, audit })
+  const catalog = new CatalogRepository(db, clock)
+  const products = new ProductRepository(db, clock)
   return {
+    taxClasses,
+    catalog,
+    products,
+    catalogService: new CatalogService({ db, catalog, taxClasses, audit }),
+    productService: new ProductService({
+      db,
+      products,
+      catalog,
+      taxClasses,
+      audit,
+      currency: () => stores.get()?.currency ?? DEFAULT_CURRENCY
+    }),
     auth,
     userService,
     users,

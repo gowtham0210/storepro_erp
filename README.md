@@ -121,6 +121,14 @@ module is always on for grocery stores; the others are planned for later release
 screens appear, and its requests are accepted, only while it is switched on. Switching a module
 off never deletes its data. See [`docs/modules.md`](docs/modules.md).
 
+### Products
+
+**Stock → Products** holds what the store sells: products, their pack sizes (each with its own
+price, MRP, cost, unit and barcodes), categories and units. A barcode belongs to one item; SKUs are
+assigned if left empty. Items are archived, never deleted, so past bills keep them. Price changes
+apply to the next bill and are audited with the old and new amounts. Billing finds items by
+barcode, SKU or name prefix. See [`docs/catalogue.md`](docs/catalogue.md).
+
 ### Offline and connectivity
 
 StorePro needs no internet connection: everything is stored on this computer. The header always

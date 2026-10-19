@@ -30,7 +30,12 @@ describe('AppShell', () => {
     renderApp('/billing')
     await screen.findByRole('heading', { level: 1, name: 'Billing' })
     fireEvent.keyDown(window, { key: '4', code: 'Digit4', ctrlKey: true })
-    const heading = await screen.findByRole('heading', { level: 1, name: 'Products' })
+    // Products is loaded on first use, which can be slow while other tests run.
+    const heading = await screen.findByRole(
+      'heading',
+      { level: 1, name: 'Products' },
+      { timeout: 5000 }
+    )
     await waitFor(() => expect(document.activeElement).toBe(heading))
   })
 

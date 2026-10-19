@@ -1,5 +1,7 @@
 import type { AuditLogService } from '../../audit/auditLogService'
 import type { AuthService } from '../../auth/authService'
+import type { CatalogService } from '../../catalog/catalogService'
+import type { ProductService } from '../../catalog/productService'
 import type { ConnectivityMonitor } from '../../connectivity/connectivityMonitor'
 import type { ModuleService } from '../../modules/moduleService'
 import type { StoreService } from '../../store/storeService'
@@ -9,6 +11,7 @@ import type { HandlerMap } from '../serviceHost'
 import { createAppHandlers, type AppHandlerDeps } from './app'
 import { createAuditHandlers } from './audit'
 import { createAuthHandlers } from './auth'
+import { createCatalogHandlers } from './catalog'
 import { createConnectivityHandlers } from './connectivity'
 import { createLogHandlers } from './log'
 import { createModuleHandlers } from './modules'
@@ -23,6 +26,8 @@ export interface HandlerDeps extends AppHandlerDeps {
   store: StoreService
   modules: ModuleService
   connectivity: ConnectivityMonitor
+  catalog: CatalogService
+  products: ProductService
 }
 
 export function createHandlers(deps: HandlerDeps): HandlerMap {
@@ -34,6 +39,7 @@ export function createHandlers(deps: HandlerDeps): HandlerMap {
     ...createAuditHandlers(deps.auditLog),
     ...createStoreHandlers(deps.store),
     ...createModuleHandlers(deps.modules),
-    ...createConnectivityHandlers(deps.connectivity)
+    ...createConnectivityHandlers(deps.connectivity),
+    ...createCatalogHandlers(deps.catalog, deps.products)
   }
 }

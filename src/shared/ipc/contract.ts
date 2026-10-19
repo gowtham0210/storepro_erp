@@ -244,6 +244,153 @@ export interface AuditFilterOptions {
   people: AuditPerson[]
 }
 
+/** A product category (M09-01). */
+export interface CategorySummary {
+  categoryId: number
+  name: string
+  active: boolean
+  /** Products filed under it, archived ones included. */
+  productCount: number
+}
+
+/** A unit of measure (M09-01). */
+export interface UnitInfo {
+  unitCode: string
+  name: string
+  /** Sold and counted in fractions (kg: yes, pcs: no). */
+  allowsFraction: boolean
+  /** Used by an item, so its code and fraction rule can't change. */
+  inUse: boolean
+}
+
+/** A tax class: the rate products are taxed at (M09, M10). */
+export interface TaxClassSummary {
+  taxClassId: number
+  name: string
+  rateBp: number
+  cessRateBp: number
+  active: boolean
+  productCount: number
+}
+
+export type ProductStatusFilter = 'active' | 'archived' | 'all'
+
+export interface ProductListFilter {
+  /** Name, SKU or barcode; words match as prefixes. */
+  search?: string | undefined
+  categoryId?: number | undefined
+  status?: ProductStatusFilter | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+/** One sellable item (a product's variant) in the product list. */
+export interface ProductListItem {
+  variantId: number
+  productId: number
+  productName: string
+  /** Pack size or model, e.g. "1 kg"; null for a product with a single variant. */
+  variantName: string | null
+  sku: string
+  barcodes: string[]
+  unitCode: string
+  categoryName: string | null
+  sellingPriceMinor: number
+  mrpMinor: number | null
+  tracksInventory: boolean
+  /** Null when the product doesn't track stock. */
+  onHandMilli: number | null
+  /** The item and its product are both active. */
+  active: boolean
+}
+
+export interface ProductListPage {
+  items: ProductListItem[]
+  /** Items matching the filter, on every page. */
+  total: number
+}
+
+export interface VariantDetail {
+  variantId: number
+  variantName: string | null
+  sku: string
+  unitCode: string
+  sellingPriceMinor: number
+  mrpMinor: number | null
+  costPriceMinor: number | null
+  reorderLevelMilli: number | null
+  barcodes: string[]
+  active: boolean
+  onHandMilli: number | null
+  /** Sold, bought, counted or adjusted: its unit can no longer change. */
+  hasHistory: boolean
+}
+
+export interface ProductDetail {
+  productId: number
+  name: string
+  categoryId: number | null
+  taxClassId: number
+  hsnCode: string | null
+  tracksInventory: boolean
+  active: boolean
+  createdAt: number
+  updatedAt: number
+  variants: VariantDetail[]
+}
+
+/** What applies to every pack size of a product. */
+export interface ProductInput {
+  name: string
+  categoryId: number | null
+  taxClassId: number
+  /** HSN code for GST invoices: 4 to 8 digits. */
+  hsnCode: string | null
+  tracksInventory: boolean
+}
+
+/** One pack size: what is priced, scanned, sold and counted. */
+export interface VariantInput {
+  variantName: string | null
+  /** Left empty, StorePro assigns one (ITEM-00042). */
+  sku: string | null
+  unitCode: string
+  sellingPriceMinor: number
+  mrpMinor: number | null
+  costPriceMinor: number | null
+  /** Low-stock threshold (M14-05); null for none. */
+  reorderLevelMilli: number | null
+  barcodes: string[]
+}
+
+export interface NewProduct extends ProductInput {
+  variants: VariantInput[]
+}
+
+export interface ProductUpdate extends ProductInput {
+  productId: number
+}
+
+export interface VariantUpdate extends VariantInput {
+  variantId: number
+}
+
+/** An item found by barcode or search, with what billing needs (M09-07). */
+export interface ItemLookup {
+  variantId: number
+  productId: number
+  /** Product and pack size together: "Toor Dal 1 kg". */
+  name: string
+  sku: string
+  unitCode: string
+  allowsFraction: boolean
+  sellingPriceMinor: number
+  mrpMinor: number | null
+  taxClassId: number
+  tracksInventory: boolean
+  onHandMilli: number | null
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -274,6 +421,36 @@ export interface IpcContract {
   'modules:set-enabled': { input: { code: ModuleCode; enabled: boolean }; output: ModuleState[] }
   'audit:list': { input: AuditLogFilter; output: AuditLogPage }
   'audit:filter-options': { input: void; output: AuditFilterOptions }
+  'catalog:list-categories': { input: void; output: CategorySummary[] }
+  'catalog:create-category': { input: { name: string }; output: CategorySummary }
+  'catalog:rename-category': {
+    input: { categoryId: number; name: string }
+    output: CategorySummary
+  }
+  'catalog:set-category-active': {
+    input: { categoryId: number; active: boolean }
+    output: CategorySummary
+  }
+  'catalog:list-units': { input: void; output: UnitInfo[] }
+  'catalog:create-unit': {
+    input: { unitCode: string; name: string; allowsFraction: boolean }
+    output: UnitInfo
+  }
+  'catalog:rename-unit': { input: { unitCode: string; name: string }; output: UnitInfo }
+  'tax:list-classes': { input: void; output: TaxClassSummary[] }
+  'products:list': { input: ProductListFilter; output: ProductListPage }
+  'products:get': { input: { productId: number }; output: ProductDetail }
+  'products:create': { input: NewProduct; output: ProductDetail }
+  'products:update': { input: ProductUpdate; output: ProductDetail }
+  'products:add-variant': { input: VariantInput & { productId: number }; output: ProductDetail }
+  'products:update-variant': { input: VariantUpdate; output: ProductDetail }
+  'products:set-active': { input: { productId: number; active: boolean }; output: ProductDetail }
+  'products:set-variant-active': {
+    input: { variantId: number; active: boolean }
+    output: ProductDetail
+  }
+  'products:find-by-barcode': { input: { barcode: string }; output: ItemLookup | null }
+  'products:search': { input: { query: string; limit?: number | undefined }; output: ItemLookup[] }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -310,7 +487,25 @@ const channelRegistry: Record<IpcChannel, true> = {
   'modules:list': true,
   'modules:set-enabled': true,
   'audit:list': true,
-  'audit:filter-options': true
+  'audit:filter-options': true,
+  'catalog:list-categories': true,
+  'catalog:create-category': true,
+  'catalog:rename-category': true,
+  'catalog:set-category-active': true,
+  'catalog:list-units': true,
+  'catalog:create-unit': true,
+  'catalog:rename-unit': true,
+  'tax:list-classes': true,
+  'products:list': true,
+  'products:get': true,
+  'products:create': true,
+  'products:update': true,
+  'products:add-variant': true,
+  'products:update-variant': true,
+  'products:set-active': true,
+  'products:set-variant-active': true,
+  'products:find-by-barcode': true,
+  'products:search': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

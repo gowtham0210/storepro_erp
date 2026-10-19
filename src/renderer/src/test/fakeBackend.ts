@@ -9,7 +9,9 @@ import type {
   SessionUser,
   SetupOptions,
   StoreProfile,
-  StoreProBridge
+  StoreProBridge,
+  TaxClassSummary,
+  UnitInfo
 } from '@shared/ipc/contract'
 import { AppError, type IpcResult } from '@shared/ipc/errors'
 import { PERMISSION_CODES, type PermissionCode } from '@shared/permissions'
@@ -100,6 +102,24 @@ export const SETUP_OPTIONS: SetupOptions = {
     { businessTypeCode: 'restaurant', name: 'Restaurant', available: false }
   ]
 }
+
+export const UNITS: UnitInfo[] = [
+  { unitCode: 'pcs', name: 'Pieces', allowsFraction: false, inUse: false },
+  { unitCode: 'kg', name: 'Kilograms', allowsFraction: true, inUse: false }
+]
+
+export const TAX_CLASSES: TaxClassSummary[] = [
+  {
+    taxClassId: 1,
+    name: 'GST 0% (exempt)',
+    rateBp: 0,
+    cessRateBp: 0,
+    active: true,
+    productCount: 0
+  },
+  { taxClassId: 2, name: 'GST 5%', rateBp: 500, cessRateBp: 0, active: true, productCount: 0 },
+  { taxClassId: 3, name: 'GST 18%', rateBp: 1800, cessRateBp: 0, active: true, productCount: 0 }
+]
 
 type Handler<C extends IpcChannel> = (input: IpcInput<C>) => IpcOutput<C> | Promise<IpcOutput<C>>
 type Handlers = { [C in IpcChannel]?: Handler<C> }
@@ -202,6 +222,18 @@ class FakeBackend {
         return { entries: [], nextBefore: null }
       case 'audit:filter-options':
         return { actions: [], people: [] }
+      case 'catalog:list-categories':
+        return []
+      case 'catalog:list-units':
+        return UNITS
+      case 'tax:list-classes':
+        return TAX_CLASSES
+      case 'products:list':
+        return { items: [], total: 0 }
+      case 'products:search':
+        return []
+      case 'products:find-by-barcode':
+        return null
       default:
         return undefined
     }

@@ -74,6 +74,16 @@ export function money(
     )
 }
 
+/** Money that may be left empty: '' and null both mean "none". */
+export function optionalMoney(label: string, rules: MoneyRules = {}) {
+  return z.union([z.null(), z.literal('').transform(() => null), money(label, rules)])
+}
+
+/** A quantity that may be left empty: '' and null both mean "none". */
+export function optionalQuantity(label: string, rules: QuantityRules) {
+  return z.union([z.null(), z.literal('').transform(() => null), quantity(label, rules)])
+}
+
 export function quantity(label: string, rules: QuantityRules) {
   return z.union([z.string(), z.number()]).transform((value, ctx) => {
     try {

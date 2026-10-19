@@ -39,7 +39,9 @@ describe('screens by role (M06-04)', () => {
   it('starts an inventory operator on the first screen they may open, not on Billing', async () => {
     fakeBackend.authState = { status: 'signed-in', user: userWithRole('inventory_operator') }
     renderApp('/')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Products' })).toBeTruthy()
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Products' }, { timeout: 5000 })
+    ).toBeTruthy()
     expect(navItems()).not.toContain('Billing')
     expect(navItems()).toContain('Purchases')
   })

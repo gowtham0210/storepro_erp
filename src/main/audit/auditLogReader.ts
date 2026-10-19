@@ -26,6 +26,17 @@ interface Row {
   entity_label: string | null
 }
 
+/** The current name of the record an entry is about, for each kind of record that has one. */
+const ENTITY_LABEL = `CASE a.entity_type
+  WHEN 'user' THEN (SELECT display_name FROM users WHERE user_id = a.entity_id)
+  WHEN 'product' THEN (SELECT name FROM products WHERE product_id = a.entity_id)
+  WHEN 'category' THEN (SELECT name FROM categories WHERE category_id = a.entity_id)
+  WHEN 'tax_class' THEN (SELECT name FROM tax_classes WHERE tax_class_id = a.entity_id)
+  WHEN 'stock_adjustment' THEN (SELECT adjustment_number FROM stock_adjustments
+                                WHERE stock_adjustment_id = a.entity_id)
+  WHEN 'stock_count' THEN 'Stock count ' || a.entity_id
+END`
+
 function person(
   id: number | null,
   name: string | null,
@@ -91,11 +102,10 @@ export class AuditLogReader extends Repository {
               actor.username AS actor_username,
               approver.user_id AS approver_id, approver.display_name AS approver_name,
               approver.username AS approver_username,
-              subject.display_name AS entity_label
+              ${ENTITY_LABEL} AS entity_label
        FROM audit_logs a
        LEFT JOIN users actor ON actor.user_id = a.user_id
        LEFT JOIN users approver ON approver.user_id = a.approved_by_user_id
-       LEFT JOIN users subject ON a.entity_type = 'user' AND subject.user_id = a.entity_id
        ${where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''}
        ORDER BY a.audit_log_id DESC
        LIMIT ?`,

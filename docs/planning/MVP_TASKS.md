@@ -239,6 +239,17 @@ A network without internet access (router line down) counts as online; telling t
 | M09-08 | Archive/deactivate products referenced by sales (no hard delete) | M09-02 | S |
 | M09-09 | Price change service with permission check and audit | M09-02, M06-03, M07-02 | S |
 
+**Status (2026-10-19):** M09-01 to M09-09 are implemented. See `docs/catalogue.md` and migration 0005.
+
+- **Reference data:** categories (add, rename, archive, restore) and units (add with a fixed code and fraction rule, rename). Setup now seeds the store's tax classes (provisional GST slabs for India).
+- **Products:** a product with one or more pack sizes, each with its own unit, prices, low-stock level, SKU (assigned when left empty) and barcodes. One barcode, one item; the error names the item that has it.
+- **Screens:** **Stock → Products** with search, category and status filters and pages of 50; an add form for a product and its first pack size; a product editor with its pack sizes. Read-only without `product.manage`.
+- **Lookups for billing:** `products:find-by-barcode` (barcode, then SKU) and `products:search` (FTS prefix), active items only.
+- **Archive, not delete:** products and pack sizes are archived; a pack size's unit is fixed once it has history.
+- **Audit:** every change, with price changes recorded on their own with amounts before and after.
+
+CSV import is M22; variable-weight barcodes and labels are M24.
+
 ### M10 · Pricing, Discount & Tax Engine
 
 | ID | Task | Depends on | Size |
