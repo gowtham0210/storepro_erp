@@ -24,7 +24,8 @@ describe('AppShell', () => {
       current: 'page'
     })
     expect(current.textContent).toContain('Billing')
-    expect(document.title).toBe('Billing · StorePro')
+    // The title is set in an effect, which can run just after the heading appears.
+    await waitFor(() => expect(document.title).toBe('Billing · StorePro'))
   })
 
   it('navigates with Ctrl+number and moves focus to the new page heading', async () => {
