@@ -4,6 +4,7 @@ import type { AuditLogService } from '../../audit/auditLogService'
 import type { AuthService } from '../../auth/authService'
 import type { CatalogService } from '../../catalog/catalogService'
 import type { ProductService } from '../../catalog/productService'
+import type { PricingService } from '../../pricing/pricingService'
 import type { ConnectivityMonitor } from '../../connectivity/connectivityMonitor'
 import type { ModuleService } from '../../modules/moduleService'
 import type { StoreService } from '../../store/storeService'
@@ -39,7 +40,8 @@ function setup() {
     modules: {} as ModuleService,
     connectivity: {} as ConnectivityMonitor,
     catalog: {} as CatalogService,
-    products: {} as ProductService
+    products: {} as ProductService,
+    pricing: {} as PricingService
   })
   const { invoke } = createIpcHarness(handlers)
   return { handlers, logger, appInfo, startup, invoke }

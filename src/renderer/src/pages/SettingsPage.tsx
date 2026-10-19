@@ -36,6 +36,7 @@ import {
   toProfileInput,
   type StoreFormValues
 } from '../setup/storeForm'
+import { PricingPolicySection, TaxRatesSection } from '../pricing/PricingSettings'
 import { useStore } from '../store/storeContext'
 
 /**
@@ -94,6 +95,8 @@ export default function SettingsPage(): React.JSX.Element {
         >
           {(form) => <TaxFields form={form} />}
         </Section>
+        <TaxRatesSection canEdit={canEdit} />
+        <PricingPolicySection canEdit={canEdit} />
         <Section
           title="Receipts"
           description="Invoice numbers continue from the last bill when the prefix changes."

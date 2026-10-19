@@ -228,6 +228,8 @@ class FakeBackend {
         return UNITS
       case 'tax:list-classes':
         return TAX_CLASSES
+      case 'pricing:get-settings':
+        return { roundingMinor: 1, maxDiscountBp: 1000, regime: 'gst', pricesIncludeTax: true }
       case 'products:list':
         return { items: [], total: 0 }
       case 'products:search':

@@ -25,6 +25,7 @@ import { CatalogService } from './catalog/catalogService'
 import { ProductRepository } from './catalog/productRepository'
 import { ProductService } from './catalog/productService'
 import { TaxClassRepository } from './catalog/taxClassRepository'
+import { PricingService } from './pricing/pricingService'
 import { ConnectivityMonitor } from './connectivity/connectivityMonitor'
 import { DatabaseIntegrityError, DatabaseTooNewError, openStoreDatabase, type Database } from './db'
 import { createEventPublisher } from './ipc/events'
@@ -225,6 +226,7 @@ function createServices(
   modules: ModuleService
   catalog: CatalogService
   products: ProductService
+  pricing: PricingService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -258,7 +260,8 @@ function createServices(
     audit,
     currency: () => storeRepository.get()?.currency ?? DEFAULT_CURRENCY
   })
-  return { audit, auth, users, auditLog, store, modules, catalog, products }
+  const pricing = new PricingService({ db, store: storeRepository, taxClasses, audit })
+  return { audit, auth, users, auditLog, store, modules, catalog, products, pricing }
 }
 
 function startupFailureMessage(error: unknown): string {

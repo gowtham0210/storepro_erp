@@ -294,6 +294,10 @@ Migrations so far:
   class like the GST rate), an index for listing products by name, and default tax classes for a
   store set up before it. New stores get the same classes from setup
   (`TaxClassRepository.seedDefaults`, `src/shared/tax.ts`). See [`catalogue.md`](catalogue.md).
+- 0006: pricing. Adds `businesses.bill_rounding_minor` (the step bill totals are rounded to) and
+  `businesses.max_discount_bp` (the cashier discount limit in basis points), and seeds the `'TAX'`
+  component in `tax_components` for stores outside India. See
+  [`pricing-and-tax.md`](pricing-and-tax.md).
 
 Store setup (M03) needed no migration: `businesses` already held every field. Its single row
 existing is what "set up" means, and `region_code` holds the ISO 3166-2 subdivision code (`TN`).

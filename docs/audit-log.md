@@ -61,6 +61,7 @@ db.transaction(() => {
 | Approvals           | approval given, approval refused (wrong password, or the approver isn't allowed either)                                                                                             | M06            |
 | User accounts       | added, changed (name, role), password reset, deactivated, reactivated                                                                                                               | M05            |
 | StorePro itself     | store data upgraded (with the backup file name), unexpected shutdown recovered, data check found problems                                                                           | M07 (start-up) |
+| Store settings      | store set up, settings changed, module switched on or off, bill rounding or discount limit changed, tax rate added, changed, archived or restored                                   | M03, M04, M10  |
 | Products and prices | product added, changed, archived, restored; price changed (before and after); pack size added, archived, restored; category added, renamed, archived, restored; unit added, renamed | M09            |
 
 Sensitive actions of modules that aren't built yet must be added as those modules are built.
@@ -68,8 +69,7 @@ Each must use `change()` with the request's `actor`:
 
 | Action (planned)                       | Module   |
 | -------------------------------------- | -------- |
-| Settings changed                       | M03      |
-| Discount or price overridden on a bill | M10, M11 |
+| Discount or price overridden on a bill | M11      |
 | Sale voided, invoice reprinted         | M11, M13 |
 | Stock adjusted                         | M14      |
 | Return and refund                      | M16      |

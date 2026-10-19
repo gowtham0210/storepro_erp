@@ -41,7 +41,12 @@ export const AUDIT_CATEGORIES = [
       { code: 'store.set_up', label: 'Set up the store' },
       { code: 'store.updated', label: 'Changed store settings' },
       { code: 'module.enabled', label: 'Switched a module on' },
-      { code: 'module.disabled', label: 'Switched a module off' }
+      { code: 'module.disabled', label: 'Switched a module off' },
+      { code: 'pricing.updated', label: 'Changed rounding or discount limit' },
+      { code: 'tax_class.created', label: 'Added a tax rate' },
+      { code: 'tax_class.updated', label: 'Changed a tax rate' },
+      { code: 'tax_class.archived', label: 'Archived a tax rate' },
+      { code: 'tax_class.restored', label: 'Restored a tax rate' }
     ]
   },
   {

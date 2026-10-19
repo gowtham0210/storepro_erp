@@ -44,9 +44,9 @@ Nobody can bill before setup is saved:
 
 ## 3. Settings (M03-04, FR-002)
 
-**Manage → Settings** has five sections: store details, business and region, tax, receipts and
-stock. Each section saves on its own: **Save** is enabled only when something changed, and
-**Unsaved changes** says so.
+**Manage → Settings** has sections for store details, business and region, tax, tax rates,
+rounding and discounts, receipts, stock and modules. Each section saves on its own: **Save** is
+enabled only when something changed, and **Unsaved changes** says so.
 
 - Changing settings needs `settings.edit` (administrators). Managers (`settings.view`) see the
   same screen read-only.

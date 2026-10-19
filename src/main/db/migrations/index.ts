@@ -4,6 +4,7 @@ import authentication from './0002_authentication.sql?raw'
 import permissions from './0003_permissions.sql?raw'
 import auditLog from './0004_audit_log.sql?raw'
 import catalogue from './0005_catalogue.sql?raw'
+import pricing from './0006_pricing.sql?raw'
 
 /**
  * Every schema change, in order. Rules:
@@ -18,5 +19,6 @@ export const migrations: readonly Migration[] = [
   { version: 2, name: 'authentication', sql: authentication },
   { version: 3, name: 'permissions', sql: permissions },
   { version: 4, name: 'audit_log', sql: auditLog },
-  { version: 5, name: 'catalogue', sql: catalogue }
+  { version: 5, name: 'catalogue', sql: catalogue },
+  { version: 6, name: 'pricing', sql: pricing }
 ]

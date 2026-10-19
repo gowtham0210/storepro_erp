@@ -116,10 +116,21 @@ test.describe('store setup (M03)', () => {
       await receipts.getByLabel(/Message at the bottom/).fill('Exchange within 7 days.')
       await receipts.getByRole('button', { name: 'Save receipts' }).click()
       await expect(second.window.getByText('Receipts saved.')).toBeVisible()
+
+      const policy = second.window.getByRole('region', { name: 'Rounding and discounts' })
+      await policy.getByLabel(/^Round bill totals/).selectOption('100')
+      await policy.getByRole('button', { name: 'Save rounding and discounts' }).click()
+      await expect(second.window.getByText('Rounding and discounts saved.')).toBeVisible()
+
       await goTo(second.window, '/audit')
       await expect(
         second.window.getByRole('row', {
           name: /Changed store settings.*receipt footer from Thank you! Visit again\. to Exchange within 7 days\./i
+        })
+      ).toBeVisible()
+      await expect(
+        second.window.getByRole('row', {
+          name: /Changed rounding or discount limit.*bill rounding from not rounded to nearest ₹1\.00/i
         })
       ).toBeVisible()
       await expect(second.window.getByRole('row', { name: /Set up the store/ })).toBeVisible()

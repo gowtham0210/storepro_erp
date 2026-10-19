@@ -1,7 +1,10 @@
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach } from 'vitest'
 import { resetConnectivity } from '../layout/useConnectivity'
 import { fakeBackend } from './fakeBackend'
+
+// Lazy route imports on first render can take >1 s when all workers start together on Windows.
+configure({ asyncUtilTimeout: 5000 })
 
 afterEach(() => {
   cleanup()

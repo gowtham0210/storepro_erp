@@ -68,6 +68,11 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'catalog:create-unit': [{ unitCode: 'tray', name: 'Trays', allowsFraction: false }],
   'catalog:rename-unit': [{ unitCode: 'pcs', name: 'Units' }],
   'tax:list-classes': [],
+  'tax:create-class': [{ name: 'GST 99%', rateBp: 9900, cessRateBp: 0 }],
+  'tax:update-class': [{ taxClassId: 1, name: 'GST 0%', rateBp: 9000, cessRateBp: 0 }],
+  'tax:set-class-active': [{ taxClassId: 1, active: false }],
+  'pricing:get-settings': [],
+  'pricing:update-policy': [{ roundingMinor: 1, maxDiscountBp: 10_000 }],
   'products:list': [{}],
   'products:get': [{ productId: 1 }],
   'products:create': [

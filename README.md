@@ -129,6 +129,15 @@ assigned if left empty. Items are archived, never deleted, so past bills keep th
 apply to the next bill and are audited with the old and new amounts. Billing finds items by
 barcode, SKU or name prefix. See [`docs/catalogue.md`](docs/catalogue.md).
 
+### Pricing, discounts and tax
+
+`src/shared/pricing.ts` calculates line totals, line and bill-level discounts (allocated across
+lines by largest remainder), GST (split equally into CGST and SGST, plus cess) or single-rate tax
+for both tax-inclusive and tax-exclusive prices, and bill round-off. Administrators manage tax
+classes and set bill rounding and the cashier discount limit under **Manage → Settings**; discounts
+beyond the limit or price overrides require manager approval. See
+[`docs/pricing-and-tax.md`](docs/pricing-and-tax.md).
+
 ### Offline and connectivity
 
 StorePro needs no internet connection: everything is stored on this computer. The header always

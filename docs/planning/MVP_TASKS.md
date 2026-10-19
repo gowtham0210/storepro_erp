@@ -262,6 +262,16 @@ CSV import is M22; variable-weight barcodes and labels are M24.
 | M10-06 | Exhaustive unit tests (rounding edge cases, mixed tax rates, inclusive pricing) | M10-04 | M |
 | M10-07 | Validate GST/invoice rules with domain expert; document decisions | — | M |
 
+**Status (2026-10-19):** M10-01 to M10-06 are implemented, and the provisional GST rules are documented for M10-07. See `docs/pricing-and-tax.md` and migration 0006.
+
+- **Engine (`src/shared/pricing.ts`):** pure `calculateBill()` for line gross (`qty × price`), amount or percentage line discounts, largest-remainder allocation of bill discounts across lines, tax-inclusive and tax-exclusive GST (`CGST` + `SGST` + `CESS`) or single sales tax, tax summary by component and rate, and payable round-off.
+- **Database parity:** a property test inserts 60 randomized bills into SQLite and checks that `v_sale_totals` matches `calculateBill` on every total.
+- **Tax classes and policy (`PricingService`):** create, edit, archive and restore tax classes (keeping at least one active; even GST rates in India), plus store-wide bill rounding step and cashier discount limit (`businesses.bill_rounding_minor`, `businesses.max_discount_bp`), all audited.
+- **Permissions (`authorizeBill`):** requires `discount.apply` for any discount, `discount.override` above the store limit, and `price.override` when a line's price differs from the catalogue, with `overridable: true` for manager approval at POS.
+- **Settings UI:** **Tax rates** and **Rounding and discounts** sections on **Manage → Settings**, read-only for managers.
+
+Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing remains open (PRD §15).
+
 ### M14 · Inventory & Stock Ledger
 
 | ID | Task | Depends on | Size |

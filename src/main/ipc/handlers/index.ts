@@ -2,6 +2,7 @@ import type { AuditLogService } from '../../audit/auditLogService'
 import type { AuthService } from '../../auth/authService'
 import type { CatalogService } from '../../catalog/catalogService'
 import type { ProductService } from '../../catalog/productService'
+import type { PricingService } from '../../pricing/pricingService'
 import type { ConnectivityMonitor } from '../../connectivity/connectivityMonitor'
 import type { ModuleService } from '../../modules/moduleService'
 import type { StoreService } from '../../store/storeService'
@@ -15,6 +16,7 @@ import { createCatalogHandlers } from './catalog'
 import { createConnectivityHandlers } from './connectivity'
 import { createLogHandlers } from './log'
 import { createModuleHandlers } from './modules'
+import { createPricingHandlers } from './pricing'
 import { createStoreHandlers } from './store'
 import { createUserHandlers } from './users'
 
@@ -28,6 +30,7 @@ export interface HandlerDeps extends AppHandlerDeps {
   connectivity: ConnectivityMonitor
   catalog: CatalogService
   products: ProductService
+  pricing: PricingService
 }
 
 export function createHandlers(deps: HandlerDeps): HandlerMap {
@@ -40,6 +43,7 @@ export function createHandlers(deps: HandlerDeps): HandlerMap {
     ...createStoreHandlers(deps.store),
     ...createModuleHandlers(deps.modules),
     ...createConnectivityHandlers(deps.connectivity),
-    ...createCatalogHandlers(deps.catalog, deps.products)
+    ...createCatalogHandlers(deps.catalog, deps.products),
+    ...createPricingHandlers(deps.pricing)
   }
 }

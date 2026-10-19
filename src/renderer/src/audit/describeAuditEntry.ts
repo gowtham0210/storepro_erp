@@ -1,6 +1,7 @@
 import type { AuditLogEntry } from '@shared/ipc/contract'
 import { isPermissionCode, permissionDescription } from '@shared/permissions'
 import { PRODUCT_FIELD_LABELS } from '@shared/schemas/catalog'
+import { PRICING_FIELD_LABELS } from '@shared/schemas/pricing'
 import { STORE_FIELD_LABELS } from '@shared/schemas/store'
 
 /** How changed fields are named in sentences. Unknown fields use their key. */
@@ -84,6 +85,19 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       const described = changes(d['changes'], STORE_FIELD_LABELS)
       return described.charAt(0).toUpperCase() + described.slice(1)
     }
+    case 'pricing.updated': {
+      const described = changes(d['changes'], PRICING_FIELD_LABELS)
+      return described.charAt(0).toUpperCase() + described.slice(1)
+    }
+    case 'tax_class.created': {
+      const cess = d['cess'] && d['cess'] !== '0%' ? ` + ${text(d['cess'])} cess` : ''
+      return `${text(d['name'] ?? subject)}: ${text(d['rate'])}${cess}`
+    }
+    case 'tax_class.updated':
+      return `${text(d['name'] ?? subject)}: ${changes(d['changes'], PRICING_FIELD_LABELS)}`
+    case 'tax_class.archived':
+    case 'tax_class.restored':
+      return text(d['name'] ?? subject)
     case 'product.created': {
       const items = Array.isArray(d['items']) ? (d['items'] as unknown[]).map(text) : []
       return [text(d['name']), items.join(', ')].filter(Boolean).join(': ')

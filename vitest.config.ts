@@ -51,7 +51,8 @@ export default defineConfig({
           name: 'renderer',
           include: ['src/renderer/**/*.test.tsx'],
           environment: 'jsdom',
-          setupFiles: ['src/renderer/src/test/setup.ts']
+          setupFiles: ['src/renderer/src/test/setup.ts'],
+          testTimeout: 15_000
         }
       }
     ]

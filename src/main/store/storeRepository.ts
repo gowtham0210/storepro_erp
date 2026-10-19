@@ -155,6 +155,14 @@ export class StoreRepository extends Repository {
     return { currencies, businessTypes }
   }
 
+  /** Bill rounding and the discount limit (M10), kept on the store row. */
+  setPricingPolicy(policy: { roundingMinor: number; maxDiscountBp: number }): void {
+    this.update('businesses', 'business_id', 1, {
+      bill_rounding_minor: policy.roundingMinor,
+      max_discount_bp: policy.maxDiscountBp
+    })
+  }
+
   hasSales(): boolean {
     return this.db.get('SELECT 1 AS found FROM sales LIMIT 1') !== undefined
   }

@@ -13,6 +13,7 @@
  */
 
 import type { ModuleCode } from '../modules'
+import type { TaxRegime } from '../pricing'
 import type { PermissionCode } from '../permissions'
 import type { IpcResult } from './errors'
 
@@ -391,6 +392,26 @@ export interface ItemLookup {
   onHandMilli: number | null
 }
 
+/** Store-wide pricing rules an administrator sets (M10-04, M10-05). */
+export interface PricingPolicy {
+  /** The payable amount is rounded to a multiple of this; 1 = not rounded. */
+  roundingMinor: number
+  /** The most discount on a bill, as a share of its gross amount, without an override. */
+  maxDiscountBp: number
+}
+
+/** What billing needs to price a bill: the policy plus how the store charges tax. */
+export interface PricingSettings extends PricingPolicy {
+  regime: TaxRegime
+  pricesIncludeTax: boolean
+}
+
+export interface TaxClassInput {
+  name: string
+  rateBp: number
+  cessRateBp: number
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -438,6 +459,14 @@ export interface IpcContract {
   }
   'catalog:rename-unit': { input: { unitCode: string; name: string }; output: UnitInfo }
   'tax:list-classes': { input: void; output: TaxClassSummary[] }
+  'tax:create-class': { input: TaxClassInput; output: TaxClassSummary }
+  'tax:update-class': { input: TaxClassInput & { taxClassId: number }; output: TaxClassSummary }
+  'tax:set-class-active': {
+    input: { taxClassId: number; active: boolean }
+    output: TaxClassSummary
+  }
+  'pricing:get-settings': { input: void; output: PricingSettings }
+  'pricing:update-policy': { input: PricingPolicy; output: PricingSettings }
   'products:list': { input: ProductListFilter; output: ProductListPage }
   'products:get': { input: { productId: number }; output: ProductDetail }
   'products:create': { input: NewProduct; output: ProductDetail }
@@ -496,6 +525,11 @@ const channelRegistry: Record<IpcChannel, true> = {
   'catalog:create-unit': true,
   'catalog:rename-unit': true,
   'tax:list-classes': true,
+  'tax:create-class': true,
+  'tax:update-class': true,
+  'tax:set-class-active': true,
+  'pricing:get-settings': true,
+  'pricing:update-policy': true,
   'products:list': true,
   'products:get': true,
   'products:create': true,

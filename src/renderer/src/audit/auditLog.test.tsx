@@ -149,7 +149,34 @@ describe('describeAuditEntry', () => {
           }
         },
         'Receipt footer from nothing to Thank you; sell when stock runs out from no to yes'
-      ]
+      ],
+      [
+        {
+          action: 'pricing.updated',
+          details: {
+            changes: {
+              rounding: { from: 'not rounded', to: 'nearest ₹1.00' },
+              discountLimit: { from: '10%', to: '5%' }
+            }
+          }
+        },
+        'Bill rounding from not rounded to nearest ₹1.00; discount limit from 10% to 5%'
+      ],
+      [
+        {
+          action: 'tax_class.created',
+          details: { name: 'Tobacco', rate: '28%', cess: '36%' }
+        },
+        'Tobacco: 28% + 36% cess'
+      ],
+      [
+        {
+          action: 'tax_class.updated',
+          details: { name: 'Tobacco', changes: { cess: { from: '36%', to: '30%' } } }
+        },
+        'Tobacco: cess from 36% to 30%'
+      ],
+      [{ action: 'tax_class.archived', details: { name: 'Tobacco' } }, 'Tobacco']
     ]
     for (const [overrides, sentence] of cases) {
       expect(describeAuditEntry(entry(1, overrides)), overrides.action).toBe(sentence)
