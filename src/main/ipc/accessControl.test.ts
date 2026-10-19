@@ -100,7 +100,24 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'products:set-active': [{ productId: 1, active: false }],
   'products:set-variant-active': [{ variantId: 1, active: false }],
   'products:find-by-barcode': [{ barcode: '8901234567890' }],
-  'products:search': [{ query: 'rice' }]
+  'products:search': [{ query: 'rice' }],
+  'inventory:list-reasons': [],
+  'inventory:list': [{}],
+  'inventory:movements': [{ variantId: 1 }],
+  'inventory:adjust': [
+    {
+      reasonCode: 'opening_stock',
+      notes: null,
+      items: [{ variantId: 1, quantityDeltaMilli: 1000 }]
+    }
+  ],
+  'inventory:reconcile': [
+    {
+      notes: null,
+      items: [{ variantId: 1, countedMilli: 1000 }]
+    }
+  ],
+  'inventory:list-adjustments': [{}]
 }
 
 describe('access control over IPC', () => {

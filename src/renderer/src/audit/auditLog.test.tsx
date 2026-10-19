@@ -176,7 +176,36 @@ describe('describeAuditEntry', () => {
         },
         'Tobacco: cess from 36% to 30%'
       ],
-      [{ action: 'tax_class.archived', details: { name: 'Tobacco' } }, 'Tobacco']
+      [{ action: 'tax_class.archived', details: { name: 'Tobacco' } }, 'Tobacco'],
+      [
+        {
+          action: 'stock.adjusted',
+          details: {
+            adjustmentNumber: 'ADJ000001',
+            reason: 'Damaged',
+            notes: 'Torn packet',
+            items: [{ item: 'Neem Soap', change: '-2 pcs', onHandAfter: '18 pcs' }]
+          }
+        },
+        'ADJ000001 · Damaged: Neem Soap (-2 pcs) — Torn packet'
+      ],
+      [
+        {
+          action: 'stock.counted',
+          details: {
+            adjustmentNumber: 'ADJ000002',
+            items: [
+              {
+                item: 'Sona Masoori Rice 1 kg',
+                recorded: '10 kg',
+                counted: '9.25 kg',
+                change: '-0.75 kg'
+              }
+            ]
+          }
+        },
+        'ADJ000002: Sona Masoori Rice 1 kg 10 kg → 9.25 kg'
+      ]
     ]
     for (const [overrides, sentence] of cases) {
       expect(describeAuditEntry(entry(1, overrides)), overrides.action).toBe(sentence)

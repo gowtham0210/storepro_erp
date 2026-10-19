@@ -223,7 +223,9 @@ A network without internet access (router line down) counts as online; telling t
 
 ---
 
-## Phase 3 — Catalogue & Business Rules
+## Phase 3 — Catalogue & Business Rules ✅ Completed (2026-10-19)
+
+**Phase 3 is complete.** M09, M10 and M14 are implemented.
 
 ### M09 · Product Catalogue
 
@@ -284,6 +286,14 @@ Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing re
 | M14-06 | Stock count / reconciliation workflow (count sheet → variance → approve) | M14-04 | L |
 | M14-07 | Stock movement history screen per product | M14-01, M23-02 | M |
 | M14-08 | Ledger consistency check (balance = sum of movements) | M14-02 | S |
+
+**Status (2026-10-19):** M14-01 to M14-08 are implemented. See `docs/inventory.md`.
+
+- **Ledger & stock on hand (`InventoryRepository`, `InventoryService`):** reads stock balances from `v_stock_on_hand` and movements from `v_inventory_movements`, with a window-function running balance (`balanceAfterMilli`), document number, actor name and reason/notes per movement.
+- **Negative-stock policy (`assertOutflowAllowed`):** blocks sales and downward adjustments that would take a tracked item below zero unless `allowNegativeStock` is enabled in store settings, aggregating duplicate lines per variant first.
+- **Adjustments (`inventory:adjust`):** sequential `ADJ000001` numbering via `document_sequences`, seeded reason validation, unit fraction checks, `stock.adjust` permission enforcement, and atomic `stock.adjusted` audit logging.
+- **Stock count reconciliation (`inventory:reconcile`):** count sheet with live variance calculation, posting a `count_correction` adjustment and `stock.counted` audit log entry for items whose counted quantity differs from recorded stock.
+- **Screens & consistency:** **Stock → Inventory** with search, category and stock-level filters (`all`, `low`, `out`), low-stock alert banner, movement history dialog, adjustment history dialog, and `stock_on_hand_mismatch` integrity check.
 
 ---
 

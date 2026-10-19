@@ -70,6 +70,14 @@ export const AUDIT_CATEGORIES = [
     ]
   },
   {
+    id: 'stock',
+    label: 'Stock',
+    actions: [
+      { code: 'stock.adjusted', label: 'Adjusted stock' },
+      { code: 'stock.counted', label: 'Counted stock' }
+    ]
+  },
+  {
     id: 'system',
     label: 'StorePro',
     actions: [

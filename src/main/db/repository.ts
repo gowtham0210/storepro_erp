@@ -5,6 +5,9 @@ import type { Database } from './database'
 /** A row to write: column name → value. Keys are checked against IDENTIFIER. */
 export type Row = Record<string, SQLInputValue>
 
+export type DocumentType =
+  'sale_invoice' | 'sale_return' | 'purchase_order' | 'goods_receipt' | 'stock_adjustment'
+
 const IDENTIFIER = /^[a-z][a-z0-9_]*$/
 
 export class NotFoundError extends Error {
@@ -72,6 +75,30 @@ export abstract class Repository {
       { now, id }
     )
     if (result.changes === 0) throw new NotFoundError(table, id)
+  }
+
+  /** Allocate the next document number (e.g. ADJ000001) and advance its sequence. */
+  protected nextDocumentNumber(
+    documentType: DocumentType,
+    isTaken?: (candidate: string) => boolean
+  ): string {
+    const seq = this.db.get<{ prefix: string; next_number: number; min_digits: number }>(
+      'SELECT prefix, next_number, min_digits FROM document_sequences WHERE document_type = ?',
+      [documentType]
+    )
+    if (!seq) throw new Error(`Document sequence ${documentType} not found`)
+    let number = seq.next_number
+    for (;;) {
+      const candidate = `${seq.prefix}${String(number).padStart(seq.min_digits, '0')}`
+      if (!isTaken?.(candidate)) {
+        this.db.run('UPDATE document_sequences SET next_number = ? WHERE document_type = ?', [
+          number + 1,
+          documentType
+        ])
+        return candidate
+      }
+      number++
+    }
   }
 }
 

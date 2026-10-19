@@ -25,6 +25,8 @@ import { CatalogService } from './catalog/catalogService'
 import { ProductRepository } from './catalog/productRepository'
 import { ProductService } from './catalog/productService'
 import { TaxClassRepository } from './catalog/taxClassRepository'
+import { InventoryRepository } from './inventory/inventoryRepository'
+import { InventoryService } from './inventory/inventoryService'
 import { PricingService } from './pricing/pricingService'
 import { ConnectivityMonitor } from './connectivity/connectivityMonitor'
 import { DatabaseIntegrityError, DatabaseTooNewError, openStoreDatabase, type Database } from './db'
@@ -227,6 +229,7 @@ function createServices(
   catalog: CatalogService
   products: ProductService
   pricing: PricingService
+  inventory: InventoryService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -261,7 +264,13 @@ function createServices(
     currency: () => storeRepository.get()?.currency ?? DEFAULT_CURRENCY
   })
   const pricing = new PricingService({ db, store: storeRepository, taxClasses, audit })
-  return { audit, auth, users, auditLog, store, modules, catalog, products, pricing }
+  const inventory = new InventoryService({
+    db,
+    inventory: new InventoryRepository(db, clock),
+    store: storeRepository,
+    audit
+  })
+  return { audit, auth, users, auditLog, store, modules, catalog, products, pricing, inventory }
 }
 
 function startupFailureMessage(error: unknown): string {

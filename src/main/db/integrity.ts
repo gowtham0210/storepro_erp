@@ -53,6 +53,14 @@ const CONSISTENCY_CHECKS: readonly { name: string; sql: string }[] = [
     sql: `SELECT count(*) AS n FROM stock_adjustments a
           WHERE NOT EXISTS (SELECT 1 FROM stock_adjustment_items i
                             WHERE i.stock_adjustment_id = a.stock_adjustment_id)`
+  },
+  {
+    name: 'stock_on_hand_mismatch',
+    sql: `SELECT count(*) AS n FROM v_stock_on_hand s
+          WHERE s.on_hand_milli <> (
+            SELECT coalesce(sum(m.quantity_delta_milli), 0)
+            FROM v_inventory_movements m WHERE m.variant_id = s.variant_id
+          )`
   }
 ]
 

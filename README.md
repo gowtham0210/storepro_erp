@@ -138,6 +138,13 @@ classes and set bill rounding and the cashier discount limit under **Manage → 
 beyond the limit or price overrides require manager approval. See
 [`docs/pricing-and-tax.md`](docs/pricing-and-tax.md).
 
+### Inventory and stock ledger
+
+**Stock → Inventory** shows stock on hand, low-stock and out-of-stock alerts, movement history with
+running balances across sales, voids, returns, goods receipts and adjustments, manual stock
+adjustments (`ADJ000001`, …) with reasons, and physical stock count reconciliation. Negative stock
+is blocked by default unless enabled in store settings. See [`docs/inventory.md`](docs/inventory.md).
+
 ### Offline and connectivity
 
 StorePro needs no internet connection: everything is stored on this computer. The header always

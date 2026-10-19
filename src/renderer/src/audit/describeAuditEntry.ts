@@ -121,6 +121,31 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       return `${text(d['name'])} (${text(d['code'])})${d['fractions'] === 'yes' ? ', sold in fractions' : ''}`
     case 'unit.updated':
       return `${text(d['code'])}: ${changes(d['changes'], { name: 'name' })}`
+    case 'stock.adjusted': {
+      const items = Array.isArray(d['items'])
+        ? (d['items'] as { item?: unknown; change?: unknown }[])
+            .map((line) => `${text(line.item)} (${text(line.change)})`)
+            .join(', ')
+        : ''
+      const note = d['notes'] ? ` — ${text(d['notes'])}` : ''
+      return `${text(d['adjustmentNumber'] ?? subject)} · ${text(d['reason'])}: ${items}${note}`
+    }
+    case 'stock.counted': {
+      const items = Array.isArray(d['items'])
+        ? (
+            d['items'] as {
+              item?: unknown
+              recorded?: unknown
+              counted?: unknown
+              change?: unknown
+            }[]
+          )
+            .map((line) => `${text(line.item)} ${text(line.recorded)} → ${text(line.counted)}`)
+            .join(', ')
+        : ''
+      const note = d['notes'] ? ` — ${text(d['notes'])}` : ''
+      return `${text(d['adjustmentNumber'] ?? subject)}: ${items}${note}`
+    }
     case 'system.database_upgraded':
       return `From version ${text(d['fromVersion'])} to ${text(d['toVersion'])}${d['backupFile'] ? `. A backup was saved first (${text(d['backupFile'])})` : ''}`
     case 'system.unclean_shutdown': {

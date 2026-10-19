@@ -412,6 +412,142 @@ export interface TaxClassInput {
   cessRateBp: number
 }
 
+export type AdjustmentReasonCode =
+  'opening_stock' | 'count_correction' | 'damage' | 'expiry' | 'theft_loss' | 'other'
+
+export interface AdjustmentReason {
+  adjustmentReasonCode: AdjustmentReasonCode
+  name: string
+}
+
+export type StockLevelFilter = 'all' | 'low' | 'out'
+
+export interface StockListFilter {
+  search?: string | undefined
+  categoryId?: number | undefined
+  level?: StockLevelFilter | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+/** An inventory-tracked item and its current stock (M14-02, M14-05). */
+export interface StockListItem {
+  variantId: number
+  productId: number
+  productName: string
+  variantName: string | null
+  /** Product and pack size together: "Toor Dal 1 kg". */
+  name: string
+  sku: string
+  barcodes: string[]
+  categoryName: string | null
+  unitCode: string
+  allowsFraction: boolean
+  sellingPriceMinor: number
+  costPriceMinor: number | null
+  onHandMilli: number
+  reorderLevelMilli: number | null
+  isLowStock: boolean
+}
+
+export interface StockListPage {
+  items: StockListItem[]
+  total: number
+  /** Active tracked items at or below their low-stock level (or out of stock). */
+  lowStockCount: number
+  /** Active tracked items with zero or negative stock. */
+  outOfStockCount: number
+}
+
+export type MovementType = 'sale' | 'sale_void' | 'sale_return' | 'goods_receipt' | 'adjustment'
+
+export interface MovementListFilter {
+  variantId: number
+  movementType?: MovementType | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+/** One entry in an item's stock ledger (M14-07). */
+export interface InventoryMovement {
+  movementType: MovementType
+  occurredAt: number
+  variantId: number
+  quantityDeltaMilli: number
+  balanceAfterMilli: number
+  sourceTable: string
+  sourceId: number
+  documentNumber: string
+  reasonCode: AdjustmentReasonCode | null
+  reasonName: string | null
+  actorName: string | null
+  notes: string | null
+}
+
+export interface MovementListPage {
+  variantId: number
+  name: string
+  sku: string
+  unitCode: string
+  allowsFraction: boolean
+  onHandMilli: number
+  reorderLevelMilli: number | null
+  items: InventoryMovement[]
+  total: number
+}
+
+export interface StockAdjustmentLineInput {
+  variantId: number
+  quantityDeltaMilli: number
+}
+
+export interface StockAdjustmentInput {
+  reasonCode: AdjustmentReasonCode
+  notes: string | null
+  items: StockAdjustmentLineInput[]
+}
+
+export interface StockAdjustmentLineDetail {
+  variantId: number
+  name: string
+  sku: string
+  unitCode: string
+  quantityDeltaMilli: number
+  onHandAfterMilli: number
+}
+
+export interface StockAdjustmentDetail {
+  stockAdjustmentId: number
+  adjustmentNumber: string
+  reasonCode: AdjustmentReasonCode
+  reasonName: string
+  adjustedAt: number
+  adjustedByName: string
+  notes: string | null
+  items: StockAdjustmentLineDetail[]
+}
+
+export interface StockCountLineInput {
+  variantId: number
+  countedMilli: number
+}
+
+export interface StockCountInput {
+  notes: string | null
+  items: StockCountLineInput[]
+}
+
+export interface AdjustmentListFilter {
+  reasonCode?: AdjustmentReasonCode | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface AdjustmentListPage {
+  items: StockAdjustmentDetail[]
+  total: number
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -480,6 +616,12 @@ export interface IpcContract {
   }
   'products:find-by-barcode': { input: { barcode: string }; output: ItemLookup | null }
   'products:search': { input: { query: string; limit?: number | undefined }; output: ItemLookup[] }
+  'inventory:list-reasons': { input: void; output: AdjustmentReason[] }
+  'inventory:list': { input: StockListFilter; output: StockListPage }
+  'inventory:movements': { input: MovementListFilter; output: MovementListPage }
+  'inventory:adjust': { input: StockAdjustmentInput; output: StockAdjustmentDetail }
+  'inventory:reconcile': { input: StockCountInput; output: StockAdjustmentDetail | null }
+  'inventory:list-adjustments': { input: AdjustmentListFilter; output: AdjustmentListPage }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -539,7 +681,13 @@ const channelRegistry: Record<IpcChannel, true> = {
   'products:set-active': true,
   'products:set-variant-active': true,
   'products:find-by-barcode': true,
-  'products:search': true
+  'products:search': true,
+  'inventory:list-reasons': true,
+  'inventory:list': true,
+  'inventory:movements': true,
+  'inventory:adjust': true,
+  'inventory:reconcile': true,
+  'inventory:list-adjustments': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

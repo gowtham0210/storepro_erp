@@ -1,4 +1,5 @@
 import type {
+  AdjustmentReason,
   AuthState,
   IpcChannel,
   IpcEvent,
@@ -121,6 +122,15 @@ export const TAX_CLASSES: TaxClassSummary[] = [
   { taxClassId: 3, name: 'GST 18%', rateBp: 1800, cessRateBp: 0, active: true, productCount: 0 }
 ]
 
+export const ADJUSTMENT_REASONS: AdjustmentReason[] = [
+  { adjustmentReasonCode: 'opening_stock', name: 'Opening stock' },
+  { adjustmentReasonCode: 'count_correction', name: 'Stock count correction' },
+  { adjustmentReasonCode: 'damage', name: 'Damaged' },
+  { adjustmentReasonCode: 'expiry', name: 'Expired' },
+  { adjustmentReasonCode: 'theft_loss', name: 'Theft or loss' },
+  { adjustmentReasonCode: 'other', name: 'Other' }
+]
+
 type Handler<C extends IpcChannel> = (input: IpcInput<C>) => IpcOutput<C> | Promise<IpcOutput<C>>
 type Handlers = { [C in IpcChannel]?: Handler<C> }
 
@@ -236,6 +246,12 @@ class FakeBackend {
         return []
       case 'products:find-by-barcode':
         return null
+      case 'inventory:list-reasons':
+        return ADJUSTMENT_REASONS
+      case 'inventory:list':
+        return { items: [], total: 0, lowStockCount: 0, outOfStockCount: 0 }
+      case 'inventory:list-adjustments':
+        return { items: [], total: 0 }
       default:
         return undefined
     }

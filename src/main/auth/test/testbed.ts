@@ -5,6 +5,8 @@ import { ProductRepository } from '../../catalog/productRepository'
 import { ProductService } from '../../catalog/productService'
 import { TaxClassRepository } from '../../catalog/taxClassRepository'
 import type { Database } from '../../db/database'
+import { InventoryRepository } from '../../inventory/inventoryRepository'
+import { InventoryService } from '../../inventory/inventoryService'
 import { PricingService } from '../../pricing/pricingService'
 import { AuditLog } from '../../audit/auditLog'
 import { AuditLogReader } from '../../audit/auditLogReader'
@@ -46,6 +48,8 @@ export interface Testbed {
   catalogService: CatalogService
   productService: ProductService
   pricingService: PricingService
+  inventory: InventoryRepository
+  inventoryService: InventoryService
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -81,12 +85,15 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
   const storeService = new StoreService({ db, store: stores, taxClasses, auth, audit })
   const catalog = new CatalogRepository(db, clock)
   const products = new ProductRepository(db, clock)
+  const inventory = new InventoryRepository(db, clock)
   return {
     taxClasses,
     catalog,
     products,
+    inventory,
     catalogService: new CatalogService({ db, catalog, taxClasses, audit }),
     pricingService: new PricingService({ db, store: stores, taxClasses, audit }),
+    inventoryService: new InventoryService({ db, inventory, store: stores, audit }),
     productService: new ProductService({
       db,
       products,
