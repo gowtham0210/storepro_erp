@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process'
+import { spawnSync, type ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -13,6 +13,22 @@ import {
   removeUserDataDir,
   test
 } from './fixtures'
+
+/**
+ * Kill the app and all of its helper processes at once, as a crash, power cut
+ * or Task Manager "End task" does. On Windows, killing only the main process
+ * leaves Chromium's helper processes alive for a while, still holding the
+ * single-instance lock and the database file.
+ */
+async function killProcessTree(child: ChildProcess): Promise<void> {
+  const exited = new Promise((resolve) => child.once('exit', resolve))
+  if (process.platform === 'win32' && child.pid !== undefined) {
+    spawnSync('taskkill', ['/F', '/T', '/PID', String(child.pid)])
+  } else {
+    child.kill('SIGKILL')
+  }
+  await exited
+}
 
 function isRunning(pid: number | undefined): boolean {
   if (pid === undefined) return false
@@ -66,9 +82,7 @@ test.describe('application lifecycle', () => {
       const first = await launchStorePro(userDataDir)
       // Simulates a power cut or Task Manager "End task": no shutdown hooks run.
       const killed = first.app.process()
-      const exited = new Promise((resolve) => killed.once('exit', resolve))
-      killed.kill('SIGKILL')
-      await exited
+      await killProcessTree(killed)
       expect(isRunning(killed.pid)).toBe(false)
       expect(existsSync(join(userDataDir, 'session.lock'))).toBe(true)
 
