@@ -42,10 +42,89 @@ export interface RendererLogEntry {
   context?: Record<string, unknown> | undefined
 }
 
+export type RoleCode = 'administrator' | 'manager' | 'cashier' | 'inventory_operator'
+
+/** The signed-in user, as the renderer sees them. Never includes the password hash. */
+export interface SessionUser {
+  userId: number
+  username: string
+  displayName: string
+  roleCode: RoleCode
+  roleName: string
+  /** Set after an administrator reset the password: the user must choose a new one. */
+  mustChangePassword: boolean
+}
+
+export type AuthState =
+  /** No users exist yet: the first administrator must be created. */
+  | { status: 'setup-required' }
+  | { status: 'signed-out' }
+  | { status: 'locked'; user: SessionUser }
+  | { status: 'signed-in'; user: SessionUser }
+
+export interface Credentials {
+  username: string
+  password: string
+}
+
+export interface NewAdministrator {
+  username: string
+  displayName: string
+  password: string
+}
+
+export interface PasswordChange {
+  currentPassword: string
+  newPassword: string
+}
+
+export interface UserSummary {
+  userId: number
+  username: string
+  displayName: string
+  roleCode: RoleCode
+  roleName: string
+  active: boolean
+  mustChangePassword: boolean
+  lastSignInAt: number | null
+  createdAt: number
+}
+
+export interface RoleSummary {
+  roleCode: RoleCode
+  name: string
+}
+
+export interface NewUser {
+  username: string
+  displayName: string
+  roleCode: RoleCode
+  password: string
+}
+
+export interface UserUpdate {
+  userId: number
+  displayName: string
+  roleCode: RoleCode
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
   'log:write': { input: RendererLogEntry; output: void }
+  'auth:get-state': { input: void; output: AuthState }
+  'auth:create-initial-admin': { input: NewAdministrator; output: SessionUser }
+  'auth:sign-in': { input: Credentials; output: SessionUser }
+  'auth:sign-out': { input: void; output: void }
+  'auth:lock': { input: void; output: void }
+  'auth:unlock': { input: { password: string }; output: SessionUser }
+  'auth:change-password': { input: PasswordChange; output: SessionUser }
+  'users:list': { input: void; output: UserSummary[] }
+  'users:list-roles': { input: void; output: RoleSummary[] }
+  'users:create': { input: NewUser; output: UserSummary }
+  'users:update': { input: UserUpdate; output: UserSummary }
+  'users:set-active': { input: { userId: number; active: boolean }; output: UserSummary }
+  'users:reset-password': { input: { userId: number; newPassword: string }; output: UserSummary }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -59,7 +138,20 @@ export type IpcArgs<C extends IpcChannel> = IpcInput<C> extends void ? [] : [inp
 const channelRegistry: Record<IpcChannel, true> = {
   'app:get-info': true,
   'app:get-startup-status': true,
-  'log:write': true
+  'log:write': true,
+  'auth:get-state': true,
+  'auth:create-initial-admin': true,
+  'auth:sign-in': true,
+  'auth:sign-out': true,
+  'auth:lock': true,
+  'auth:unlock': true,
+  'auth:change-password': true,
+  'users:list': true,
+  'users:list-roles': true,
+  'users:create': true,
+  'users:update': true,
+  'users:set-active': true,
+  'users:reset-password': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

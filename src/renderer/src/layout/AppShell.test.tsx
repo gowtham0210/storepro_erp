@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { useAccessStore } from '../state/accessStore'
 import { useUiStore } from '../state/uiStore'
+import { ADMIN, fakeBackend } from '../test/fakeBackend'
 import { renderApp } from '../test/renderApp'
 
 afterEach(() => {
@@ -35,12 +36,47 @@ describe('AppShell', () => {
   })
 
   it('hides screens the user may not open, and explains when one is opened directly', async () => {
-    useAccessStore.setState({ permissions: ['sale.create'] })
-    renderApp('/reports')
-    expect(await screen.findByText("You don't have access to Reports")).toBeTruthy()
+    fakeBackend.authState = {
+      status: 'signed-in',
+      user: { ...ADMIN, userId: 2, username: 'cashier1', roleCode: 'cashier', roleName: 'Cashier' }
+    }
+    renderApp('/users')
+    expect(await screen.findByText("You don't have access to Users")).toBeTruthy()
     const nav = screen.getByRole('navigation', { name: 'Main' })
-    expect(within(nav).queryByText('Reports')).toBeNull()
+    expect(within(nav).queryByText('Users')).toBeNull()
     expect(within(nav).getByText('Billing')).toBeTruthy()
+  })
+
+  it('keeps loading data while the computer is offline', async () => {
+    const { router } = renderApp('/billing')
+    await screen.findByRole('heading', { level: 1, name: 'Billing' })
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
+    act(() => {
+      window.dispatchEvent(new Event('offline'))
+    })
+    try {
+      // A screen that loads new data after the connection dropped.
+      fakeBackend.on('users:list', () => [
+        {
+          userId: 7,
+          username: 'meena',
+          displayName: 'Meena Sundar',
+          roleCode: 'cashier',
+          roleName: 'Cashier',
+          active: true,
+          mustChangePassword: false,
+          lastSignInAt: null,
+          createdAt: 0
+        }
+      ])
+      await act(() => router.navigate('/users'))
+      expect(await screen.findByText('Meena Sundar')).toBeTruthy()
+    } finally {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+      act(() => {
+        window.dispatchEvent(new Event('online'))
+      })
+    }
   })
 
   it('shows the connectivity state and reassures when offline', async () => {
@@ -53,6 +89,9 @@ describe('AppShell', () => {
     })
     expect(screen.getByText('Offline · billing still works')).toBeTruthy()
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
+    act(() => {
+      window.dispatchEvent(new Event('online'))
+    })
   })
 
   it('lists the shortcuts of the current screen on F1', async () => {

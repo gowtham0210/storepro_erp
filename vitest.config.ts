@@ -30,7 +30,7 @@ export default defineConfig({
         'src/renderer/src/main.tsx'
       ],
       // Set just below the measured level: coverage may grow, never quietly shrink.
-      thresholds: { statements: 89, branches: 83, functions: 87, lines: 91 },
+      thresholds: { statements: 91, branches: 84, functions: 90, lines: 93 },
       reporter: ['text-summary', 'html', 'lcov'],
       reportsDirectory: 'coverage'
     },

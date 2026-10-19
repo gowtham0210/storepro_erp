@@ -107,6 +107,17 @@ Two fixes came out of this work. Tests broken by Windows paths and file locks we
 | M05-05 | User management screen: create, edit, deactivate, reset password, assign role | M05-01, M06-02 | M |
 | M05-06 | Failed-login throttling | M05-02 | S |
 
+**Status (2026-10-19):** M05-01 to M05-06 are implemented. See README "Sign-in and sessions" and migration 0002.
+
+- **Passwords:** scrypt hashes that upgrade themselves, and a NIST-style policy.
+- **Sign-in:** generic, constant-time failures; throttling stored in the database.
+- **Session:** held only in the main process, with lock (Ctrl+L or 15 minutes idle), sign-out, change password and forced change after a reset.
+- **First run:** creates the administrator account.
+- **Users screen:** add, edit, deactivate and reactivate users, and reset passwords. The last active administrator and your own account are protected.
+- **Audit:** every sign-in and user change is logged.
+
+Until M06, user management is administrator-only and other roles see every screen except Users. M03 will fold the first-run screen into the store setup wizard.
+
 ### M06 · Permissions & Access Control
 
 | ID | Task | Depends on | Size |

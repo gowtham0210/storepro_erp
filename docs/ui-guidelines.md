@@ -93,15 +93,19 @@ when the main process validates the same input; then one rule and one message se
 
 ### Errors
 
-`describeError(error)` turns any error into a title and message for the user. It never shows
-internal details.
+`describeError(error)` turns any error into a title and message for the user. Errors the services
+raise on purpose carry a message written for the user (for example "That username is already
+taken"), which is shown as is. Unexpected errors only ever reach the renderer as `INTERNAL`, so
+internal details are never shown.
 
-| Code                    | Title                                  | Message                            |
-| ----------------------- | -------------------------------------- | ---------------------------------- |
-| `VALIDATION_FAILED`     | "Some details need fixing"             | Fields are highlighted             |
-| `FORBIDDEN`             | "You don't have permission to do this" | Ask a manager                      |
-| `NOT_FOUND`, `CONFLICT` | Specific titles                        | Refresh or reload, then try again  |
-| `INTERNAL`, unexpected  | "Something went wrong"                 | Try again; your saved data is safe |
+| Code                    | Title                                  | Message                                                                 |
+| ----------------------- | -------------------------------------- | ----------------------------------------------------------------------- |
+| `VALIDATION_FAILED`     | "Some details need fixing"             | Fields are highlighted. Field-level `CONFLICT`s land on their field too |
+| `UNAUTHENTICATED`       | "You're not signed in"                 | The service's message, e.g. "The username or password is incorrect."    |
+| `RATE_LIMITED`          | "Too many attempts"                    | The service's message. Screens show a countdown from `retryAfterMs`     |
+| `FORBIDDEN`             | "You don't have permission to do this" | The service's message                                                   |
+| `NOT_FOUND`, `CONFLICT` | Specific titles                        | The service's message                                                   |
+| `INTERNAL`, unexpected  | "Something went wrong"                 | Try again; your saved data is safe                                      |
 
 ## 4. Layout and navigation
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Database } from '../database'
+import { migrations } from '../migrations'
 import { useMigratedDb, useMigratedFileDb } from './testDb'
 
 describe('test database harness', () => {
@@ -7,7 +8,9 @@ describe('test database harness', () => {
   const file = useMigratedFileDb()
 
   it('gives a migrated in-memory database', () => {
-    expect(memory().get('SELECT count(*) AS n FROM schema_migrations')).toEqual({ n: 1 })
+    expect(memory().get('SELECT count(*) AS n FROM schema_migrations')).toEqual({
+      n: migrations.length
+    })
   })
 
   it('gives a migrated file database with production settings that can be reopened', () => {

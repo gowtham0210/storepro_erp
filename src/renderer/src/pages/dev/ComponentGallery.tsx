@@ -489,12 +489,24 @@ function DialogSection(): React.JSX.Element {
   )
 }
 
+/** What services say for each code; INTERNAL details are never shown. */
+const SAMPLE_MESSAGES: Record<(typeof ERROR_CODES)[number], string> = {
+  VALIDATION_FAILED: 'invalid input',
+  UNKNOWN_CHANNEL: 'unknown channel',
+  UNAUTHENTICATED: 'The username or password is incorrect.',
+  RATE_LIMITED: 'Too many attempts. Wait a moment and try again.',
+  FORBIDDEN: 'Only an administrator can do this.',
+  NOT_FOUND: 'That user no longer exists.',
+  CONFLICT: 'That username is already taken',
+  INTERNAL: 'SQLITE_CORRUPT: database disk image is malformed'
+}
+
 function ErrorCopySection(): React.JSX.Element {
   return (
     <Card title="Error messages">
       <div className="space-y-3">
         {ERROR_CODES.map((code) => {
-          const { title, message } = describeError(new AppError(code, 'internal detail'))
+          const { title, message } = describeError(new AppError(code, SAMPLE_MESSAGES[code]))
           return (
             <Alert key={code} tone="danger" title={title}>
               {message} <span className="text-sm opacity-80">({code})</span>

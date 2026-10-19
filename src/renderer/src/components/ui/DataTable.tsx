@@ -68,6 +68,8 @@ export function DataTable<T>({
   }
 
   const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, index: number, row: T): void => {
+    // Keys pressed on a button or field inside the row belong to that control.
+    if (event.target !== event.currentTarget) return
     const last = rows.length - 1
     const moves: Record<string, number> = {
       ArrowDown: Math.min(index + 1, last),

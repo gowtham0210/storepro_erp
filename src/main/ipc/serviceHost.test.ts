@@ -31,7 +31,12 @@ const appInfo = {
 }
 
 function handlers(overrides: Partial<HandlerMap> = {}): HandlerMap {
+  // Every channel gets a do-nothing handler; the tests below override the ones they use.
+  const defaults = Object.fromEntries(
+    IPC_CHANNELS.map((channel) => [channel, { input: z.unknown(), handle: () => undefined }])
+  ) as unknown as HandlerMap
   return {
+    ...defaults,
     'app:get-info': { input: z.void(), handle: () => appInfo },
     'app:get-startup-status': {
       input: z.void(),

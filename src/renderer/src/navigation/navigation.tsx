@@ -6,6 +6,7 @@ import {
   ReceiptText,
   Settings,
   ShoppingCart,
+  UserCog,
   Truck,
   Users,
   Wallet,
@@ -143,6 +144,15 @@ export const NAVIGATION: readonly NavGroup[] = [
         permission: 'expense.view',
         plannedIn: 'M18 · Expenses',
         description: 'Rent, salaries and other running costs.'
+      },
+      {
+        id: 'users',
+        label: 'Users',
+        path: '/users',
+        icon: <UserCog />,
+        permission: 'user.manage',
+        plannedIn: 'M05 · Authentication & User Management',
+        description: 'People who can sign in, and their roles.'
       },
       {
         id: 'settings',

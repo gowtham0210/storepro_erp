@@ -33,8 +33,22 @@ export function launchEnv(userDataDir: string): Record<string, string> {
   return env
 }
 
+/** The administrator every test store starts with. */
+export const OWNER = { displayName: 'Ravi Kumar', username: 'owner', password: 'counter-top-42' }
+
+export interface LaunchOptions {
+  /**
+   * Get past first-run setup or sign-in as OWNER (the default), or stop at
+   * whatever screen appears first.
+   */
+  signIn?: boolean
+}
+
 /** Start the built app and wait until the first screen has rendered. */
-export async function launchStorePro(userDataDir: string): Promise<StoreProApp> {
+export async function launchStorePro(
+  userDataDir: string,
+  options: LaunchOptions = {}
+): Promise<StoreProApp> {
   const app = await electron.launch({
     executablePath: ELECTRON_PATH,
     args: [...EXTRA_ARGS, APP_DIR],
@@ -49,8 +63,39 @@ export async function launchStorePro(userDataDir: string): Promise<StoreProApp> 
     }
   })
   const window = await app.firstWindow()
-  await window.getByRole('heading', { level: 1 }).waitFor()
+  const heading = window.getByRole('heading', { level: 1 })
+  await heading.waitFor()
+  if (options.signIn !== false) {
+    const title = await heading.textContent()
+    if (title === 'Set up StorePro') await completeSetup(window)
+    else if (title === 'Sign in') await signIn(window, OWNER)
+  }
   return { app, window, userDataDir }
+}
+
+/** Create the first administrator on the setup screen. */
+export async function completeSetup(ui: Page, owner = OWNER): Promise<void> {
+  await ui.getByLabel(/Your name/).fill(owner.displayName)
+  await ui.getByLabel(/^Username/).fill(owner.username)
+  await ui.getByLabel(/^Password/).fill(owner.password)
+  await ui.getByLabel(/Confirm password/).fill(owner.password)
+  await ui.getByRole('button', { name: 'Create account and continue' }).click()
+  await ui.getByRole('heading', { level: 1, name: 'Billing' }).waitFor()
+}
+
+export async function signIn(
+  ui: Page,
+  credentials: { username: string; password: string }
+): Promise<void> {
+  await ui.getByLabel('Username', { exact: true }).fill(credentials.username)
+  await ui.getByLabel('Password', { exact: true }).fill(credentials.password)
+  await ui.getByRole('button', { name: 'Sign in' }).click()
+}
+
+export async function signOut(ui: Page): Promise<void> {
+  await ui.getByRole('button', { name: /·/ }).click()
+  await ui.getByRole('list', { name: 'Account' }).getByRole('button', { name: 'Sign out' }).click()
+  await ui.getByRole('heading', { level: 1, name: 'Sign in' }).waitFor()
 }
 
 /** URLs the app asked the operating system to open (see the stub in launchStorePro). */

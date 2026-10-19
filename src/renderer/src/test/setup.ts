@@ -1,10 +1,11 @@
 import { cleanup } from '@testing-library/react'
-import { afterEach, vi } from 'vitest'
-import type { StoreProBridge } from '@shared/ipc/contract'
+import { afterEach } from 'vitest'
+import { fakeBackend } from './fakeBackend'
 
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  fakeBackend.reset()
 })
 
 // jsdom lacks the native <dialog> modal API; emulate the parts we use.
@@ -31,29 +32,4 @@ window.matchMedia ??= ((query: string) => ({
   dispatchEvent: () => false
 })) as typeof window.matchMedia
 
-const bridge: StoreProBridge = {
-  invoke: vi.fn(async (channel: string) => {
-    switch (channel) {
-      case 'app:get-info':
-        return {
-          ok: true,
-          data: {
-            name: 'StorePro',
-            version: '0.1.0-test',
-            platform: 'win32',
-            arch: 'x64',
-            isPackaged: false,
-            versions: { electron: '44', chrome: '152', node: '24' }
-          }
-        }
-      case 'app:get-startup-status':
-        return {
-          ok: true,
-          data: { recoveredFromUncleanShutdown: false, previousSessionStartedAt: null }
-        }
-      default:
-        return { ok: true, data: undefined }
-    }
-  }) as StoreProBridge['invoke']
-}
-Object.defineProperty(window, 'storepro', { value: bridge, configurable: true })
+Object.defineProperty(window, 'storepro', { value: fakeBackend.bridge, configurable: true })

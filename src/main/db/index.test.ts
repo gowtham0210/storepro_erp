@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createTestLogger, useTempDir } from '../test/helpers'
 import { Database } from './database'
 import { openStoreDatabase } from '.'
+import { migrations } from './migrations'
 import { fixedClock } from './test/testDb'
 
 describe('openStoreDatabase', () => {
@@ -22,7 +23,7 @@ describe('openStoreDatabase', () => {
   it('creates and migrates a new database, then reopens it without changes', () => {
     const dir = tempDir()
     const first = open(dir)
-    expect(first.migration.applied).toEqual([1])
+    expect(first.migration.applied).toEqual(migrations.map((m) => m.version))
     first.db.close()
 
     const second = open(dir, true)

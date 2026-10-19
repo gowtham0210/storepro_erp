@@ -4,7 +4,7 @@ import { NAVIGATION, visibleNavigation, type NavGroup } from './navigation'
 describe('visibleNavigation', () => {
   it('shows everything when the user has every permission', () => {
     const groups = visibleNavigation(NAVIGATION, { modules: ['grocery'], permissions: 'all' })
-    expect(groups.flatMap((g) => g.items).length).toBe(10)
+    expect(groups.flatMap((g) => g.items).length).toBe(11)
   })
 
   it('hides items without permission and drops empty groups', () => {
@@ -40,8 +40,10 @@ describe('visibleNavigation', () => {
     ).toHaveLength(1)
   })
 
-  it('gives every screen a unique shortcut', () => {
-    const shortcuts = NAVIGATION.flatMap((g) => g.items).map((i) => i.shortcut)
+  it('never gives two screens the same shortcut', () => {
+    const shortcuts = NAVIGATION.flatMap((g) => g.items)
+      .map((i) => i.shortcut)
+      .filter((shortcut) => shortcut !== undefined)
     expect(new Set(shortcuts).size).toBe(shortcuts.length)
   })
 })

@@ -38,16 +38,18 @@ On Linux without a display, prefix end-to-end runs with `xvfb-run -a`.
 
 ### Shared helpers
 
-| Helper                                                    | Use                                                                                                             |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `useTempDir()` (`src/main/test/helpers.ts`)               | A fresh temporary folder per test, deleted afterwards (with retries for Windows file locks)                     |
-| `createTestLogger()`                                      | A logger whose methods are spies                                                                                |
-| `useMigratedDb()` (`src/main/db/test/testDb.ts`)          | A migrated **in-memory** database per test. The default for integration tests                                   |
-| `useMigratedFileDb()`                                     | A migrated database **file** with production settings (WAL, FULL sync), for backups, reopening or WAL behaviour |
-| `fixedClock`                                              | A constant time, so tests never depend on the real clock                                                        |
-| `src/main/db/dev/builders.ts`                             | Insert well-formed products, sales, returns, receipts and adjustments in one call                               |
-| `renderApp(path)` (`src/renderer/src/test/renderApp.tsx`) | The whole renderer (providers + routes) at a path                                                               |
-| `e2e/fixtures.ts`                                         | `test` with `storepro`, `ui` and `userDataDir` fixtures; `launchStorePro()` for tests that restart the app      |
+| Helper                                                    | Use                                                                                                                                                                                                  |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useTempDir()` (`src/main/test/helpers.ts`)               | A fresh temporary folder per test, deleted afterwards (with retries for Windows file locks)                                                                                                          |
+| `createTestLogger()`                                      | A logger whose methods are spies                                                                                                                                                                     |
+| `useMigratedDb()` (`src/main/db/test/testDb.ts`)          | A migrated **in-memory** database per test. The default for integration tests                                                                                                                        |
+| `useMigratedFileDb()`                                     | A migrated database **file** with production settings (WAL, FULL sync), for backups, reopening or WAL behaviour                                                                                      |
+| `fixedClock`                                              | A constant time, so tests never depend on the real clock                                                                                                                                             |
+| `src/main/db/dev/builders.ts`                             | Insert well-formed products, sales, returns, receipts and adjustments in one call                                                                                                                    |
+| `renderApp(path)` (`src/renderer/src/test/renderApp.tsx`) | The whole renderer (providers, sign-in gate, routes) at a path                                                                                                                                       |
+| `fakeBackend` (`src/renderer/src/test/fakeBackend.ts`)    | Stands in for the main process. Signed in as an administrator by default; `fakeBackend.on(channel, handler)` overrides a channel and `callsTo(channel)` shows what was sent                          |
+| `createTestbed(db)` (`src/main/auth/test/testbed.ts`)     | Auth and user services wired to a test database, with fast hashing and a controllable clock                                                                                                          |
+| `e2e/fixtures.ts`                                         | `test` with `storepro`, `ui` and `userDataDir` fixtures; `launchStorePro()` for tests that restart the app. Launches complete first-run setup or sign in as `OWNER` unless given `{ signIn: false }` |
 
 ### Rules
 
@@ -77,10 +79,10 @@ Thresholds are set just below the measured level, so coverage can rise but not q
 
 | Metric     | Measured | Threshold |
 | ---------- | -------- | --------- |
-| Statements | 90.6%    | 89%       |
-| Branches   | 84.0%    | 83%       |
-| Functions  | 89.0%    | 87%       |
-| Lines      | 93.4%    | 91%       |
+| Statements | 92.0%    | 91%       |
+| Branches   | 84.6%    | 84%       |
+| Functions  | 91.0%    | 90%       |
+| Lines      | 94.7%    | 93%       |
 
 Raise the thresholds when coverage rises. Never lower them to make a change pass.
 

@@ -1,5 +1,6 @@
 import type { Migration } from '../migrator'
 import initialSchema from './0001_initial_schema.sql?raw'
+import authentication from './0002_authentication.sql?raw'
 
 /**
  * Every schema change, in order. Rules:
@@ -10,5 +11,6 @@ import initialSchema from './0001_initial_schema.sql?raw'
  *    12-step ALTER procedure); foreign keys are re-checked before commit.
  */
 export const migrations: readonly Migration[] = [
-  { version: 1, name: 'initial_schema', sql: initialSchema }
+  { version: 1, name: 'initial_schema', sql: initialSchema },
+  { version: 2, name: 'authentication', sql: authentication }
 ]

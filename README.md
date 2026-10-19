@@ -78,6 +78,29 @@ docs/                 Data model, UI guidelines, testing guide, planning documen
 - The packaged binary has its Electron fuses set: no `ELECTRON_RUN_AS_NODE`, no
   `NODE_OPTIONS`, no `--inspect`, asar integrity validation, and loading only from the asar.
 
+### Sign-in and sessions
+
+- **First run** asks for the administrator account. After that, everyone signs in with their own
+  username and password.
+- **Password storage.** Passwords are hashed with scrypt (N = 2^17, r = 8, p = 1; OWASP's
+  recommended minimum), using Node's built-in crypto. The parameters are stored with each hash,
+  and older hashes are upgraded at the next sign-in.
+- **Password policy** (NIST 800-63B). At least 8 characters, any characters allowed, and no
+  composition rules. Common passwords and passwords containing the username are refused.
+- **Sign-in errors.** Wrong username and wrong password get the same message and the same timing,
+  so usernames can't be probed.
+- **Throttling.** After 5 failures, sign-in is blocked for 30 s, doubling up to 15 min. Counters
+  are stored, so restarting doesn't reset them.
+- **Sessions.** The session lives only in the main process and ends when the app closes. Ctrl+L
+  or 15 minutes of inactivity locks the screen without losing work underneath. A password reset by
+  an administrator must be changed at the next sign-in.
+- **Enforcement.** Handlers call `auth.requireUser()` / `auth.requireAdministrator()` on every
+  request, re-reading the user, so deactivation and role changes apply immediately. Hiding
+  screens in the UI is only a convenience. M06 replaces the administrator check with role
+  permissions.
+- **Audit.** Sign-ins (including failures), sign-outs and every user change are written to
+  `audit_logs`. Passwords never are.
+
 ### Adding an IPC channel
 
 1. Declare it in `IpcContract` and `channelRegistry` in `src/shared/ipc/contract.ts`.
@@ -86,8 +109,8 @@ docs/                 Data model, UI guidelines, testing guide, planning documen
 3. Call it from the renderer with `invoke('channel:name', input)` from `src/renderer/src/ipc/client.ts`.
    Failures throw `AppError` with a `code`.
 
-Permission checks (M06) and the user session (M05) will plug into the service host's
-`HandlerContext`.
+A handler that needs a signed-in user gets it from `AuthService` (`requireUser()` or
+`requireAdministrator()`). Permission checks (M06) will plug in the same way.
 
 ### Reliability
 

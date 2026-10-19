@@ -1,7 +1,11 @@
 import { join } from 'node:path'
 import { app, dialog, ipcMain, Menu, session, type BrowserWindow } from 'electron'
 import type { AppInfo, StartupStatus } from '@shared/ipc/contract'
-import { DatabaseIntegrityError, DatabaseTooNewError, openStoreDatabase } from './db'
+import { AuditLog } from './audit/auditLog'
+import { AuthService } from './auth/authService'
+import { LoginThrottle } from './auth/loginThrottle'
+import { PasswordHasher } from './auth/passwords'
+import { DatabaseIntegrityError, DatabaseTooNewError, openStoreDatabase, type Database } from './db'
 import { createHandlers } from './ipc/handlers'
 import { systemClock } from './lib/clock'
 import { registerIpcHandlers } from './ipc/serviceHost'
@@ -16,6 +20,8 @@ import {
   serveRendererFromAppScheme
 } from './security/hardening'
 import { APP_ENTRY_URL, APP_ORIGIN, isAllowedOrigin, originOf } from './security/origins'
+import { UserRepository } from './users/userRepository'
+import { UserService } from './users/userService'
 import { createMainWindow } from './window/mainWindow'
 import { WindowStateStore } from './window/windowState'
 
@@ -129,9 +135,10 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
   hardenSession(session.defaultSession, { devServerOrigin, logger: logger.child('security') })
   if (devServerUrl === null) serveRendererFromAppScheme(join(import.meta.dirname, '../renderer'))
 
+  const services = createServices(db, logger)
   const unregisterIpc = registerIpcHandlers(
     ipcMain,
-    createHandlers({ logger, getAppInfo, getStartupStatus: () => startupStatus }),
+    createHandlers({ logger, getAppInfo, getStartupStatus: () => startupStatus, ...services }),
     {
       isTrustedSender: (event) => isAllowedOrigin(event.senderFrame?.url ?? '', allowedOrigins),
       logger: logger.child('ipc')
@@ -150,6 +157,25 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
   // Windows log-off or shutdown: the OS may terminate the process soon after.
   window.on('session-end', () => void shutdown.run('windows-session-end'))
   return window
+}
+
+/** Application services, wired once per run. */
+function createServices(db: Database, logger: Logger): { auth: AuthService; users: UserService } {
+  const clock = systemClock
+  const audit = new AuditLog(db, clock)
+  const userRepository = new UserRepository(db, clock)
+  const hasher = new PasswordHasher()
+  const throttle = new LoginThrottle(db, clock)
+  const auth = new AuthService({
+    db,
+    users: userRepository,
+    hasher,
+    throttle,
+    audit,
+    logger: logger.child('auth')
+  })
+  const users = new UserService({ db, users: userRepository, auth, hasher, throttle, audit })
+  return { auth, users }
 }
 
 function startupFailureMessage(error: unknown): string {

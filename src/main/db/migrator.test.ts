@@ -177,3 +177,28 @@ describe('migrate', () => {
     db.close()
   })
 })
+
+describe('real upgrades', () => {
+  const tempDir = useTempDir()
+
+  it('upgrades a v1 store with data to v2, keeping the data and taking a backup', () => {
+    const dir = tempDir()
+    const db = Database.open(join(dir, 'store.db'))
+    migrate(db, realMigrations.slice(0, 1), options(join(dir, 'backups')))
+    db.run(
+      `INSERT INTO users (username, display_name, password_hash, role_id, created_at, updated_at)
+       SELECT 'owner', 'Owner', 'hash', role_id, 1, 1 FROM roles WHERE role_code = 'administrator'`
+    )
+
+    const result = migrate(db, realMigrations.slice(0, 2), options(join(dir, 'backups')))
+    expect(result).toMatchObject({ fromVersion: 1, toVersion: 2, applied: [2] })
+    expect(result.backupPath).not.toBeNull()
+    expect(db.get('SELECT username, must_change_password, last_sign_in_at FROM users')).toEqual({
+      username: 'owner',
+      must_change_password: 0,
+      last_sign_in_at: null
+    })
+    expect(db.all('PRAGMA foreign_key_check')).toEqual([])
+    db.close()
+  })
+})

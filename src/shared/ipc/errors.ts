@@ -10,6 +10,10 @@
 export const ERROR_CODES = [
   'VALIDATION_FAILED',
   'UNKNOWN_CHANNEL',
+  /** No one is signed in, the session is locked, or the credentials were wrong. */
+  'UNAUTHENTICATED',
+  /** Too many attempts; `details.retryAfterMs` says when to try again. */
+  'RATE_LIMITED',
   'FORBIDDEN',
   'NOT_FOUND',
   'CONFLICT',

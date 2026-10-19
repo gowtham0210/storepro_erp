@@ -22,6 +22,7 @@ import { Clock } from './Clock'
 import { ConnectivityIndicator } from './ConnectivityIndicator'
 import { ShortcutHelpDialog } from './ShortcutHelpDialog'
 import { Sidebar } from './Sidebar'
+import { UserMenu } from './UserMenu'
 
 /** Below this width (scaled with the text size) the sidebar shows icons only. */
 const NARROW_WIDTH_PX = 1152
@@ -134,6 +135,7 @@ export function AppShell(): React.JSX.Element {
               >
                 Shortcuts
               </Button>
+              <UserMenu />
             </div>
           </header>
           <main

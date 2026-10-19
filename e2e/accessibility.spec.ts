@@ -1,7 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import type { Page } from '@playwright/test'
-import { expect, goTo, test } from './fixtures'
+import {
+  createUserDataDir,
+  expect,
+  goTo,
+  launchStorePro,
+  removeUserDataDir,
+  test
+} from './fixtures'
 
 const axeSource = readFileSync(
   createRequire(import.meta.url).resolve('axe-core/axe.min.js'),
@@ -37,13 +44,31 @@ async function axeViolations(ui: Page): Promise<string[]> {
 }
 
 test.describe('accessibility (WCAG 2.2 AA)', () => {
-  for (const path of ['/billing', '/products', '/reports', '/settings', '/nowhere']) {
+  for (const path of ['/billing', '/products', '/reports', '/settings', '/users', '/nowhere']) {
     test(`${path} has no violations`, async ({ ui }) => {
       await goTo(ui, path)
       await ui.waitForTimeout(200)
       expect(await axeViolations(ui)).toEqual([])
     })
   }
+
+  test('the first-run and sign-in screens have no violations', async () => {
+    const userDataDir = createUserDataDir()
+    try {
+      const { app, window } = await launchStorePro(userDataDir, { signIn: false })
+      await expect(window.getByRole('heading', { level: 1, name: 'Set up StorePro' })).toBeVisible()
+      expect(await axeViolations(window)).toEqual([])
+      await app.close()
+    } finally {
+      removeUserDataDir(userDataDir)
+    }
+  })
+
+  test('the lock screen has no violations', async ({ ui }) => {
+    await ui.keyboard.press('Control+l')
+    await expect(ui.getByRole('heading', { level: 1, name: 'StorePro is locked' })).toBeVisible()
+    expect(await axeViolations(ui)).toEqual([])
+  })
 
   test('the shortcut help dialog has no violations', async ({ ui }) => {
     await ui.keyboard.press('F1')

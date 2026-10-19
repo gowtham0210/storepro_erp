@@ -8,6 +8,12 @@ import { useAccessStore } from '../state/accessStore'
 import { DEV_NAVIGATION, isItemVisible, NAVIGATION, type NavItem } from './navigation'
 
 const ComponentGallery = lazy(() => import('../pages/dev/ComponentGallery'))
+const UsersPage = lazy(() => import('../pages/UsersPage'))
+
+/** Screens that exist; every other navigation item shows its placeholder. */
+const SCREENS: Partial<Record<string, ReactNode>> = {
+  users: <UsersPage />
+}
 
 /** Route-level guard: a hidden screen shows a clear "no access" page, never a blank one. */
 function RequireAccess({
@@ -31,7 +37,9 @@ export function createRoutes(options: { includeDevTools: boolean }): RouteObject
     path: item.path.slice(1),
     element: (
       <RequireAccess item={item}>
-        <PlaceholderPage item={item} />
+        <Suspense fallback={<Spinner label="Loading" />}>
+          {SCREENS[item.id] ?? <PlaceholderPage item={item} />}
+        </Suspense>
       </RequireAccess>
     )
   }))

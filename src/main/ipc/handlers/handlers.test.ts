@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { IPC_CHANNELS } from '@shared/ipc/contract'
+import type { AuthService } from '../../auth/authService'
 import { createTestLogger } from '../../test/helpers'
+import type { UserService } from '../../users/userService'
 import { createHandlers } from '.'
 
 const context = { webContentsId: 1 }
@@ -19,10 +21,14 @@ function setup() {
     recoveredFromUncleanShutdown: true,
     previousSessionStartedAt: '2026-10-19T04:00:00.000Z'
   }
+  // Auth and user handlers delegate to services with their own tests; only the
+  // app and log handlers are exercised here.
   const handlers = createHandlers({
     logger,
     getAppInfo: () => appInfo,
-    getStartupStatus: () => startup
+    getStartupStatus: () => startup,
+    auth: {} as AuthService,
+    users: {} as UserService
   })
   return { handlers, logger, appInfo, startup }
 }
