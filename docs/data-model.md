@@ -203,15 +203,15 @@ and must not change when the reference data does:
 
 ### 3.7 Documented exceptions
 
-| Table / column                             | Exception                                   | Justification                                                                                                                                                                                                                                               |
-| ------------------------------------------ | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `audit_logs.entity_type`, `entity_id`      | Polymorphic reference without a foreign key | The log must outlive and describe rows of any table                                                                                                                                                                                                         |
-| `audit_logs.details`                       | JSON document                               | Opaque payload, never queried relationally. `CHECK (json_valid(details))`                                                                                                                                                                                   |
-| `app_settings`                             | Key-value table                             | Device-local UI preferences only. Business settings are typed columns on `businesses`                                                                                                                                                                       |
-| `variant_search`                           | FTS5 search index                           | An index, not data. It is contentless (stores no text of its own) and kept in sync by triggers. `checkIntegrity('full')` verifies it                                                                                                                        |
-| `product_variants.cost_price_minor`        | Looks derivable from purchases              | It is a standard cost that people enter, including for items never purchased in the system. Receipts may update it, but it is not a function of purchase rows                                                                                               |
-| `document_sequences.next_number`           | Counter state                               | Numbers may be skipped, so it is not `max(issued) + 1`                                                                                                                                                                                                      |
-| `users.last_sign_in_at`, `login_throttles` | Could be derived from `audit_logs`          | The audit log is a human-readable history that may be archived (M07), not state the application reads back. Sign-in needs these facts directly. `login_throttles` is keyed by the typed username, not a foreign key, so unknown usernames are throttled too |
+| Table / column                             | Exception                                   | Justification                                                                                                                                                                                                                                         |
+| ------------------------------------------ | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `audit_logs.entity_type`, `entity_id`      | Polymorphic reference without a foreign key | The log must outlive and describe rows of any table                                                                                                                                                                                                   |
+| `audit_logs.details`                       | JSON document                               | Opaque payload, never queried relationally. `CHECK (json_valid(details))`                                                                                                                                                                             |
+| `app_settings`                             | Key-value table                             | Device-local UI preferences only. Business settings are typed columns on `businesses`                                                                                                                                                                 |
+| `variant_search`                           | FTS5 search index                           | An index, not data. It is contentless (stores no text of its own) and kept in sync by triggers. `checkIntegrity('full')` verifies it                                                                                                                  |
+| `product_variants.cost_price_minor`        | Looks derivable from purchases              | It is a standard cost that people enter, including for items never purchased in the system. Receipts may update it, but it is not a function of purchase rows                                                                                         |
+| `document_sequences.next_number`           | Counter state                               | Numbers may be skipped, so it is not `max(issued) + 1`                                                                                                                                                                                                |
+| `users.last_sign_in_at`, `login_throttles` | Could be derived from `audit_logs`          | The audit log is a human-readable history (see `audit-log.md`), not state the application reads back. Sign-in needs these facts directly. `login_throttles` is keyed by the typed username, not a foreign key, so unknown usernames are throttled too |
 
 ## 4. Integrity enforcement layers
 
@@ -286,6 +286,9 @@ Migrations so far:
   into `role_permissions` (data only, no schema change). The codes and descriptions must match
   `src/shared/permissions.ts`, and a test fails if they drift. The mapping is in
   [`permissions.md`](permissions.md).
+- 0004: audit log. Adds `audit_logs.approved_by_user_id`, a foreign key to the user who approved
+  an action through a manager approval, and indexes for filtering by action and approver. See
+  [`audit-log.md`](audit-log.md).
 
 None has shipped yet, so they may still be edited until the first release. A test upgrades a
 populated v1 database to v2.

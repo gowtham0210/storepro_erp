@@ -7,7 +7,7 @@ const everything = { modules: ['grocery'], permissions: PERMISSION_CODES }
 describe('visibleNavigation', () => {
   it('shows everything when the user has every permission', () => {
     const groups = visibleNavigation(NAVIGATION, everything)
-    expect(groups.flatMap((g) => g.items).length).toBe(11)
+    expect(groups.flatMap((g) => g.items).length).toBe(12)
   })
 
   it('hides items without permission and drops empty groups', () => {

@@ -1,5 +1,7 @@
 import type { Database } from '../../db/database'
 import { AuditLog } from '../../audit/auditLog'
+import { AuditLogReader } from '../../audit/auditLogReader'
+import { AuditLogService } from '../../audit/auditLogService'
 import { createTestLogger } from '../../test/helpers'
 import { UserRepository } from '../../users/userRepository'
 import { UserService } from '../../users/userService'
@@ -22,11 +24,14 @@ export interface Testbed {
   throttle: LoginThrottle
   hasher: PasswordHasher
   clock: { time: number; now(): number }
+  auditLog: AuditLog
+  auditLogService: AuditLogService
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
     action: string
     user_id: number | null
+    approved_by_user_id: number | null
     entity_id: number | null
     details: string | null
   }[]
@@ -60,13 +65,18 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
     throttle,
     hasher,
     clock,
+    auditLog: audit,
+    auditLogService: new AuditLogService(new AuditLogReader(db, clock)),
     actor: () => {
       const actor = auth.authorize('signed-in')
       if (!actor) throw new Error('authorize returned no actor')
       return actor
     },
     audit: () =>
-      db.all('SELECT action, user_id, entity_id, details FROM audit_logs ORDER BY audit_log_id')
+      db.all(
+        `SELECT action, user_id, approved_by_user_id, entity_id, details
+         FROM audit_logs ORDER BY audit_log_id`
+      )
   }
 }
 

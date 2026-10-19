@@ -150,6 +150,16 @@ Roles are fixed in this version, so the mapping is explicit rather than configur
 | M07-03 | Instrument sensitive actions: voids, adjustments, overrides, price changes, settings, reprints, restores | M07-02 | M |
 | M07-04 | Audit log viewer with filters (user, action, date) | M07-01, M23-02 | M |
 
+**Status (2026-10-19):** M07-01 to M07-04 are implemented. See `docs/audit-log.md` and migration 0004.
+
+- **Service:** one `AuditLog` for every module. Actions are typed against a catalogue with labels (`src/shared/audit.ts`). Details are readable (names, and `changes: { field: { from, to } }` for edits) and secrets are masked.
+- **Atomic:** `change()` refuses to run outside a transaction, so a change and its entry are saved together or not at all. Tests inject failures both ways.
+- **Approvals:** an action unlocked by a manager approval records the approver in its own column (`approved_by_user_id`).
+- **Recorded now:** sign-ins (including failures), sign-outs, password changes, refused requests, approvals given and refused, every user change, and StorePro's own events (store data upgraded, recovery after an unexpected shutdown, data check problems).
+- **Viewer:** **Manage → Audit log** for administrators and managers. Filters by person, action and dates, kept in the address. Pages newest first. **Users → History** shows one person's account history. 300,000 entries load in under 25 ms for any filter.
+
+Voids, stock adjustments, price changes, settings, reprints and restores don't exist yet. Each module records them with `change()` as it is built; `docs/audit-log.md` lists which module records what. Not done: tamper evidence against editing the database file directly, retention and archiving, and export (M22).
+
 ### M03 · Store Setup & Configuration
 
 | ID | Task | Depends on | Size |

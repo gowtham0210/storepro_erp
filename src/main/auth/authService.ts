@@ -10,7 +10,7 @@ import type {
 import { AppError } from '@shared/ipc/errors'
 import { passwordProblem } from '@shared/passwordPolicy'
 import type { PermissionCode } from '@shared/permissions'
-import type { AuditLog } from '../audit/auditLog'
+import type { AuditEntry, AuditLog } from '../audit/auditLog'
 import type { Database } from '../db/database'
 import type { Logger } from '../logging/logger'
 import { toSessionUser, type UserRecord, type UserRepository } from '../users/userRepository'
@@ -66,13 +66,13 @@ export class AuthService {
         throw new AppError('CONFLICT', 'StorePro already has an administrator.')
       const id = users.create({ ...input, roleCode: 'administrator', passwordHash })
       users.recordSignIn(id)
-      audit.record({
+      audit.change({
         action: 'user.created',
         userId: id,
         entity: { type: 'user', id },
-        details: { roleCode: 'administrator', initialSetup: true }
+        details: { username: input.username, role: 'Administrator', initialSetup: true }
       })
-      audit.record({ action: 'user.sign_in', userId: id, entity: { type: 'user', id } })
+      audit.change({ action: 'user.sign_in', userId: id, entity: { type: 'user', id } })
       return id
     })
     this.startSession(userId)
@@ -89,7 +89,7 @@ export class AuthService {
     }
     db.transaction(() => {
       users.recordSignIn(user.userId)
-      audit.record({
+      audit.change({
         action: 'user.sign_in',
         userId: user.userId,
         entity: { type: 'user', id: user.userId }
@@ -104,7 +104,7 @@ export class AuthService {
     this.session = null
     this.deps.overrides.clear()
     if (userId !== undefined) {
-      this.deps.audit.record({
+      this.deps.audit.event({
         action: 'user.sign_out',
         userId,
         entity: { type: 'user', id: userId }
@@ -141,7 +141,7 @@ export class AuthService {
     const passwordHash = await this.deps.hasher.hash(newPassword)
     this.deps.db.transaction(() => {
       this.deps.users.setPassword(user.userId, passwordHash, false)
-      this.deps.audit.record({
+      this.deps.audit.change({
         action: 'user.password_changed',
         userId: user.userId,
         entity: { type: 'user', id: user.userId }
@@ -186,11 +186,7 @@ export class AuthService {
     const actor = this.actorFor(user)
     if (access === 'password-change' || access === 'signed-in' || can(actor, access)) return actor
     if (overridable && overrideId !== undefined) return this.useOverride(actor, access, overrideId)
-    this.deps.audit.record({
-      action: 'access.denied',
-      userId: actor.userId,
-      details: { permission: access }
-    })
+    this.deps.audit.event({ action: 'access.denied', actor, details: { permission: access } })
     throw forbidden(access, overridable)
   }
 
@@ -207,9 +203,11 @@ export class AuthService {
     if (can(actor, permission)) {
       throw new AppError('CONFLICT', 'You can already do this without approval.')
     }
+    const forRequester = { type: 'user', id: actor.userId }
     const approver = await this.checkPassword(username, password, WRONG_CREDENTIALS, {
       action: 'override.denied',
-      details: { permission, requestedBy: actor.userId }
+      entity: forRequester,
+      details: { permission, reason: 'wrong_password' }
     })
     if (approver.mustChangePassword) {
       throw new AppError(
@@ -218,10 +216,11 @@ export class AuthService {
       )
     }
     if (!roles.permissionsOf(approver.roleCode).includes(permission)) {
-      audit.record({
+      audit.event({
         action: 'override.denied',
         userId: approver.userId,
-        details: { permission, requestedBy: actor.userId, reason: 'not_permitted' }
+        entity: forRequester,
+        details: { permission, reason: 'not_permitted' }
       })
       throw new AppError('FORBIDDEN', `${approver.displayName} isn't allowed to approve this.`)
     }
@@ -230,10 +229,10 @@ export class AuthService {
       requestedBy: actor.userId,
       approvedBy: approver.userId
     })
-    audit.record({
+    audit.event({
       action: 'override.approved',
       userId: approver.userId,
-      entity: { type: 'user', id: actor.userId },
+      entity: forRequester,
       details: { permission }
     })
     return { overrideId, approvedBy: approver.displayName, expiresAt }
@@ -287,9 +286,7 @@ export class AuthService {
     username: string,
     password: string,
     wrongMessage: string,
-    failure: { action: string; details?: Record<string, unknown> } = {
-      action: 'user.sign_in_failed'
-    }
+    failure: Pick<AuditEntry, 'action' | 'entity' | 'details'> = { action: 'user.sign_in_failed' }
   ): Promise<UserRecord> {
     const { users, hasher, throttle, audit } = this.deps
     const retryAfterMs = throttle.retryAfterMs(username)
@@ -302,8 +299,8 @@ export class AuthService {
     const valid = await hasher.verify(password, user?.passwordHash ?? (await this.getDummyHash()))
     if (!user || !valid || !user.active) {
       throttle.recordFailure(username)
-      audit.record({
-        action: failure.action,
+      audit.event({
+        ...failure,
         userId: user?.userId ?? null,
         details: { ...failure.details, username: username.trim().slice(0, 64) }
       })

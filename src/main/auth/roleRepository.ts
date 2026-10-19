@@ -17,6 +17,13 @@ export class RoleRepository extends Repository {
     )
   }
 
+  nameOf(roleCode: RoleCode): string {
+    return (
+      this.db.get<{ name: string }>('SELECT name FROM roles WHERE role_code = ?', [roleCode])
+        ?.name ?? roleCode
+    )
+  }
+
   list(): RoleSummary[] {
     const roles = this.db.all<{ role_code: RoleCode; name: string }>(
       'SELECT role_code, name FROM roles ORDER BY role_id'

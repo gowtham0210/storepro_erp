@@ -201,4 +201,26 @@ describe('real upgrades', () => {
     expect(db.all('PRAGMA foreign_key_check')).toEqual([])
     db.close()
   })
+
+  it('upgrades a v3 store with audit history to v4, keeping every entry', () => {
+    const dir = tempDir()
+    const db = Database.open(join(dir, 'store.db'))
+    migrate(db, realMigrations.slice(0, 3), options(join(dir, 'backups')))
+    db.run(
+      `INSERT INTO users (username, display_name, password_hash, role_id, created_at, updated_at)
+       SELECT 'owner', 'Owner', 'hash', role_id, 1, 1 FROM roles WHERE role_code = 'administrator'`
+    )
+    db.run(
+      `INSERT INTO audit_logs (occurred_at, user_id, action, entity_type, entity_id, details)
+       VALUES (1, 1, 'user.created', 'user', 1, '{"role":"Administrator"}')`
+    )
+    const result = migrate(db, realMigrations.slice(0, 4), options(join(dir, 'backups')))
+    expect(result).toMatchObject({ fromVersion: 3, toVersion: 4, applied: [4] })
+    expect(db.all('SELECT user_id, approved_by_user_id, action FROM audit_logs')).toEqual([
+      { user_id: 1, approved_by_user_id: null, action: 'user.created' }
+    ])
+    // Still append-only after the upgrade.
+    expect(() => db.run('DELETE FROM audit_logs')).toThrow(/immutable/)
+    db.close()
+  })
 })

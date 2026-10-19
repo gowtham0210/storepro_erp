@@ -136,6 +136,10 @@ class FakeBackend {
         return []
       case 'users:list-roles':
         return ROLES
+      case 'audit:list':
+        return { entries: [], nextBefore: null }
+      case 'audit:filter-options':
+        return { actions: [], people: [] }
       default:
         return undefined
     }

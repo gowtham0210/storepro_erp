@@ -100,7 +100,9 @@ docs/                 Data model, UI guidelines, testing guide, planning documen
   [`docs/permissions.md`](docs/permissions.md) for the roles, the no-escalation rule and manager
   approvals.
 - **Audit.** Sign-ins (including failures), sign-outs, refused requests, manager approvals and
-  every user change are written to `audit_logs`. Passwords never are.
+  every user change are written to the append-only audit log, in the same transaction as the
+  change. Passwords never are. Administrators and managers can read it under **Manage → Audit
+  log**. See [`docs/audit-log.md`](docs/audit-log.md).
 
 ### Adding an IPC channel
 

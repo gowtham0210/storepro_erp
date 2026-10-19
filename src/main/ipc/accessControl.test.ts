@@ -33,7 +33,9 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   ],
   'users:update': [{ userId: 1, displayName: 'Hijacked', roleCode: 'cashier' }],
   'users:set-active': [{ userId: 1, active: false }],
-  'users:reset-password': [{ userId: 1, newPassword: 'taken-over-123' }]
+  'users:reset-password': [{ userId: 1, newPassword: 'taken-over-123' }],
+  'audit:list': [{ person: 1 }],
+  'audit:filter-options': []
 }
 
 describe('access control over IPC', () => {

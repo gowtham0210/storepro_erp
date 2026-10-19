@@ -2,7 +2,7 @@ import type { NewUser, RoleCode, RoleSummary, UserSummary, UserUpdate } from '@s
 import { AppError } from '@shared/ipc/errors'
 import { passwordProblem } from '@shared/passwordPolicy'
 import { canGrant } from '@shared/permissions'
-import type { AuditLog } from '../audit/auditLog'
+import { changesBetween, type AuditLog } from '../audit/auditLog'
 import { assertCan, type Actor } from '../auth/access'
 import type { LoginThrottle } from '../auth/loginThrottle'
 import type { PasswordHasher } from '../auth/passwords'
@@ -54,11 +54,11 @@ export class UserService {
     const userId = db.transaction(() => {
       this.assertUsernameFree(input.username)
       const id = users.create({ ...input, passwordHash })
-      audit.record({
+      audit.change({
         action: 'user.created',
-        userId: actor.userId,
+        actor,
         entity: { type: 'user', id },
-        details: { roleCode: input.roleCode }
+        details: { username: input.username, role: this.requireTarget(id).roleName }
       })
       return id
     })
@@ -74,12 +74,17 @@ export class UserService {
       if (target.roleCode === 'administrator' && roleCode !== 'administrator' && target.active) {
         this.assertNotLastAdministrator()
       }
+      const changes = changesBetween(
+        { name: target.displayName, role: target.roleName },
+        { name: displayName, role: this.deps.roles.nameOf(roleCode) }
+      )
+      if (!changes) return
       users.updateProfile(userId, { displayName, roleCode })
-      audit.record({
+      audit.change({
         action: 'user.updated',
-        userId: actor.userId,
+        actor,
         entity: { type: 'user', id: userId },
-        details: { displayName, roleCode, previousRoleCode: target.roleCode }
+        details: { changes }
       })
     })
     return this.summary(userId)
@@ -97,9 +102,9 @@ export class UserService {
         if (target.roleCode === 'administrator') this.assertNotLastAdministrator()
       }
       users.setActive(userId, active)
-      audit.record({
+      audit.change({
         action: active ? 'user.reactivated' : 'user.deactivated',
-        userId: actor.userId,
+        actor,
         entity: { type: 'user', id: userId }
       })
     })
@@ -123,11 +128,7 @@ export class UserService {
       this.requireManageableTarget(actor, userId)
       users.setPassword(userId, passwordHash, userId !== actor.userId)
       throttle.clear(target.username)
-      audit.record({
-        action: 'user.password_reset',
-        userId: actor.userId,
-        entity: { type: 'user', id: userId }
-      })
+      audit.change({ action: 'user.password_reset', actor, entity: { type: 'user', id: userId } })
     })
     return this.summary(userId)
   }

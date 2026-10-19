@@ -44,7 +44,15 @@ async function axeViolations(ui: Page): Promise<string[]> {
 }
 
 test.describe('accessibility (WCAG 2.2 AA)', () => {
-  for (const path of ['/billing', '/products', '/reports', '/settings', '/users', '/nowhere']) {
+  for (const path of [
+    '/billing',
+    '/products',
+    '/reports',
+    '/settings',
+    '/users',
+    '/audit',
+    '/nowhere'
+  ]) {
     test(`${path} has no violations`, async ({ ui }) => {
       await goTo(ui, path)
       await ui.waitForTimeout(200)

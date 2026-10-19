@@ -126,6 +126,53 @@ export interface UserUpdate {
   roleCode: RoleCode
 }
 
+/** Which audit entries to show (M07-04). Newest first. */
+export interface AuditLogFilter {
+  /** Done or approved by this user; 'system' for StorePro itself. */
+  person?: number | 'system' | undefined
+  action?: string | undefined
+  /** Epoch ms, inclusive. */
+  from?: number | undefined
+  /** Epoch ms, exclusive. */
+  to?: number | undefined
+  /** Entries about this record, e.g. a user's account history. */
+  entity?: { type: string; id: number } | undefined
+  /** Continue after the last page: only entries older than this id. */
+  before?: number | undefined
+  limit?: number | undefined
+}
+
+export interface AuditPerson {
+  userId: number
+  displayName: string
+  username: string
+}
+
+export interface AuditLogEntry {
+  id: number
+  occurredAt: number
+  action: string
+  /** Null when StorePro itself recorded the entry. */
+  actor: AuditPerson | null
+  /** Who approved it, when a manager approval was used. */
+  approvedBy: AuditPerson | null
+  entity: { type: string; id: number; label: string | null } | null
+  details: Record<string, unknown> | null
+}
+
+export interface AuditLogPage {
+  entries: AuditLogEntry[]
+  /** Pass as `before` for the next page; null when there are no older entries. */
+  nextBefore: number | null
+}
+
+export interface AuditFilterOptions {
+  /** Actions that appear in the log. */
+  actions: string[]
+  /** People who appear in the log. */
+  people: AuditPerson[]
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -144,6 +191,8 @@ export interface IpcContract {
   'users:update': { input: UserUpdate; output: UserSummary }
   'users:set-active': { input: { userId: number; active: boolean }; output: UserSummary }
   'users:reset-password': { input: { userId: number; newPassword: string }; output: UserSummary }
+  'audit:list': { input: AuditLogFilter; output: AuditLogPage }
+  'audit:filter-options': { input: void; output: AuditFilterOptions }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -171,7 +220,9 @@ const channelRegistry: Record<IpcChannel, true> = {
   'users:create': true,
   'users:update': true,
   'users:set-active': true,
-  'users:reset-password': true
+  'users:reset-password': true,
+  'audit:list': true,
+  'audit:filter-options': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

@@ -11,7 +11,7 @@ push. The release acceptance plan in the PRD (§12) builds on this.
 | **Integration** | Vitest (Node) + real SQLite      | `src/main/**/*.test.ts`             | Services and repositories against a migrated database: constraints, triggers, views, migrations, integrity checks                  | ms per test   |
 | **Component**   | Vitest (jsdom) + Testing Library | `src/renderer/**/*.test.tsx`        | React components, forms, keyboard behaviour, focus, live regions, axe accessibility (without colour contrast)                      | ms            |
 | **End-to-end**  | Playwright + real Electron       | `e2e/*.spec.ts`                     | The built app: security boundaries, start-up and shutdown, crash recovery, navigation, axe accessibility including colour contrast | ~1 s per test |
-| **Performance** | Vitest (Node)                    | `src/**/*.perf.test.ts`             | PRD §11 targets on a 10,000-product store                                                                                          | ~20 s         |
+| **Performance** | Vitest (Node)                    | `src/**/*.perf.test.ts`             | PRD §11 targets on a 10,000-product store; the audit log viewer on 300,000 entries                                                 | ~20 s         |
 
 Most tests are unit, integration or component tests: fast and precise. End-to-end tests are kept
 for what only the real app can show: Electron security settings, processes, the file system and
@@ -82,10 +82,10 @@ Thresholds are set just below the measured level, so coverage can rise but not q
 
 | Metric     | Measured | Threshold |
 | ---------- | -------- | --------- |
-| Statements | 92.3%    | 92%       |
-| Branches   | 85.1%    | 85%       |
-| Functions  | 91.5%    | 91%       |
-| Lines      | 94.9%    | 94%       |
+| Statements | 93.0%    | 92%       |
+| Branches   | 86.6%    | 86%       |
+| Functions  | 92.1%    | 92%       |
+| Lines      | 95.1%    | 95%       |
 
 Raise the thresholds when coverage rises. Never lower them to make a change pass.
 

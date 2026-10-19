@@ -16,10 +16,12 @@ import {
 
 const ComponentGallery = lazy(() => import('../pages/dev/ComponentGallery'))
 const UsersPage = lazy(() => import('../pages/UsersPage'))
+const AuditLogPage = lazy(() => import('../pages/AuditLogPage'))
 
 /** Screens that exist; every other navigation item shows its placeholder. */
 const SCREENS: Partial<Record<string, ReactNode>> = {
-  users: <UsersPage />
+  users: <UsersPage />,
+  audit: <AuditLogPage />
 }
 
 /**

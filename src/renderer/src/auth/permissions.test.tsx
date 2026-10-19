@@ -87,7 +87,11 @@ describe('users page for a manager', () => {
     asManager()
     await screen.findByText('Meena')
     const ownerRow = screen.getByText('Ravi Kumar').closest('tr')!
-    expect(within(ownerRow).queryByRole('button')).toBeNull()
+    expect(
+      within(ownerRow)
+        .getAllByRole('button')
+        .map((b) => b.textContent)
+    ).toEqual(['History'])
     expect(
       within(ownerRow).getByText('Only an administrator can change this account.')
     ).toBeTruthy()

@@ -2,6 +2,9 @@ import { join } from 'node:path'
 import { app, dialog, ipcMain, Menu, session, type BrowserWindow } from 'electron'
 import type { AppInfo, StartupStatus } from '@shared/ipc/contract'
 import { AuditLog } from './audit/auditLog'
+import { AuditLogReader } from './audit/auditLogReader'
+import { AuditLogService } from './audit/auditLogService'
+import { recordStartupEvents } from './audit/startupEvents'
 import { AuthService } from './auth/authService'
 import { LoginThrottle } from './auth/loginThrottle'
 import { OverrideGrants } from './auth/overrideGrants'
@@ -120,7 +123,7 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
   // other hook has finished.
   shutdown.register('session-marker', () => marker.end())
 
-  const { db } = openStoreDatabase({
+  const { db, migration, integrity } = openStoreDatabase({
     path: join(userData, 'data', 'storepro.db'),
     backupDir: join(userData, 'backups'),
     appVersion: app.getVersion(),
@@ -138,6 +141,7 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
   if (devServerUrl === null) serveRendererFromAppScheme(join(import.meta.dirname, '../renderer'))
 
   const services = createServices(db, logger)
+  recordStartupEvents(services.audit, { migration, integrity, startup: startupStatus })
   const unregisterIpc = registerIpcHandlers(
     ipcMain,
     createHandlers({ logger, getAppInfo, getStartupStatus: () => startupStatus, ...services }),
@@ -163,7 +167,10 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
 }
 
 /** Application services, wired once per run. */
-function createServices(db: Database, logger: Logger): { auth: AuthService; users: UserService } {
+function createServices(
+  db: Database,
+  logger: Logger
+): { audit: AuditLog; auth: AuthService; users: UserService; auditLog: AuditLogService } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
   const userRepository = new UserRepository(db, clock)
@@ -181,7 +188,8 @@ function createServices(db: Database, logger: Logger): { auth: AuthService; user
     logger: logger.child('auth')
   })
   const users = new UserService({ db, users: userRepository, roles, hasher, throttle, audit })
-  return { auth, users }
+  const auditLog = new AuditLogService(new AuditLogReader(db, clock))
+  return { audit, auth, users, auditLog }
 }
 
 function startupFailureMessage(error: unknown): string {

@@ -1,11 +1,21 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, KeyRound, Pencil, ShieldCheck, UserCheck, UserPlus, UserX } from 'lucide-react'
+import {
+  Check,
+  History,
+  KeyRound,
+  Pencil,
+  ShieldCheck,
+  UserCheck,
+  UserPlus,
+  UserX
+} from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { z } from 'zod'
 import type { RoleCode, RoleSummary, UserSummary } from '@shared/ipc/contract'
 import { canGrant, PERMISSION_GROUPS } from '@shared/permissions'
 import { displayName, roleCode, username } from '@shared/schemas/users'
-import { usePermissions } from '../auth/permissions'
+import { useCan, usePermissions } from '../auth/permissions'
 import { withConfirmedPassword, PASSWORD_HINT } from '../auth/SetupAdminScreen'
 import { useCurrentUser, useRefreshAuth } from '../auth/useAuth'
 import {
@@ -66,6 +76,8 @@ export default function UsersPage(): React.JSX.Element {
   const { grantable } = useGrantableRoles()
   const [dialog, setDialog] = useState<DialogState>(null)
   const canChange = (user: UserSummary): boolean => grantable.has(user.roleCode)
+  const canSeeHistory = useCan()('audit.view')
+  const navigate = useNavigate()
 
   const reload = () => queryClient.invalidateQueries({ queryKey: ['users:list'] })
 
@@ -127,39 +139,56 @@ export default function UsersPage(): React.JSX.Element {
       id: 'actions',
       header: 'Actions',
       align: 'right',
-      cell: (user) =>
-        !canChange(user) ? (
-          <span className="text-sm text-fg-muted">{ADMINISTRATORS_ONLY}</span>
-        ) : (
-          <span className="inline-flex gap-1" onClick={(event) => event.stopPropagation()}>
+      cell: (user) => (
+        <span
+          className="inline-flex flex-wrap items-center justify-end gap-1"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {canSeeHistory && (
             <Button
               size="sm"
               variant="ghost"
-              icon={<Pencil />}
-              onClick={() => setDialog({ kind: 'edit', user })}
+              icon={<History />}
+              aria-label={`History of ${user.displayName}`}
+              onClick={() => void navigate(`/audit?entity=user:${user.userId}`)}
             >
-              Edit
+              History
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              icon={<KeyRound />}
-              onClick={() => setDialog({ kind: 'reset', user })}
-            >
-              Reset password
-            </Button>
-            {user.userId !== me.userId && (
+          )}
+          {!canChange(user) ? (
+            <span className="text-sm text-fg-muted">{ADMINISTRATORS_ONLY}</span>
+          ) : (
+            <>
               <Button
                 size="sm"
                 variant="ghost"
-                icon={user.active ? <UserX /> : <UserCheck />}
-                onClick={() => void toggleActive(user)}
+                icon={<Pencil />}
+                onClick={() => setDialog({ kind: 'edit', user })}
               >
-                {user.active ? 'Deactivate' : 'Reactivate'}
+                Edit
               </Button>
-            )}
-          </span>
-        )
+              <Button
+                size="sm"
+                variant="ghost"
+                icon={<KeyRound />}
+                onClick={() => setDialog({ kind: 'reset', user })}
+              >
+                Reset password
+              </Button>
+              {user.userId !== me.userId && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={user.active ? <UserX /> : <UserCheck />}
+                  onClick={() => void toggleActive(user)}
+                >
+                  {user.active ? 'Deactivate' : 'Reactivate'}
+                </Button>
+              )}
+            </>
+          )}
+        </span>
+      )
     }
   ]
 

@@ -66,7 +66,7 @@ test.describe('permissions (M06)', () => {
 
     const ownerRow = ui.getByRole('row', { name: /Ravi Kumar/ })
     await expect(ownerRow.getByText('Only an administrator can change this account.')).toBeVisible()
-    await expect(ownerRow.getByRole('button')).toHaveCount(0)
+    await expect(ownerRow.getByRole('button', { name: /Edit|Reset|Deactivate/ })).toHaveCount(0)
     await expect(
       ui.getByRole('row', { name: /meena/ }).getByRole('button', { name: 'Reset password' })
     ).toBeVisible()

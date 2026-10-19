@@ -65,7 +65,7 @@ test.describe('sign-in and users', () => {
     await dialog.getByLabel(/Confirm password/).fill(CASHIER.password)
     await dialog.getByRole('button', { name: 'Add user' }).click()
     await expect(ui.getByText('Meena Sundar can now sign in as meena.')).toBeVisible()
-    await expect(ui.getByRole('cell', { name: /Meena Sundar/ })).toBeVisible()
+    await expect(ui.getByRole('cell', { name: /^Meena Sundar/ })).toBeVisible()
 
     await signOut(ui)
     await signIn(ui, CASHIER)

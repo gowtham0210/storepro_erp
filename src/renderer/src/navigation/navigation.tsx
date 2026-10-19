@@ -4,6 +4,7 @@ import {
   Code2,
   Package,
   ReceiptText,
+  ScrollText,
   Settings,
   ShoppingCart,
   UserCog,
@@ -154,6 +155,15 @@ export const NAVIGATION: readonly NavGroup[] = [
         permission: 'user.manage',
         plannedIn: 'M05 · Authentication & User Management',
         description: 'People who can sign in, and their roles.'
+      },
+      {
+        id: 'audit',
+        label: 'Audit log',
+        path: '/audit',
+        icon: <ScrollText />,
+        permission: 'audit.view',
+        plannedIn: 'M07 · Audit Logging',
+        description: 'Who did what, and when.'
       },
       {
         id: 'settings',

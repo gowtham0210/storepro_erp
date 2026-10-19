@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { IPC_CHANNELS } from '@shared/ipc/contract'
+import type { AuditLogService } from '../../audit/auditLogService'
 import type { AuthService } from '../../auth/authService'
 import { createTestLogger } from '../../test/helpers'
 import type { UserService } from '../../users/userService'
@@ -27,7 +28,8 @@ function setup() {
     getAppInfo: () => appInfo,
     getStartupStatus: () => startup,
     auth: {} as AuthService,
-    users: {} as UserService
+    users: {} as UserService,
+    auditLog: {} as AuditLogService
   })
   const { invoke } = createIpcHarness(handlers)
   return { handlers, logger, appInfo, startup, invoke }

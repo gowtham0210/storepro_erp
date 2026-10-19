@@ -21,7 +21,8 @@ export function createRealIpc(bed: Testbed): IpcHarness & { handlers: HandlerMap
       previousSessionStartedAt: null
     }),
     auth: bed.auth,
-    users: bed.userService
+    users: bed.userService,
+    auditLog: bed.auditLogService
   })
   return { handlers, ...createIpcHarness(handlers, { authorizer: bed.auth }) }
 }
