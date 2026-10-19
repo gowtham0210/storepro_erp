@@ -106,6 +106,21 @@ export async function signOut(ui: Page): Promise<void> {
   await ui.getByRole('heading', { level: 1, name: 'Sign in' }).waitFor()
 }
 
+/**
+ * Cut or restore the network, as a dropped connection would: the main
+ * process's check (`net.isOnline()`) reports it, and Chromium's network is
+ * switched off too, so nothing could reach the internet even if it tried.
+ * The connectivity monitor notices within a few seconds.
+ */
+export async function setNetwork({ app, window }: StoreProApp, online: boolean): Promise<void> {
+  await app.evaluate(({ net, session }, up) => {
+    ;(net as { isOnline: () => boolean }).isOnline = () => up
+    if (up) session.defaultSession.disableNetworkEmulation()
+    else session.defaultSession.enableNetworkEmulation({ offline: true })
+  }, online)
+  await window.context().setOffline(!online)
+}
+
 /** URLs the app asked the operating system to open (see the stub in launchStorePro). */
 export function openedExternalUrls({ app }: StoreProApp): Promise<string[]> {
   return app.evaluate(

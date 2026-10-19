@@ -1,11 +1,13 @@
 import { cleanup } from '@testing-library/react'
 import { afterEach } from 'vitest'
+import { resetConnectivity } from '../layout/useConnectivity'
 import { fakeBackend } from './fakeBackend'
 
 afterEach(() => {
   cleanup()
   localStorage.clear()
   fakeBackend.reset()
+  resetConnectivity()
 })
 
 // jsdom lacks the native <dialog> modal API; emulate the parts we use.

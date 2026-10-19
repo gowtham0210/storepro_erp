@@ -78,19 +78,28 @@ describe('AppShell', () => {
     }
   })
 
-  it('shows the connectivity state and reassures when offline', async () => {
+  it('shows what the main process reports about the connection, and reassures when offline', async () => {
+    fakeBackend.on('connectivity:get-status', () => ({
+      online: false,
+      changedAt: Date.UTC(2026, 9, 19, 4, 30),
+      checkedAt: 1
+    }))
     renderApp('/billing')
-    await screen.findByRole('heading', { level: 1, name: 'Billing' })
+    const offline = await screen.findByText('Offline · billing still works')
+    // Since when, in the store's time zone (10:00 in India).
+    expect(offline.closest('[role="status"]')?.getAttribute('title')).toMatch(
+      /^No network connection since 19 Oct 2026, 10:00\s?am\. Billing, stock and reports keep working/i
+    )
+    // The monitor pushes changes; the indicator follows.
+    act(() => {
+      fakeBackend.emit('connectivity:changed', { online: true, changedAt: 2, checkedAt: 2 })
+    })
     expect(screen.getByText('Online')).toBeTruthy()
-    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
+    // An older answer never replaces a newer one.
     act(() => {
-      window.dispatchEvent(new Event('offline'))
+      fakeBackend.emit('connectivity:changed', { online: false, changedAt: 1, checkedAt: 1 })
     })
-    expect(screen.getByText('Offline · billing still works')).toBeTruthy()
-    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
-    act(() => {
-      window.dispatchEvent(new Event('online'))
-    })
+    expect(screen.getByText('Online')).toBeTruthy()
   })
 
   it('lists the shortcuts of the current screen on F1', async () => {

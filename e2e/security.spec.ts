@@ -11,7 +11,34 @@ test.describe('renderer security', () => {
         bridge: Object.keys(window.storepro)
       }
     })
-    expect(probe).toEqual({ require: 'undefined', process: 'undefined', bridge: ['invoke'] })
+    expect(probe).toEqual({
+      require: 'undefined',
+      process: 'undefined',
+      bridge: ['invoke', 'on']
+    })
+  })
+
+  test('the page can listen only to declared main-process events', async ({ ui }) => {
+    const results = await ui.evaluate(() => {
+      const on = window.storepro.on as (event: string, listener: () => void) => () => void
+      const attempt = (event: string): string => {
+        try {
+          on(event, () => {})()
+          return 'listening'
+        } catch (error) {
+          return (error as Error).message
+        }
+      }
+      return {
+        declared: attempt('connectivity:changed'),
+        // An invoke channel, and an Electron-internal one: neither can be listened to.
+        invokeChannel: attempt('auth:sign-in'),
+        internal: attempt('ELECTRON_BROWSER_REQUIRE')
+      }
+    })
+    expect(results.declared).toBe('listening')
+    expect(results.invokeChannel).toMatch(/Unknown event: auth:sign-in/)
+    expect(results.internal).toMatch(/Unknown event/)
   })
 
   test('IPC rejects unknown channels and invalid input', async ({ ui }) => {

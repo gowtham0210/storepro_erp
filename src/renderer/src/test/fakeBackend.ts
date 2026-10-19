@@ -1,6 +1,8 @@
 import type {
   AuthState,
   IpcChannel,
+  IpcEvent,
+  IpcEvents,
   IpcInput,
   IpcOutput,
   RoleSummary,
@@ -117,10 +119,16 @@ class FakeBackend {
     this.authState = { status: 'signed-in', user: ADMIN }
     this.calls = []
     this.handlers = {}
+    this.listeners.clear()
   }
 
   on<C extends IpcChannel>(channel: C, handler: Handler<C>): void {
     ;(this.handlers as Record<string, unknown>)[channel] = handler
+  }
+
+  /** Push an event as the main process would (main → renderer). */
+  emit<E extends IpcEvent>(event: E, payload: IpcEvents[E]): void {
+    for (const listener of this.listeners.get(event) ?? []) listener(payload)
   }
 
   callsTo(channel: IpcChannel): unknown[] {
@@ -140,8 +148,16 @@ class FakeBackend {
         if (error instanceof AppError) return { ok: false, error: error.toPayload() }
         throw error
       }
-    }) as StoreProBridge['invoke']
+    }) as StoreProBridge['invoke'],
+    on: ((event: IpcEvent, listener: (payload: unknown) => void) => {
+      const listeners = this.listeners.get(event) ?? new Set()
+      listeners.add(listener)
+      this.listeners.set(event, listeners)
+      return () => listeners.delete(listener)
+    }) as StoreProBridge['on']
   }
+
+  private listeners = new Map<IpcEvent, Set<(payload: unknown) => void>>()
 
   private defaultResponse(channel: IpcChannel): unknown {
     switch (channel) {
@@ -166,6 +182,8 @@ class FakeBackend {
         return STORE
       case 'setup:get-options':
         return SETUP_OPTIONS
+      case 'connectivity:get-status':
+        return { online: true, changedAt: STORE.setUpAt, checkedAt: STORE.setUpAt }
       case 'modules:list':
         return MODULES.map((manifest) => ({
           code: manifest.code,

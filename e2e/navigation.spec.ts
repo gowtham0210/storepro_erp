@@ -40,14 +40,6 @@ test.describe('shell and navigation', () => {
     await expect.poll(rootSize).toBe('16px')
   })
 
-  test('shows a calm offline state and recovers', async ({ ui }) => {
-    await expect(ui.getByRole('status').filter({ hasText: 'Online' })).toBeVisible()
-    await ui.context().setOffline(true)
-    await expect(ui.getByText('Offline · billing still works')).toBeVisible()
-    await ui.context().setOffline(false)
-    await expect(ui.getByRole('status').filter({ hasText: 'Online' })).toBeVisible()
-  })
-
   test('unknown addresses show a way back', async ({ ui }) => {
     await goTo(ui, '/does-not-exist')
     await expect(ui.getByText("There's nothing at this address")).toBeVisible()

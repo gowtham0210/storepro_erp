@@ -7,6 +7,7 @@ import {
   goTo,
   launchStorePro,
   removeUserDataDir,
+  setNetwork,
   test
 } from './fixtures'
 
@@ -91,9 +92,9 @@ test.describe('accessibility (WCAG 2.2 AA)', () => {
     expect(await axeViolations(ui)).toEqual([])
   })
 
-  test('the offline state has no violations', async ({ ui }) => {
-    await ui.context().setOffline(true)
-    await expect(ui.getByText('Offline · billing still works')).toBeVisible()
+  test('the offline state has no violations', async ({ storepro, ui }) => {
+    await setNetwork(storepro, false)
+    await expect(ui.getByText('Offline · billing still works')).toBeVisible({ timeout: 10_000 })
     expect(await axeViolations(ui)).toEqual([])
   })
 })

@@ -66,7 +66,9 @@ docs/                 Data model, UI guidelines, testing guide, planning documen
 
 - The renderer runs with `contextIsolation`, `sandbox`, and no Node.js integration. Its only
   access to the system is `window.storepro.invoke(channel, input)`, limited to channels in
-  `src/shared/ipc/contract.ts`. ESLint blocks `electron` and `node:*` imports in renderer code.
+  `src/shared/ipc/contract.ts`, and `window.storepro.on(event, listener)`, limited to the
+  main → renderer events declared there (`IpcEvents`). ESLint blocks `electron` and `node:*`
+  imports in renderer code.
 - In production the UI is served from `app://storepro/` (a privileged custom scheme), not
   `file://`. Responses carry a strict CSP (`script-src 'self'`, no inline scripts or eval).
   Development uses a relaxed CSP that only the Vite dev server gets.
@@ -119,6 +121,15 @@ module is always on for grocery stores; the others are planned for later release
 screens appear, and its requests are accepted, only while it is switched on. Switching a module
 off never deletes its data. See [`docs/modules.md`](docs/modules.md).
 
+### Offline and connectivity
+
+StorePro needs no internet connection: everything is stored on this computer. The header always
+shows whether the computer is online. The main process watches the connection (Electron's
+`net.isOnline()`, a local check that sends nothing over the network) every few seconds and after
+sleep, and pushes changes to the window as `connectivity:changed` events. A network without
+internet access, such as a router whose line is down, still shows as online. Nothing depends on
+the status: it only tells people what to expect from online features (none in this release).
+
 ### Adding an IPC channel
 
 1. Declare it in `IpcContract` and `channelRegistry` in `src/shared/ipc/contract.ts`.
@@ -133,6 +144,10 @@ service checks the permission again with `assertCan(actor, ...)`. Add a sample i
 channel to `SAMPLE_INPUTS` in `src/main/ipc/accessControl.test.ts`, which proves the channel
 refuses signed-out users and roles without the permission. Guarded channels are also refused until
 store setup is complete; mark a handler `beforeSetup: true` only if setup itself needs it.
+
+To push something from the main process to the window, declare it in `IpcEvents` and
+`eventRegistry` in the contract and send it with the publisher from `src/main/ipc/events.ts`; the
+renderer listens with `window.storepro.on(event, listener)`.
 
 ### Reliability
 

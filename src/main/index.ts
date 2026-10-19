@@ -1,5 +1,14 @@
 import { join } from 'node:path'
-import { app, dialog, ipcMain, Menu, session, type BrowserWindow } from 'electron'
+import {
+  app,
+  dialog,
+  ipcMain,
+  Menu,
+  net,
+  powerMonitor,
+  session,
+  type BrowserWindow
+} from 'electron'
 import type { AppInfo, StartupStatus } from '@shared/ipc/contract'
 import { AuditLog } from './audit/auditLog'
 import { AuditLogReader } from './audit/auditLogReader'
@@ -10,7 +19,9 @@ import { LoginThrottle } from './auth/loginThrottle'
 import { OverrideGrants } from './auth/overrideGrants'
 import { PasswordHasher } from './auth/passwords'
 import { RoleRepository } from './auth/roleRepository'
+import { ConnectivityMonitor } from './connectivity/connectivityMonitor'
 import { DatabaseIntegrityError, DatabaseTooNewError, openStoreDatabase, type Database } from './db'
+import { createEventPublisher } from './ipc/events'
 import { createHandlers } from './ipc/handlers'
 import { systemClock } from './lib/clock'
 import { registerIpcHandlers } from './ipc/serviceHost'
@@ -146,9 +157,32 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
 
   const services = createServices(db, logger)
   recordStartupEvents(services.audit, { migration, integrity, startup: startupStatus })
+
+  // M08: watch the connection and tell the window when it changes.
+  let window: BrowserWindow | null = null
+  const publish = createEventPublisher(() => (window ? [window.webContents] : []))
+  const connectivity = new ConnectivityMonitor({
+    // Looked up on every check (not captured), so tests can stand in for it.
+    isOnline: () => net.isOnline(),
+    clock: systemClock,
+    logger: logger.child('connectivity')
+  })
+  connectivity.onChange((status) => publish('connectivity:changed', status))
+  connectivity.start()
+  // After sleep or a locked screen the network may have changed while nobody was looking.
+  powerMonitor.on('resume', () => connectivity.check())
+  powerMonitor.on('unlock-screen', () => connectivity.check())
+  shutdown.register('connectivity', () => connectivity.stop())
+
   const unregisterIpc = registerIpcHandlers(
     ipcMain,
-    createHandlers({ logger, getAppInfo, getStartupStatus: () => startupStatus, ...services }),
+    createHandlers({
+      logger,
+      getAppInfo,
+      getStartupStatus: () => startupStatus,
+      ...services,
+      connectivity
+    }),
     {
       isTrustedSender: (event) => isAllowedOrigin(event.senderFrame?.url ?? '', allowedOrigins),
       authorizer: services.auth,
@@ -159,7 +193,7 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
   )
   shutdown.register('ipc', unregisterIpc)
 
-  const window = createMainWindow({
+  window = createMainWindow({
     preloadPath: join(import.meta.dirname, '../preload/index.cjs'),
     rendererUrl: devServerUrl ?? APP_ENTRY_URL,
     stateStore: new WindowStateStore(join(userData, 'window-state.json')),

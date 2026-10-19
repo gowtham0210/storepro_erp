@@ -1,4 +1,5 @@
 import type { Testbed } from '../../auth/test/testbed'
+import { ConnectivityMonitor } from '../../connectivity/connectivityMonitor'
 import { createTestLogger } from '../../test/helpers'
 import { createHandlers } from '../handlers'
 import type { HandlerMap } from '../serviceHost'
@@ -24,7 +25,12 @@ export function createRealIpc(bed: Testbed): IpcHarness & { handlers: HandlerMap
     users: bed.userService,
     auditLog: bed.auditLogService,
     store: bed.storeService,
-    modules: bed.moduleService
+    modules: bed.moduleService,
+    connectivity: new ConnectivityMonitor({
+      isOnline: () => true,
+      clock: bed.clock,
+      logger: createTestLogger()
+    })
   })
   return {
     handlers,

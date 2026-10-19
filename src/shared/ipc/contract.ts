@@ -169,6 +169,14 @@ export interface StoreProfile extends StoreProfileInput {
   updatedAt: number
 }
 
+/** Whether the computer is online (M08). */
+export interface ConnectivityStatus {
+  online: boolean
+  /** When it last went online or offline. */
+  changedAt: number
+  checkedAt: number
+}
+
 /** A module and whether it is switched on (M04). */
 export interface ModuleState {
   code: ModuleCode
@@ -261,6 +269,7 @@ export interface IpcContract {
   'setup:complete-store': { input: StoreProfileInput; output: StoreProfile }
   'store:get-profile': { input: void; output: StoreProfile | null }
   'store:update': { input: StoreProfileInput; output: StoreProfile }
+  'connectivity:get-status': { input: void; output: ConnectivityStatus }
   'modules:list': { input: void; output: ModuleState[] }
   'modules:set-enabled': { input: { code: ModuleCode; enabled: boolean }; output: ModuleState[] }
   'audit:list': { input: AuditLogFilter; output: AuditLogPage }
@@ -297,6 +306,7 @@ const channelRegistry: Record<IpcChannel, true> = {
   'setup:complete-store': true,
   'store:get-profile': true,
   'store:update': true,
+  'connectivity:get-status': true,
   'modules:list': true,
   'modules:set-enabled': true,
   'audit:list': true,
@@ -305,7 +315,25 @@ const channelRegistry: Record<IpcChannel, true> = {
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]
 
+/**
+ * Events the main process pushes to the renderer (main → renderer). The
+ * renderer can only listen to these, never send them.
+ */
+export interface IpcEvents {
+  'connectivity:changed': ConnectivityStatus
+}
+
+export type IpcEvent = keyof IpcEvents
+
+const eventRegistry: Record<IpcEvent, true> = {
+  'connectivity:changed': true
+}
+
+export const IPC_EVENTS = Object.keys(eventRegistry) as IpcEvent[]
+
 /** The API the preload script exposes on `window.storepro`. */
 export interface StoreProBridge {
   invoke<C extends IpcChannel>(channel: C, ...args: IpcArgs<C>): Promise<IpcResult<IpcOutput<C>>>
+  /** Listen to an event from the main process. Returns a function that stops listening. */
+  on<E extends IpcEvent>(event: E, listener: (payload: IpcEvents[E]) => void): () => void
 }

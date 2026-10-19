@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { IPC_CHANNELS } from '@shared/ipc/contract'
 import type { AuditLogService } from '../../audit/auditLogService'
 import type { AuthService } from '../../auth/authService'
+import type { ConnectivityMonitor } from '../../connectivity/connectivityMonitor'
 import type { ModuleService } from '../../modules/moduleService'
 import type { StoreService } from '../../store/storeService'
 import { createTestLogger } from '../../test/helpers'
@@ -33,7 +34,8 @@ function setup() {
     users: {} as UserService,
     auditLog: {} as AuditLogService,
     store: {} as StoreService,
-    modules: {} as ModuleService
+    modules: {} as ModuleService,
+    connectivity: {} as ConnectivityMonitor
   })
   const { invoke } = createIpcHarness(handlers)
   return { handlers, logger, appInfo, startup, invoke }

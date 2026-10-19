@@ -94,7 +94,14 @@ Two fixes came out of this work. Tests broken by Windows paths and file locks we
 
 ---
 
-## Phase 2 — Identity & Configuration
+## Phase 2 — Identity & Configuration ✅ Completed (2026-10-19)
+
+**Phase 2 is complete.** M05, M06, M07, M03, M04 and M08 are implemented and pushed to `main`, and CI passes on Ubuntu and Windows. Items deliberately left for later phases:
+
+- Recording voids, adjustments, price changes, reprints and restores in the audit log, as those modules are built (see `docs/audit-log.md`).
+- Manager approval at the counter, used first by POS (M11).
+- The billing part of the offline test (M08-03), with M11.
+- Industry modules other than grocery (M25–M27).
 
 ### M05 · Authentication & User Management
 
@@ -204,6 +211,15 @@ Only grocery is available in this release; its own features come with M24.
 | M08-01 | Connectivity monitor in main process, pushed to renderer | M01-03 | S |
 | M08-02 | Persistent status indicator in header | M08-01, M23-04 | S |
 | M08-03 | Test: full billing flow with network disabled | M11-* | S |
+
+**Status (2026-10-19):** M08-01 and M08-02 are implemented. M08-03 covers everything built so far; billing joins it with M11.
+
+- **Monitor:** `ConnectivityMonitor` in the main process checks Electron's `net.isOnline()` every 3 seconds and after sleep or screen unlock. This is a local check: StorePro still sends nothing over the network. Changes are logged.
+- **Push:** a new typed main → renderer event channel. `IpcEvents` is declared in the contract, and the preload's `on()` accepts declared events only (a security test checks it). The renderer keeps the newest status.
+- **Indicator:** the header's always-visible status now follows the main process. It reads "Offline · billing still works", with since when in the store's time zone, and is announced politely to screen readers. TanStack Query still ignores the browser's online state.
+- **Tests:** end-to-end tests cut the network the way an outage does (the main process's check and Chromium's network). With it cut, they add a user, change settings, sign out and in, and read the audit log. The indicator follows going offline and coming back. The billing flow will be added to the same test with M11.
+
+A network without internet access (router line down) counts as online; telling them apart needs a probe over the internet, which is left for when an online feature needs it.
 
 ---
 
