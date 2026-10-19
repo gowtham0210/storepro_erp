@@ -6,6 +6,7 @@ import type {
   IpcEvents,
   IpcInput,
   IpcOutput,
+  PaymentMethodInfo,
   RoleSummary,
   SessionUser,
   SetupOptions,
@@ -131,6 +132,36 @@ export const ADJUSTMENT_REASONS: AdjustmentReason[] = [
   { adjustmentReasonCode: 'other', name: 'Other' }
 ]
 
+export const PAYMENT_METHODS: PaymentMethodInfo[] = [
+  {
+    paymentMethodId: 1,
+    methodCode: 'cash',
+    name: 'Cash',
+    kind: 'cash',
+    sortOrder: 1,
+    active: true,
+    inUse: false
+  },
+  {
+    paymentMethodId: 2,
+    methodCode: 'upi',
+    name: 'UPI',
+    kind: 'upi',
+    sortOrder: 2,
+    active: true,
+    inUse: false
+  },
+  {
+    paymentMethodId: 3,
+    methodCode: 'card',
+    name: 'Card',
+    kind: 'card',
+    sortOrder: 3,
+    active: true,
+    inUse: false
+  }
+]
+
 type Handler<C extends IpcChannel> = (input: IpcInput<C>) => IpcOutput<C> | Promise<IpcOutput<C>>
 type Handlers = { [C in IpcChannel]?: Handler<C> }
 
@@ -252,6 +283,14 @@ class FakeBackend {
         return { items: [], total: 0, lowStockCount: 0, outOfStockCount: 0 }
       case 'inventory:list-adjustments':
         return { items: [], total: 0 }
+      case 'payments:list-methods':
+        return PAYMENT_METHODS
+      case 'sales:list':
+        return { items: [], total: 0 }
+      case 'sales:list-held':
+        return []
+      case 'sales:find-by-invoice':
+        return null
       default:
         return undefined
     }

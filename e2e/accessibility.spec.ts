@@ -47,7 +47,9 @@ async function axeViolations(ui: Page): Promise<string[]> {
 test.describe('accessibility (WCAG 2.2 AA)', () => {
   for (const path of [
     '/billing',
+    '/sales',
     '/products',
+    '/inventory',
     '/reports',
     '/settings',
     '/users',

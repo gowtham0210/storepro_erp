@@ -205,6 +205,27 @@ describe('describeAuditEntry', () => {
           }
         },
         'ADJ000002: Sona Masoori Rice 1 kg 10 kg → 9.25 kg'
+      ],
+      [
+        {
+          action: 'payment_method.created',
+          details: { name: 'Meal Pass', code: 'sodexo', kind: 'other' }
+        },
+        'Meal Pass (sodexo · other)'
+      ],
+      [
+        {
+          action: 'sale.created',
+          details: { invoiceNumber: 'INV000001', items: 2, total: '₹890.00', discount: '₹10.00' }
+        },
+        'INV000001 · 2 items · ₹890.00 (₹10.00 discount)'
+      ],
+      [
+        {
+          action: 'sale.voided',
+          details: { invoiceNumber: 'INV000001', total: '₹890.00', reason: 'Wrong item' }
+        },
+        'INV000001 (₹890.00) — Wrong item'
       ]
     ]
     for (const [overrides, sentence] of cases) {
@@ -224,7 +245,7 @@ describe('describeAuditEntry', () => {
     expect(
       describeAuditEntry(
         entry(9, {
-          action: 'sale.voided',
+          action: 'custom.event' as AuditLogEntry['action'],
           entity: { type: 'sale', id: 12, label: null },
           details: { invoice: 'INV-0012', reason: 'Wrong item' }
         })

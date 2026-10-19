@@ -33,9 +33,19 @@ export class OverrideGrants {
   }
 
   /** Removes and returns the grant if it is valid for this user and permission. */
-  take(overrideId: string, requestedBy: number, permission: PermissionCode): OverrideGrant | null {
+  take(
+    overrideId: string,
+    requestedBy: number,
+    permission?: PermissionCode
+  ): OverrideGrant | null {
     const grant = this.grants.get(overrideId)
-    if (!grant || grant.requestedBy !== requestedBy || grant.permission !== permission) return null
+    if (
+      !grant ||
+      grant.requestedBy !== requestedBy ||
+      (permission !== undefined && grant.permission !== permission)
+    ) {
+      return null
+    }
     this.grants.delete(overrideId)
     return grant.expiresAt > this.clock.now() ? grant : null
   }

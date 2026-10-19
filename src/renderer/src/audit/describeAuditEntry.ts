@@ -98,6 +98,23 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
     case 'tax_class.archived':
     case 'tax_class.restored':
       return text(d['name'] ?? subject)
+    case 'payment_method.created':
+      return `${text(d['name'] ?? subject)} (${text(d['code'])} · ${text(d['kind'])})`
+    case 'payment_method.updated':
+      return `${text(d['name'] ?? subject)}: ${changes(d['changes'], { name: 'name', kind: 'type', sortOrder: 'order' })}`
+    case 'payment_method.archived':
+    case 'payment_method.restored':
+      return text(d['name'] ?? subject)
+    case 'sale.created': {
+      const count = Number(d['items'] ?? 0)
+      const itemsLabel = `${count} ${count === 1 ? 'item' : 'items'}`
+      const discount = d['discount'] ? ` (${text(d['discount'])} discount)` : ''
+      return `${text(d['invoiceNumber'] ?? subject)} · ${itemsLabel} · ${text(d['total'])}${discount}`
+    }
+    case 'sale.voided': {
+      const total = d['total'] ? ` (${text(d['total'])})` : ''
+      return `${text(d['invoiceNumber'] ?? subject)}${total} — ${text(d['reason'])}`
+    }
     case 'product.created': {
       const items = Array.isArray(d['items']) ? (d['items'] as unknown[]).map(text) : []
       return [text(d['name']), items.join(', ')].filter(Boolean).join(': ')

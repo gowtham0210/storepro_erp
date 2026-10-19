@@ -192,7 +192,12 @@ export class AuthService {
     if (access === 'public') return null
     const user = this.requireUser({ allowPasswordChangeRequired: access === 'password-change' })
     const actor = this.actorFor(user)
-    if (access === 'password-change' || access === 'signed-in' || can(actor, access)) return actor
+    if (access === 'password-change' || access === 'signed-in') return actor
+    if (can(actor, access)) {
+      return overridable && overrideId !== undefined
+        ? this.useAnyOverride(actor, overrideId)
+        : actor
+    }
     if (overridable && overrideId !== undefined) return this.useOverride(actor, access, overrideId)
     this.deps.audit.event({ action: 'access.denied', actor, details: { permission: access } })
     throw forbidden(access, overridable)
@@ -265,6 +270,28 @@ export class AuthService {
       permissions: new Set([...actor.permissions, permission]),
       override: {
         permission,
+        approvedBy: { userId: approver.userId, displayName: approver.displayName }
+      }
+    }
+  }
+
+  /**
+   * Consumes a manager approval on a channel whose base permission (`sale.create`)
+   * the actor already holds, when a secondary permission (`discount.override` or
+   * `price.override`) is checked inside the service.
+   */
+  private useAnyOverride(actor: Actor, overrideId: string): Actor {
+    const grant = this.deps.overrides.take(overrideId, actor.userId)
+    if (!grant) return actor
+    const approver = this.deps.users.findById(grant.approvedBy)
+    if (!approver?.active) return actor
+    const approverPermissions = this.deps.roles.permissionsOf(approver.roleCode)
+    if (!approverPermissions.includes(grant.permission)) return actor
+    return {
+      ...actor,
+      permissions: new Set([...actor.permissions, grant.permission]),
+      override: {
+        permission: grant.permission,
         approvedBy: { userId: approver.userId, displayName: approver.displayName }
       }
     }

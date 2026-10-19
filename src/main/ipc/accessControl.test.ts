@@ -117,7 +117,31 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
       items: [{ variantId: 1, countedMilli: 1000 }]
     }
   ],
-  'inventory:list-adjustments': [{}]
+  'inventory:list-adjustments': [{}],
+  'payments:list-methods': [],
+  'payments:create-method': [{ methodCode: 'wallet', name: 'Wallet', kind: 'other' }],
+  'payments:update-method': [{ paymentMethodId: 1, name: 'Cash', kind: 'cash' }],
+  'payments:set-method-active': [{ paymentMethodId: 1, active: false }],
+  'sales:checkout': [
+    {
+      checkoutKey: 'checkout-key-001',
+      lines: [{ variantId: 1, quantityMilli: 1000, unitPriceMinor: 4500 }],
+      payments: [{ paymentMethodId: 1, amountMinor: 4500 }]
+    }
+  ],
+  'sales:list': [{}],
+  'sales:get': [{ saleId: 1 }],
+  'sales:find-by-invoice': [{ invoiceNumber: 'INV-000001' }],
+  'sales:void': [{ saleId: 1, reason: 'Duplicate entry' }],
+  'sales:hold': [
+    {
+      label: 'Counter 1',
+      items: [{ variantId: 1, quantityMilli: 1000, unitPriceOverrideMinor: 4500 }]
+    }
+  ],
+  'sales:list-held': [],
+  'sales:resume-held': [{ heldBillId: 1 }],
+  'sales:discard-held': [{ heldBillId: 1 }]
 }
 
 describe('access control over IPC', () => {

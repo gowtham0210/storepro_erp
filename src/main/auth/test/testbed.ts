@@ -7,7 +7,11 @@ import { TaxClassRepository } from '../../catalog/taxClassRepository'
 import type { Database } from '../../db/database'
 import { InventoryRepository } from '../../inventory/inventoryRepository'
 import { InventoryService } from '../../inventory/inventoryService'
+import { PaymentRepository } from '../../payments/paymentRepository'
+import { PaymentService } from '../../payments/paymentService'
 import { PricingService } from '../../pricing/pricingService'
+import { SalesRepository } from '../../sales/salesRepository'
+import { SalesService } from '../../sales/salesService'
 import { AuditLog } from '../../audit/auditLog'
 import { AuditLogReader } from '../../audit/auditLogReader'
 import { AuditLogService } from '../../audit/auditLogService'
@@ -50,6 +54,10 @@ export interface Testbed {
   pricingService: PricingService
   inventory: InventoryRepository
   inventoryService: InventoryService
+  payments: PaymentRepository
+  paymentService: PaymentService
+  sales: SalesRepository
+  salesService: SalesService
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -86,14 +94,32 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
   const catalog = new CatalogRepository(db, clock)
   const products = new ProductRepository(db, clock)
   const inventory = new InventoryRepository(db, clock)
+  const payments = new PaymentRepository(db, clock)
+  const sales = new SalesRepository(db, clock, payments)
+  const pricingService = new PricingService({ db, store: stores, taxClasses, audit })
+  const inventoryService = new InventoryService({ db, inventory, store: stores, audit })
+  const paymentService = new PaymentService({ db, payments, audit })
+  const salesService = new SalesService({
+    db,
+    sales,
+    payments: paymentService,
+    pricing: pricingService,
+    inventory: inventoryService,
+    store: stores,
+    audit
+  })
   return {
     taxClasses,
     catalog,
     products,
     inventory,
+    payments,
+    sales,
     catalogService: new CatalogService({ db, catalog, taxClasses, audit }),
-    pricingService: new PricingService({ db, store: stores, taxClasses, audit }),
-    inventoryService: new InventoryService({ db, inventory, store: stores, audit }),
+    pricingService,
+    inventoryService,
+    paymentService,
+    salesService,
     productService: new ProductService({
       db,
       products,

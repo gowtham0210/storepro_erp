@@ -145,6 +145,17 @@ running balances across sales, voids, returns, goods receipts and adjustments, m
 adjustments (`ADJ000001`, …) with reasons, and physical stock count reconciliation. Negative stock
 is blocked by default unless enabled in store settings. See [`docs/inventory.md`](docs/inventory.md).
 
+### Billing and payments
+
+**Sell → Billing** is the keyboard-driven Point of Sale counter: barcode/SKU scan, FTS item search
+(`F4`), fractional quantities for weight/volume items, line and bill discounts (`F6`) with manager
+override support, held bills (`F8`/`F9`), and single or split payments (`F12`) across Cash (with
+tendered/change calculation), UPI (labelled `Recorded (not verified)`), and Card. Checkout saves
+the sale, tax snapshot, payments, sequential invoice number (`INV000001`, …) and stock deduction in
+one atomic transaction with idempotency protection. **Sell → Sales** searches past invoices, shows
+full bill and payment details, and voids completed sales (`sale.void`) with stock reversal and
+audit logging. See [`docs/billing-and-payments.md`](docs/billing-and-payments.md).
+
 ### Offline and connectivity
 
 StorePro needs no internet connection: everything is stored on this computer. The header always

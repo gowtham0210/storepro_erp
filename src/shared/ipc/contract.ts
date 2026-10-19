@@ -13,7 +13,8 @@
  */
 
 import type { ModuleCode } from '../modules'
-import type { TaxRegime } from '../pricing'
+import type { PaymentKind } from '../payments'
+import type { Discount, TaxAmount, TaxRegime, TaxSummaryRow } from '../pricing'
 import type { PermissionCode } from '../permissions'
 import type { IpcResult } from './errors'
 
@@ -548,6 +549,220 @@ export interface AdjustmentListPage {
   total: number
 }
 
+/** A payment method configured for the store (M12-01). */
+export interface PaymentMethodInfo {
+  paymentMethodId: number
+  methodCode: string
+  name: string
+  kind: PaymentKind
+  sortOrder: number
+  active: boolean
+  inUse: boolean
+}
+
+export interface PaymentMethodCreateInput {
+  methodCode: string
+  name: string
+  kind: PaymentKind
+  sortOrder?: number | undefined
+}
+
+export interface PaymentMethodUpdateInput {
+  paymentMethodId: number
+  name: string
+  kind: PaymentKind
+  sortOrder?: number | undefined
+}
+
+export interface CheckoutLineInput {
+  variantId: number
+  quantityMilli: number
+  unitPriceMinor: number
+  discount?: Discount | null | undefined
+}
+
+export interface CheckoutPaymentInput {
+  paymentMethodId: number
+  amountMinor: number
+  /** Cash handed over (`>= amountMinor`); null for non-cash methods. */
+  tenderedMinor?: number | null | undefined
+  /** Payer-side reference such as a UPI transaction ID (recorded, not verified). */
+  reference?: string | null | undefined
+}
+
+export interface CheckoutInput {
+  /** Client-generated idempotency key so retries/double-clicks never create duplicate bills (M11-08). */
+  checkoutKey: string
+  customerId?: number | null | undefined
+  lines: CheckoutLineInput[]
+  billDiscount?: Discount | null | undefined
+  payments: CheckoutPaymentInput[]
+  /** When checking out a resumed held bill, deletes the draft atomically if still present. */
+  heldBillId?: number | null | undefined
+  overrideId?: string | undefined
+}
+
+export interface SaleLineDetail {
+  saleItemId: number
+  lineNumber: number
+  variantId: number
+  description: string
+  sku: string
+  hsnCode: string | null
+  unitCode: string
+  allowsFraction: boolean
+  quantityMilli: number
+  unitPriceMinor: number
+  grossMinor: number
+  discountMinor: number
+  netMinor: number
+  taxableMinor: number
+  taxMinor: number
+  totalMinor: number
+  taxes: TaxAmount[]
+}
+
+export interface SalePaymentDetail {
+  salePaymentId: number
+  paymentMethodId: number
+  methodCode: string
+  methodName: string
+  kind: PaymentKind
+  amountMinor: number
+  tenderedMinor: number | null
+  changeMinor: number
+  reference: string | null
+  /** Present for UPI payments ("Recorded (not verified)", M12-03). */
+  verificationNotice: string | null
+}
+
+/** A refund payment record linked to a return on a sale (M12-04). */
+export interface ReturnRefundDetail {
+  returnRefundId: number
+  saleReturnId: number
+  returnNumber: string
+  saleId: number
+  returnedAt: number
+  paymentMethodId: number
+  methodCode: string
+  methodName: string
+  kind: PaymentKind
+  amountMinor: number
+  reference: string | null
+}
+
+export interface SaleVoidInfo {
+  voidedAt: number
+  voidedByUserId: number
+  voidedByName: string
+  approvedByUserId: number | null
+  approvedByName: string | null
+  reason: string
+}
+
+export interface SaleDetail {
+  saleId: number
+  invoiceNumber: string
+  checkoutKey: string
+  completedAt: number
+  cashierUserId: number
+  cashierName: string
+  customerId: number | null
+  customerName: string | null
+  pricesIncludeTax: boolean
+  grossMinor: number
+  discountMinor: number
+  taxableMinor: number
+  taxMinor: number
+  roundOffMinor: number
+  grandTotalMinor: number
+  paidMinor: number
+  tenderedMinor: number
+  changeMinor: number
+  lines: SaleLineDetail[]
+  taxSummary: TaxSummaryRow[]
+  payments: SalePaymentDetail[]
+  refunds: ReturnRefundDetail[]
+  voidInfo: SaleVoidInfo | null
+}
+
+export type SaleStatusFilter = 'all' | 'completed' | 'voided'
+
+export interface SaleListFilter {
+  search?: string | undefined
+  status?: SaleStatusFilter | undefined
+  from?: number | undefined
+  to?: number | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface SaleListItem {
+  saleId: number
+  invoiceNumber: string
+  completedAt: number
+  cashierName: string
+  customerName: string | null
+  lineCount: number
+  grandTotalMinor: number
+  paymentSummary: string
+  isVoided: boolean
+}
+
+export interface SaleListPage {
+  items: SaleListItem[]
+  total: number
+}
+
+export interface VoidSaleInput {
+  saleId: number
+  reason: string
+  overrideId?: string | undefined
+}
+
+export interface HeldBillLineInput {
+  variantId: number
+  quantityMilli: number
+  unitPriceOverrideMinor?: number | null | undefined
+  discountMinor?: number | undefined
+}
+
+export interface HoldBillInput {
+  label: string | null
+  customerId?: number | null | undefined
+  items: HeldBillLineInput[]
+}
+
+export interface HeldBillSummary {
+  heldBillId: number
+  label: string | null
+  customerId: number | null
+  customerName: string | null
+  heldByUserId: number
+  heldByName: string
+  heldAt: number
+  lineCount: number
+  itemSummary: string
+}
+
+export interface HeldBillLineDetail {
+  lineNumber: number
+  item: ItemLookup
+  quantityMilli: number
+  unitPriceOverrideMinor: number | null
+  discountMinor: number
+}
+
+export interface HeldBillDetail {
+  heldBillId: number
+  label: string | null
+  customerId: number | null
+  customerName: string | null
+  heldByName: string
+  heldAt: number
+  items: HeldBillLineDetail[]
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -622,6 +837,22 @@ export interface IpcContract {
   'inventory:adjust': { input: StockAdjustmentInput; output: StockAdjustmentDetail }
   'inventory:reconcile': { input: StockCountInput; output: StockAdjustmentDetail | null }
   'inventory:list-adjustments': { input: AdjustmentListFilter; output: AdjustmentListPage }
+  'payments:list-methods': { input: void; output: PaymentMethodInfo[] }
+  'payments:create-method': { input: PaymentMethodCreateInput; output: PaymentMethodInfo }
+  'payments:update-method': { input: PaymentMethodUpdateInput; output: PaymentMethodInfo }
+  'payments:set-method-active': {
+    input: { paymentMethodId: number; active: boolean }
+    output: PaymentMethodInfo
+  }
+  'sales:checkout': { input: CheckoutInput; output: SaleDetail }
+  'sales:list': { input: SaleListFilter; output: SaleListPage }
+  'sales:get': { input: { saleId: number }; output: SaleDetail }
+  'sales:find-by-invoice': { input: { invoiceNumber: string }; output: SaleDetail | null }
+  'sales:void': { input: VoidSaleInput; output: SaleDetail }
+  'sales:hold': { input: HoldBillInput; output: HeldBillSummary }
+  'sales:list-held': { input: void; output: HeldBillSummary[] }
+  'sales:resume-held': { input: { heldBillId: number }; output: HeldBillDetail }
+  'sales:discard-held': { input: { heldBillId: number }; output: void }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -687,7 +918,20 @@ const channelRegistry: Record<IpcChannel, true> = {
   'inventory:movements': true,
   'inventory:adjust': true,
   'inventory:reconcile': true,
-  'inventory:list-adjustments': true
+  'inventory:list-adjustments': true,
+  'payments:list-methods': true,
+  'payments:create-method': true,
+  'payments:update-method': true,
+  'payments:set-method-active': true,
+  'sales:checkout': true,
+  'sales:list': true,
+  'sales:get': true,
+  'sales:find-by-invoice': true,
+  'sales:void': true,
+  'sales:hold': true,
+  'sales:list-held': true,
+  'sales:resume-held': true,
+  'sales:discard-held': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

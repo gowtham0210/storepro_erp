@@ -27,7 +27,11 @@ import { ProductService } from './catalog/productService'
 import { TaxClassRepository } from './catalog/taxClassRepository'
 import { InventoryRepository } from './inventory/inventoryRepository'
 import { InventoryService } from './inventory/inventoryService'
+import { PaymentRepository } from './payments/paymentRepository'
+import { PaymentService } from './payments/paymentService'
 import { PricingService } from './pricing/pricingService'
+import { SalesRepository } from './sales/salesRepository'
+import { SalesService } from './sales/salesService'
 import { ConnectivityMonitor } from './connectivity/connectivityMonitor'
 import { DatabaseIntegrityError, DatabaseTooNewError, openStoreDatabase, type Database } from './db'
 import { createEventPublisher } from './ipc/events'
@@ -230,6 +234,8 @@ function createServices(
   products: ProductService
   pricing: PricingService
   inventory: InventoryService
+  payments: PaymentService
+  sales: SalesService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -270,7 +276,31 @@ function createServices(
     store: storeRepository,
     audit
   })
-  return { audit, auth, users, auditLog, store, modules, catalog, products, pricing, inventory }
+  const paymentsRepository = new PaymentRepository(db, clock)
+  const payments = new PaymentService({ db, payments: paymentsRepository, audit })
+  const sales = new SalesService({
+    db,
+    sales: new SalesRepository(db, clock, paymentsRepository),
+    payments,
+    pricing,
+    inventory,
+    store: storeRepository,
+    audit
+  })
+  return {
+    audit,
+    auth,
+    users,
+    auditLog,
+    store,
+    modules,
+    catalog,
+    products,
+    pricing,
+    inventory,
+    payments,
+    sales
+  }
 }
 
 function startupFailureMessage(error: unknown): string {

@@ -32,6 +32,8 @@ const ENTITY_LABEL = `CASE a.entity_type
   WHEN 'product' THEN (SELECT name FROM products WHERE product_id = a.entity_id)
   WHEN 'category' THEN (SELECT name FROM categories WHERE category_id = a.entity_id)
   WHEN 'tax_class' THEN (SELECT name FROM tax_classes WHERE tax_class_id = a.entity_id)
+  WHEN 'payment_method' THEN (SELECT name FROM payment_methods WHERE payment_method_id = a.entity_id)
+  WHEN 'sale' THEN (SELECT invoice_number FROM sales WHERE sale_id = a.entity_id)
   WHEN 'stock_adjustment' THEN (SELECT adjustment_number FROM stock_adjustments
                                 WHERE stock_adjustment_id = a.entity_id)
   WHEN 'stock_count' THEN 'Stock count ' || a.entity_id

@@ -212,12 +212,12 @@ Only grocery is available in this release; its own features come with M24.
 | M08-02 | Persistent status indicator in header | M08-01, M23-04 | S |
 | M08-03 | Test: full billing flow with network disabled | M11-* | S |
 
-**Status (2026-10-19):** M08-01 and M08-02 are implemented. M08-03 covers everything built so far; billing joins it with M11.
+**Status (2026-10-19):** M08-01 to M08-03 are implemented.
 
 - **Monitor:** `ConnectivityMonitor` in the main process checks Electron's `net.isOnline()` every 3 seconds and after sleep or screen unlock. This is a local check: StorePro still sends nothing over the network. Changes are logged.
 - **Push:** a new typed main → renderer event channel. `IpcEvents` is declared in the contract, and the preload's `on()` accepts declared events only (a security test checks it). The renderer keeps the newest status.
 - **Indicator:** the header's always-visible status now follows the main process. It reads "Offline · billing still works", with since when in the store's time zone, and is announced politely to screen readers. TanStack Query still ignores the browser's online state.
-- **Tests:** end-to-end tests cut the network the way an outage does (the main process's check and Chromium's network). With it cut, they add a user, change settings, sign out and in, and read the audit log. The indicator follows going offline and coming back. The billing flow will be added to the same test with M11.
+- **Tests (M08-03):** end-to-end tests cut the network the way an outage does (the main process's check and Chromium's network). With it cut, they add a user, change settings, sign out and in, read the audit log, complete a POS sale while offline, restart StorePro while still offline, and verify the completed invoice persisted.
 
 A network without internet access (router line down) counts as online; telling them apart needs a probe over the internet, which is left for when an online feature needs it.
 
@@ -308,6 +308,13 @@ Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing re
 | M12-03 | UPI recorded with reference field; labelled "recorded", not "verified" | M12-01 | S |
 | M12-04 | Refund payment records (negative/linked entries) | M12-01 | S |
 
+**Status (2026-10-19):** M12-01 to M12-04 are implemented. See `docs/billing-and-payments.md`.
+
+- **Payment methods (`PaymentRepository`, `PaymentService`):** lists, adds, updates, archives and restores payment methods (`cash`, `upi`, `card`, `other`), ensuring at least one method remains active and auditing every change.
+- **Cash & split calculations (`src/shared/payments.ts`):** `planCashTender()` and `calculatePayments()` validate single and split tenders, compute cash change due in minor units, and reject under-tendered or over-allocated payments.
+- **UPI notice (`M12-03`):** UPI payments accept an optional reference and carry `Recorded (not verified)` (`UPI_RECORDED_NOTICE`).
+- **Refund records (`M12-04`):** linked `return_refunds` entries are queried per sale and exposed on `SaleDetail.refunds`.
+
 ### M11 · Point of Sale (Billing)
 
 | ID | Task | Depends on | Size |
@@ -326,6 +333,12 @@ Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing re
 | M11-12 | Sales list screen: search by invoice number/date, view sale detail | M11-07 | M |
 | M11-13 | Performance check: checkout persists in <500 ms | M11-07, M02-12 | S |
 | M11-14 | Tests: atomicity under injected failure, duplicate prevention, stock deducted once | M11-08 | M |
+
+**Status (2026-10-19):** M11-01 to M11-14 (plus M13-01 and M24-01) are implemented. See `docs/billing-and-payments.md`.
+
+- **Cart & POS counter (`src/renderer/src/sales/cart.ts`, `BillingPage.tsx`, `BillingDialogs.tsx`):** barcode/SKU scan input with auto-increment, `F4` FTS product search dialog, fractional quantities for weight/volume units (`M24-01`), line price/discount editor, `F6` bill discount dialog, `F8`/`F9` hold/resume/discard bill dialogs, `F2` cancel bill confirmation, and `F12` single/split payment dialog with manager override integration.
+- **Atomic checkout (`SalesRepository`, `SalesService`):** saves `sales`, `sale_items` (with price, cost and tax snapshots), `sale_item_taxes` and `sale_payments`, allocates gapless sequential `INV000001` invoice numbers (`M13-01`), enforces `checkoutKey` idempotency (`M11-08`) and negative-stock rules, deletes resumed held bills, and records `sale.created` in the audit log inside one transaction in `< 500 ms` (`M11-13`).
+- **Sales list & voiding (`SalesPage.tsx`):** searches and filters invoices, displays full invoice breakdown, and voids completed sales (`sales:void`) with `sale.void` permission or manager approval, restoring stock via `sale_voids` and logging `sale.voided`.
 
 ### M13 · Invoice & Receipt Printing
 

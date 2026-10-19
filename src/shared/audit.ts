@@ -46,7 +46,19 @@ export const AUDIT_CATEGORIES = [
       { code: 'tax_class.created', label: 'Added a tax rate' },
       { code: 'tax_class.updated', label: 'Changed a tax rate' },
       { code: 'tax_class.archived', label: 'Archived a tax rate' },
-      { code: 'tax_class.restored', label: 'Restored a tax rate' }
+      { code: 'tax_class.restored', label: 'Restored a tax rate' },
+      { code: 'payment_method.created', label: 'Added a payment method' },
+      { code: 'payment_method.updated', label: 'Changed a payment method' },
+      { code: 'payment_method.archived', label: 'Archived a payment method' },
+      { code: 'payment_method.restored', label: 'Restored a payment method' }
+    ]
+  },
+  {
+    id: 'sales',
+    label: 'Sales and billing',
+    actions: [
+      { code: 'sale.created', label: 'Completed a sale' },
+      { code: 'sale.voided', label: 'Voided a sale' }
     ]
   },
   {
