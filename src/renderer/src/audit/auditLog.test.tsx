@@ -137,6 +137,7 @@ describe('describeAuditEntry', () => {
       ],
       [{ action: 'user.password_changed' }, ''],
       [{ action: 'store.set_up', details: { name: 'Lakshmi Stores' } }, 'Lakshmi Stores'],
+      [{ action: 'module.enabled', details: { module: 'Electronics' } }, 'Electronics'],
       [
         {
           action: 'store.updated',

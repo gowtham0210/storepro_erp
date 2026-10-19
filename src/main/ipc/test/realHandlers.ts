@@ -23,13 +23,15 @@ export function createRealIpc(bed: Testbed): IpcHarness & { handlers: HandlerMap
     auth: bed.auth,
     users: bed.userService,
     auditLog: bed.auditLogService,
-    store: bed.storeService
+    store: bed.storeService,
+    modules: bed.moduleService
   })
   return {
     handlers,
     ...createIpcHarness(handlers, {
       authorizer: bed.auth,
-      isSetupComplete: () => bed.storeService.isConfigured()
+      isSetupComplete: () => bed.storeService.isConfigured(),
+      isModuleEnabled: (code) => bed.moduleService.isEnabled(code)
     })
   }
 }

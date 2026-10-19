@@ -52,6 +52,11 @@ export function describeError(error: unknown): FriendlyError {
         title: 'StorePro isn’t set up yet',
         message: specific('Finish setting up the store first.')
       }
+    case 'MODULE_DISABLED':
+      return {
+        title: 'This feature is switched off',
+        message: specific('An administrator can switch it on in Settings.')
+      }
     case 'UNKNOWN_CHANNEL':
     case 'INTERNAL':
       return SOMETHING_WENT_WRONG

@@ -12,6 +12,7 @@
  * sandboxed preload script.
  */
 
+import type { ModuleCode } from '../modules'
 import type { PermissionCode } from '../permissions'
 import type { IpcResult } from './errors'
 
@@ -161,9 +162,24 @@ export interface CurrencyInfo {
 export interface StoreProfile extends StoreProfileInput {
   currency: CurrencyInfo
   businessTypeName: string
+  /** Modules switched on (M04), which decide the screens and features available. */
+  enabledModules: ModuleCode[]
   /** When first-run setup finished. */
   setUpAt: number
   updatedAt: number
+}
+
+/** A module and whether it is switched on (M04). */
+export interface ModuleState {
+  code: ModuleCode
+  name: string
+  description: string
+  availability: 'available' | 'planned'
+  plannedFor: string | null
+  enabled: boolean
+  enabledAt: number | null
+  /** Why it can't be switched on or off right now, or null if it can. */
+  locked: string | null
 }
 
 /** Reference data the setup wizard offers. */
@@ -245,6 +261,8 @@ export interface IpcContract {
   'setup:complete-store': { input: StoreProfileInput; output: StoreProfile }
   'store:get-profile': { input: void; output: StoreProfile | null }
   'store:update': { input: StoreProfileInput; output: StoreProfile }
+  'modules:list': { input: void; output: ModuleState[] }
+  'modules:set-enabled': { input: { code: ModuleCode; enabled: boolean }; output: ModuleState[] }
   'audit:list': { input: AuditLogFilter; output: AuditLogPage }
   'audit:filter-options': { input: void; output: AuditFilterOptions }
 }
@@ -279,6 +297,8 @@ const channelRegistry: Record<IpcChannel, true> = {
   'setup:complete-store': true,
   'store:get-profile': true,
   'store:update': true,
+  'modules:list': true,
+  'modules:set-enabled': true,
   'audit:list': true,
   'audit:filter-options': true
 }

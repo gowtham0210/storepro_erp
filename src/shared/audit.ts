@@ -39,7 +39,9 @@ export const AUDIT_CATEGORIES = [
     label: 'Store settings',
     actions: [
       { code: 'store.set_up', label: 'Set up the store' },
-      { code: 'store.updated', label: 'Changed store settings' }
+      { code: 'store.updated', label: 'Changed store settings' },
+      { code: 'module.enabled', label: 'Switched a module on' },
+      { code: 'module.disabled', label: 'Switched a module off' }
     ]
   },
   {

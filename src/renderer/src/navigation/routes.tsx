@@ -4,8 +4,9 @@ import { usePermissions } from '../auth/permissions'
 import { Spinner } from '../components/ui/Spinner'
 import { AppShell } from '../layout/AppShell'
 import { PlaceholderPage } from '../pages/PlaceholderPage'
-import { AccessDeniedPage, NoScreensPage, NotFoundPage } from '../pages/StatusPages'
-import { useAccessStore } from '../state/accessStore'
+import { AccessDeniedPage, ModuleOffPage, NoScreensPage, NotFoundPage } from '../pages/StatusPages'
+import { moduleManifest } from '@shared/modules'
+import { useEnabledModules } from '../store/storeContext'
 import {
   DEV_NAVIGATION,
   isItemVisible,
@@ -32,7 +33,7 @@ const SCREENS: Partial<Record<string, ReactNode>> = {
  * user may open.
  */
 function Home(): React.JSX.Element {
-  const modules = useAccessStore((s) => s.modules)
+  const modules = useEnabledModules()
   const permissions = usePermissions()
   const first = visibleNavigation(NAVIGATION, { modules, permissions })[0]?.items[0]
   return first ? <Navigate to={first.path} replace /> : <NoScreensPage />
@@ -46,8 +47,16 @@ function RequireAccess({
   item: NavItem
   children: ReactNode
 }): React.JSX.Element {
-  const modules = useAccessStore((s) => s.modules)
+  const modules = useEnabledModules()
   const permissions = usePermissions()
+  if (item.module !== undefined && !modules.includes(item.module)) {
+    return (
+      <ModuleOffPage
+        screen={item.label}
+        module={moduleManifest(item.module)?.name ?? item.module}
+      />
+    )
+  }
   return isItemVisible(item, { modules, permissions }) ? (
     <>{children}</>
   ) : (

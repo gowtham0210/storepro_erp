@@ -19,6 +19,8 @@ export const ERROR_CODES = [
   'CONFLICT',
   /** The store hasn't been set up yet (FR-005): finish setup first. */
   'SETUP_REQUIRED',
+  /** The request belongs to a module that is switched off (M04). */
+  'MODULE_DISABLED',
   'INTERNAL'
 ] as const
 

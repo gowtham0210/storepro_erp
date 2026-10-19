@@ -2,7 +2,10 @@ import type { IpcMainInvokeEvent } from 'electron'
 import type { z } from 'zod'
 import type { IpcChannel, IpcInput, IpcOutput } from '@shared/ipc/contract'
 import { AppError, type IpcResult } from '@shared/ipc/errors'
+import type { ModuleCode } from '@shared/modules'
 import type { Actor, HandlerAccess } from '../auth/access'
+import { disabled } from '../modules/moduleService'
+import { moduleManifest } from '@shared/modules'
 import type { Logger } from '../logging/logger'
 
 export interface HandlerContext {
@@ -39,6 +42,11 @@ interface GuardedHandler<C extends IpcChannel> {
    * screen's requests are blocked by default.
    */
   beforeSetup?: true
+  /**
+   * The module this request belongs to (M04). While it is switched off the
+   * request is refused with MODULE_DISABLED. Core features declare none.
+   */
+  module?: ModuleCode
   input: z.ZodType<IpcInput<C>>
   handle(input: IpcInput<C>, context: ActorContext): Result<C>
 }
@@ -71,12 +79,15 @@ export interface ServiceHostOptions {
   authorizer: Authorizer
   /** Whether first-run setup has been completed. */
   isSetupComplete(): boolean
+  /** Whether a module is switched on. */
+  isModuleEnabled(code: ModuleCode): boolean
   logger: Logger
 }
 
 /**
  * Registers every handler on `ipcMain` behind a common pipeline:
- * sender check → input validation → permission guard → setup guard → handler → error envelope.
+ * sender check → input validation → permission guard → setup guard → module guard → handler
+ * → error envelope.
  *
  * Returns a function that unregisters all handlers.
  */
@@ -107,7 +118,7 @@ async function dispatch(
   handler: HandlerDefinition<IpcChannel>,
   event: IpcMainInvokeEvent,
   rawInput: unknown,
-  { isTrustedSender, authorizer, isSetupComplete, logger }: ServiceHostOptions
+  { isTrustedSender, authorizer, isSetupComplete, isModuleEnabled, logger }: ServiceHostOptions
 ): Promise<IpcResult<unknown>> {
   if (!isTrustedSender(event)) {
     logger.warn('Rejected IPC call from untrusted sender', {
@@ -145,6 +156,9 @@ async function dispatch(
       if (!actor) throw new Error(`No actor for guarded channel ${channel}`)
       if (!handler.beforeSetup && !isSetupComplete()) {
         throw new AppError('SETUP_REQUIRED', 'Finish setting up the store first.')
+      }
+      if (handler.module !== undefined && !isModuleEnabled(handler.module)) {
+        throw disabled(moduleManifest(handler.module) ?? { name: handler.module })
       }
       data = await handler.handle(parsed.data, { ...context, actor })
     }

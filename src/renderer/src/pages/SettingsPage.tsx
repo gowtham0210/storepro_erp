@@ -1,9 +1,19 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Save } from 'lucide-react'
+import { Power, PowerOff, Save } from 'lucide-react'
 import { type ReactNode } from 'react'
 import type { z } from 'zod'
 import { useCan } from '../auth/permissions'
-import { Alert, Button, Card, PageHeader, useToast } from '../components/ui'
+import type { ModuleState } from '@shared/ipc/contract'
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  PageHeader,
+  Spinner,
+  useConfirm,
+  useToast
+} from '../components/ui'
 import { useForm } from '../forms/useForm'
 import { invoke } from '../ipc/client'
 import { useIpcQuery } from '../ipc/hooks'
@@ -102,6 +112,7 @@ export default function SettingsPage(): React.JSX.Element {
         >
           {(form) => <StockFields form={form} />}
         </Section>
+        <ModulesSection canEdit={canEdit} />
       </div>
     </>
   )
@@ -167,6 +178,86 @@ function Section<S extends z.ZodType<unknown, Record<string, unknown>>>({
           </div>
         )}
       </form>
+    </Card>
+  )
+}
+
+/** M04: the store's modules. Switching one off hides its screens; its data stays. */
+function ModulesSection({ canEdit }: { canEdit: boolean }): React.JSX.Element {
+  const modules = useIpcQuery('modules:list')
+  const queryClient = useQueryClient()
+  const confirm = useConfirm()
+  const toast = useToast()
+
+  const toggle = async (module: ModuleState): Promise<void> => {
+    if (module.enabled) {
+      const ok = await confirm({
+        title: `Switch ${module.name} off?`,
+        description: `Its screens will be hidden from everyone. Nothing is deleted: switching it back on brings everything back as it was.`,
+        confirmLabel: 'Switch off'
+      })
+      if (!ok) return
+    }
+    try {
+      const updated = await invoke('modules:set-enabled', {
+        code: module.code,
+        enabled: !module.enabled
+      })
+      queryClient.setQueryData(['modules:list'], updated)
+      // The store profile carries the enabled modules that navigation uses.
+      await queryClient.invalidateQueries({ queryKey: ['store:get-profile'] })
+      toast.success(`${module.name} is switched ${module.enabled ? 'off' : 'on'}.`)
+    } catch (failure) {
+      toast.error(describeError(failure).message)
+    }
+  }
+
+  return (
+    <Card title="Modules">
+      <p className="mb-4 text-fg-muted">
+        Features for your kind of store, on top of billing, stock and reports, which every store
+        has.
+      </p>
+      {modules.error ? (
+        <Alert tone="danger">{describeError(modules.error).message}</Alert>
+      ) : !modules.data ? (
+        <Spinner label="Loading modules" />
+      ) : (
+        <ul className="divide-y divide-divider rounded-md border border-divider">
+          {modules.data.map((module) => (
+            <li key={module.code} className="flex flex-wrap items-start justify-between gap-3 p-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium">{module.name}</span>
+                  {module.enabled ? (
+                    <Badge tone="success">On</Badge>
+                  ) : module.availability === 'planned' ? (
+                    <Badge>
+                      {module.plannedFor ? `Coming in ${module.plannedFor}` : 'Coming later'}
+                    </Badge>
+                  ) : (
+                    <Badge>Off</Badge>
+                  )}
+                </div>
+                <p className="text-fg-muted">{module.description}</p>
+                {module.locked && module.availability !== 'planned' && (
+                  <p className="mt-1 text-sm text-fg-subtle">{module.locked}</p>
+                )}
+              </div>
+              {canEdit && module.locked === null && (
+                <Button
+                  size="sm"
+                  icon={module.enabled ? <PowerOff /> : <Power />}
+                  aria-label={`${module.enabled ? 'Switch off' : 'Switch on'} ${module.name}`}
+                  onClick={() => void toggle(module)}
+                >
+                  {module.enabled ? 'Switch off' : 'Switch on'}
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   )
 }

@@ -3,17 +3,22 @@ import {
   Boxes,
   Code2,
   Package,
+  Pill,
+  Puzzle,
   ReceiptText,
+  ScanBarcode,
   ScrollText,
   Settings,
   ShoppingCart,
   UserCog,
   Truck,
   Users,
+  UtensilsCrossed,
   Wallet,
   Warehouse
 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { MODULES, type ModuleCode, type ModuleManifest } from '@shared/modules'
 import type { PermissionCode } from '@shared/permissions'
 import { hasPermission } from '../auth/permissions'
 
@@ -26,8 +31,8 @@ export interface NavItem {
   shortcut?: string
   /** Hidden unless the user has this permission. */
   permission?: PermissionCode
-  /** Hidden unless this business module is enabled. */
-  module?: string
+  /** Hidden unless this business module is switched on (M04). */
+  module?: ModuleCode
   /** Planned module that builds the screen; shown on placeholders. */
   plannedIn: string
   description: string
@@ -39,8 +44,8 @@ export interface NavGroup {
   items: NavItem[]
 }
 
-/** PRD §10.2, grouped by task so the list scans quickly. */
-export const NAVIGATION: readonly NavGroup[] = [
+/** PRD §10.2, grouped by task so the list scans quickly. The shared core, used by every store type. */
+const CORE_NAVIGATION: readonly NavGroup[] = [
   {
     id: 'sell',
     label: 'Sell',
@@ -179,6 +184,45 @@ export const NAVIGATION: readonly NavGroup[] = [
   }
 ]
 
+/** Icons for module screens; the module manifest (src/shared/modules.ts) has everything else. */
+const MODULE_ICONS: Record<string, ReactNode> = {
+  serials: <ScanBarcode />,
+  tables: <UtensilsCrossed />,
+  batches: <Pill />
+}
+
+/** The core screens plus every module's, each module's joining the group it names. */
+export function withModuleScreens(
+  groups: readonly NavGroup[],
+  manifests: readonly ModuleManifest[]
+): NavGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    items: [
+      ...group.items,
+      ...manifests.flatMap((manifest) =>
+        manifest.navigation
+          .filter((entry) => entry.group === group.id)
+          .map((entry): NavItem => ({
+            id: entry.id,
+            label: entry.label,
+            path: entry.path,
+            icon: MODULE_ICONS[entry.id] ?? <Puzzle />,
+            ...(entry.permission ? { permission: entry.permission } : {}),
+            module: manifest.code,
+            plannedIn: manifest.plannedFor
+              ? `${manifest.name} · ${manifest.plannedFor}`
+              : manifest.name,
+            description: entry.description
+          }))
+      )
+    ]
+  }))
+}
+
+/** Every screen. What a person sees is filtered by their permissions and the modules switched on. */
+export const NAVIGATION: readonly NavGroup[] = withModuleScreens(CORE_NAVIGATION, MODULES)
+
 /** Development-only tools; never shown in packaged builds. */
 export const DEV_NAVIGATION: NavGroup = {
   id: 'developer',
@@ -197,7 +241,7 @@ export const DEV_NAVIGATION: NavGroup = {
 
 /** What decides which screens someone sees: enabled modules and their permissions. */
 export interface Access {
-  modules: readonly string[]
+  modules: readonly ModuleCode[]
   permissions: readonly PermissionCode[]
 }
 

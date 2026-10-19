@@ -499,6 +499,7 @@ const SAMPLE_MESSAGES: Record<(typeof ERROR_CODES)[number], string> = {
   NOT_FOUND: 'That user no longer exists.',
   CONFLICT: 'That username is already taken',
   SETUP_REQUIRED: 'Finish setting up the store first.',
+  MODULE_DISABLED: 'Restaurant is switched off. An administrator can switch it on in Settings.',
   INTERNAL: 'SQLITE_CORRUPT: database disk image is malformed'
 }
 

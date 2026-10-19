@@ -3,6 +3,8 @@ import { AuditLog } from '../../audit/auditLog'
 import { AuditLogReader } from '../../audit/auditLogReader'
 import { AuditLogService } from '../../audit/auditLogService'
 import { createTestLogger } from '../../test/helpers'
+import { ModuleRepository } from '../../modules/moduleRepository'
+import { ModuleService } from '../../modules/moduleService'
 import { StoreRepository } from '../../store/storeRepository'
 import { StoreService } from '../../store/storeService'
 import { UserRepository } from '../../users/userRepository'
@@ -30,6 +32,7 @@ export interface Testbed {
   auditLogService: AuditLogService
   storeService: StoreService
   stores: StoreRepository
+  moduleService: ModuleService
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -75,6 +78,7 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
     auditLogService: new AuditLogService(new AuditLogReader(db, clock)),
     storeService,
     stores,
+    moduleService: new ModuleService({ db, modules: new ModuleRepository(db, clock), audit }),
     actor: () => {
       const actor = auth.authorize('signed-in')
       if (!actor) throw new Error('authorize returned no actor')

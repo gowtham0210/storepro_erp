@@ -83,10 +83,10 @@ Thresholds are set just below the measured level, so coverage can rise but not q
 
 | Metric     | Measured | Threshold |
 | ---------- | -------- | --------- |
-| Statements | 93.4%    | 93%       |
+| Statements | 93.5%    | 93%       |
 | Branches   | 86.9%    | 86%       |
-| Functions  | 92.7%    | 92%       |
-| Lines      | 95.4%    | 95%       |
+| Functions  | 92.8%    | 92%       |
+| Lines      | 95.5%    | 95%       |
 
 Raise the thresholds when coverage rises. Never lower them to make a change pass.
 

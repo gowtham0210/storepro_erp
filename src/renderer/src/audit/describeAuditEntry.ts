@@ -74,6 +74,9 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
     case 'user.deactivated':
     case 'user.reactivated':
       return subject
+    case 'module.enabled':
+    case 'module.disabled':
+      return text(d['module'])
     case 'store.set_up':
       return text(d['name'])
     case 'store.updated': {

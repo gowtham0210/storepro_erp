@@ -25,6 +25,8 @@ import {
   serveRendererFromAppScheme
 } from './security/hardening'
 import { APP_ENTRY_URL, APP_ORIGIN, isAllowedOrigin, originOf } from './security/origins'
+import { ModuleRepository } from './modules/moduleRepository'
+import { ModuleService } from './modules/moduleService'
 import { StoreRepository } from './store/storeRepository'
 import { StoreService } from './store/storeService'
 import { UserRepository } from './users/userRepository'
@@ -151,6 +153,7 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
       isTrustedSender: (event) => isAllowedOrigin(event.senderFrame?.url ?? '', allowedOrigins),
       authorizer: services.auth,
       isSetupComplete: () => services.store.isConfigured(),
+      isModuleEnabled: (code) => services.modules.isEnabled(code),
       logger: logger.child('ipc')
     }
   )
@@ -179,6 +182,7 @@ function createServices(
   users: UserService
   auditLog: AuditLogService
   store: StoreService
+  modules: ModuleService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -199,7 +203,8 @@ function createServices(
   const users = new UserService({ db, users: userRepository, roles, hasher, throttle, audit })
   const auditLog = new AuditLogService(new AuditLogReader(db, clock))
   const store = new StoreService({ db, store: new StoreRepository(db, clock), auth, audit })
-  return { audit, auth, users, auditLog, store }
+  const modules = new ModuleService({ db, modules: new ModuleRepository(db, clock), audit })
+  return { audit, auth, users, auditLog, store, modules }
 }
 
 function startupFailureMessage(error: unknown): string {

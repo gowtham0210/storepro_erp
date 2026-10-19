@@ -197,6 +197,27 @@ describe('the permission guard', () => {
     ])
   })
 
+  it("refuses a switched-off module's requests before they run (M04-03)", async () => {
+    const handle = vi.fn(() => [])
+    const enabled = new Set(['grocery'])
+    const harness = createIpcHarness(
+      handlers({
+        'users:list': { access: 'user.manage', module: 'restaurant', input: z.void(), handle }
+      }),
+      { authorizer: { authorize: () => actor }, isModuleEnabled: (code) => enabled.has(code) }
+    )
+    await expect(harness.send('users:list')).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: 'MODULE_DISABLED',
+        message: expect.stringMatching(/^Restaurant is switched off/)
+      }
+    })
+    expect(handle).not.toHaveBeenCalled()
+    enabled.add('restaurant')
+    await expect(harness.send('users:list')).resolves.toEqual({ ok: true, data: [] })
+  })
+
   it('fails safe if the authorizer returns no actor for a guarded channel', async () => {
     const { send, handle } = guarded(() => null)
     await expect(send('users:list')).resolves.toMatchObject({

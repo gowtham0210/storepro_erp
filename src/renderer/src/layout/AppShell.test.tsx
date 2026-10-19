@@ -1,12 +1,10 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { useAccessStore } from '../state/accessStore'
 import { useUiStore } from '../state/uiStore'
 import { fakeBackend, userWithRole } from '../test/fakeBackend'
 import { renderApp } from '../test/renderApp'
 
 afterEach(() => {
-  useAccessStore.setState({ modules: ['grocery'] })
   useUiStore.setState({ uiScale: 100, sidebarCollapsed: false })
 })
 

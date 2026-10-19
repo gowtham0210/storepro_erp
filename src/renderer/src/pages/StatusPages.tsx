@@ -1,4 +1,4 @@
-import { Compass, Lock } from 'lucide-react'
+import { Compass, Lock, Puzzle } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -36,6 +36,28 @@ export function NoScreensPage(): React.JSX.Element {
           icon={<Lock />}
           title="Your role doesn't include any screens yet"
           description="Ask a manager or administrator to give you the access you need."
+        />
+      </Card>
+    </>
+  )
+}
+
+/** A module's screen, opened while the module is switched off (M04). */
+export function ModuleOffPage({
+  screen,
+  module
+}: {
+  screen: string
+  module: string
+}): React.JSX.Element {
+  return (
+    <>
+      <PageHeader title={screen} />
+      <Card>
+        <EmptyState
+          icon={<Puzzle />}
+          title={`${screen} is part of the ${module} module, which is switched off`}
+          description="An administrator can switch modules on in Settings. Switching a module off never deletes its data."
         />
       </Card>
     </>

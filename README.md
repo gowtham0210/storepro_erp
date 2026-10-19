@@ -112,6 +112,13 @@ Until it's done, the main process refuses every other request. Administrators ch
 later under **Manage → Settings**. Dates follow the store's time zone, not the computer's. See
 [`docs/store-setup.md`](docs/store-setup.md).
 
+### Modules
+
+Every store gets the shared core; industry modules add what one kind of store needs. The grocery
+module is always on for grocery stores; the others are planned for later releases. A module's
+screens appear, and its requests are accepted, only while it is switched on. Switching a module
+off never deletes its data. See [`docs/modules.md`](docs/modules.md).
+
 ### Adding an IPC channel
 
 1. Declare it in `IpcContract` and `channelRegistry` in `src/shared/ipc/contract.ts`.

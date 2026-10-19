@@ -11,6 +11,7 @@ import type {
 } from '@shared/ipc/contract'
 import { AppError, type IpcResult } from '@shared/ipc/errors'
 import { PERMISSION_CODES, type PermissionCode } from '@shared/permissions'
+import { MODULES } from '@shared/modules'
 import { TEST_STORE } from '@shared/test/stores'
 
 export const ADMIN: SessionUser = {
@@ -81,6 +82,7 @@ export const STORE: StoreProfile = {
   ...TEST_STORE,
   currency: { currencyCode: 'INR', name: 'Indian rupee', symbol: '₹', minorUnits: 2 },
   businessTypeName: 'Grocery / retail',
+  enabledModules: ['grocery'],
   setUpAt: Date.UTC(2026, 9, 1, 4, 30),
   updatedAt: Date.UTC(2026, 9, 1, 4, 30)
 }
@@ -164,6 +166,20 @@ class FakeBackend {
         return STORE
       case 'setup:get-options':
         return SETUP_OPTIONS
+      case 'modules:list':
+        return MODULES.map((manifest) => ({
+          code: manifest.code,
+          name: manifest.name,
+          description: manifest.description,
+          availability: manifest.availability,
+          plannedFor: manifest.plannedFor ?? null,
+          enabled: manifest.code === 'grocery',
+          enabledAt: manifest.code === 'grocery' ? STORE.setUpAt : null,
+          locked:
+            manifest.code === 'grocery'
+              ? 'Grocery and retail is what this store runs on, so it is always on.'
+              : `${manifest.name} isn't in this version of StorePro yet.`
+        }))
       case 'audit:list':
         return { entries: [], nextBefore: null }
       case 'audit:filter-options':

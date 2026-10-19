@@ -4,6 +4,7 @@ import type {
   StoreProfile,
   StoreProfileInput
 } from '@shared/ipc/contract'
+import type { ModuleCode } from '@shared/modules'
 import { Repository } from '../db/repository'
 
 /** Business types the first release supports (FR-003). */
@@ -105,6 +106,11 @@ export class StoreRepository extends Repository {
         minorUnits: row.minor_units
       },
       businessTypeName: row.business_type_name,
+      enabledModules: this.db
+        .all<{ module_code: ModuleCode }>(
+          'SELECT module_code FROM enabled_modules ORDER BY module_code'
+        )
+        .map((m) => m.module_code),
       setUpAt: row.created_at,
       updatedAt: row.updated_at
     }

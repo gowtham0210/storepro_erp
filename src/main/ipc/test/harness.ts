@@ -1,5 +1,6 @@
 import type { IpcMainInvokeEvent } from 'electron'
 import type { IpcArgs, IpcChannel, IpcOutput } from '@shared/ipc/contract'
+import type { ModuleCode } from '@shared/modules'
 import { AppError, type IpcResult } from '@shared/ipc/errors'
 import { createTestLogger } from '../../test/helpers'
 import {
@@ -52,8 +53,14 @@ export function createIpcHarness(
   {
     authorizer = signedOutAuthorizer,
     trusted = true,
-    isSetupComplete = () => true
-  }: { authorizer?: Authorizer; trusted?: boolean; isSetupComplete?: () => boolean } = {}
+    isSetupComplete = () => true,
+    isModuleEnabled = () => true
+  }: {
+    authorizer?: Authorizer
+    trusted?: boolean
+    isSetupComplete?: () => boolean
+    isModuleEnabled?: (code: ModuleCode) => boolean
+  } = {}
 ): IpcHarness {
   const ipc = fakeIpcMain()
   const logger = createTestLogger()
@@ -61,6 +68,7 @@ export function createIpcHarness(
     isTrustedSender: () => trusted,
     authorizer,
     isSetupComplete,
+    isModuleEnabled,
     logger
   })
 

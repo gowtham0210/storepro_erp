@@ -45,7 +45,9 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   ],
   'setup:complete-store': [TEST_STORE],
   'store:get-profile': [],
-  'store:update': [{ ...TEST_STORE, name: 'Hijacked Stores' }]
+  'store:update': [{ ...TEST_STORE, name: 'Hijacked Stores' }],
+  'modules:list': [],
+  'modules:set-enabled': [{ code: 'grocery', enabled: false }]
 }
 
 describe('access control over IPC', () => {

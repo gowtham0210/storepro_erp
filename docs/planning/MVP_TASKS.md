@@ -189,6 +189,14 @@ Receipt paper width and printer belong to the computer and come with M13/M21. Ot
 | M04-02 | Persist business type and enabled modules; enable grocery/retail by default | M04-01, M03-01 | S |
 | M04-03 | Expose enabled-module flags to UI and services | M04-02 | S |
 
+**Status (2026-10-19):** M04-01 to M04-03 are implemented. See `docs/modules.md`.
+
+- **Manifest:** `src/shared/modules.ts` describes each module: availability, store types, requirements, the screens it adds and its permissions. Tests keep it in sync with the `modules` table and check it only refers to things that exist.
+- **Activation:** setup switches on the store type's module (grocery), which can't be switched off. Administrators switch other available modules under **Settings → Modules**; planned ones are listed with their release and can't be switched on. Dependencies are enforced, every switch is audited, and switching off only hides a module: it never deletes data (PRD §7.3).
+- **Flags:** handlers can declare `module`, and the service host refuses their requests with `MODULE_DISABLED` while it is off. Services can call `assertEnabled()`. The store profile carries the enabled modules, which drive navigation (the M23 placeholder store is gone). A module's screen opened while it is off explains why.
+
+Only grocery is available in this release; its own features come with M24.
+
 ### M08 · Connectivity / Offline Status
 
 | ID | Task | Depends on | Size |

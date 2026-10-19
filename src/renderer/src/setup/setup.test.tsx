@@ -295,6 +295,13 @@ describe('settings (M03-04)', () => {
 })
 
 function storeInput() {
-  const { currency: _c, businessTypeName: _b, setUpAt: _s, updatedAt: _u, ...input } = STORE
+  const {
+    currency: _c,
+    businessTypeName: _b,
+    enabledModules: _m,
+    setUpAt: _s,
+    updatedAt: _u,
+    ...input
+  } = STORE
   return input
 }

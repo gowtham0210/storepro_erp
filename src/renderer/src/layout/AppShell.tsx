@@ -11,8 +11,8 @@ import {
   NAVIGATION,
   visibleNavigation
 } from '../navigation/navigation'
-import { useAccessStore } from '../state/accessStore'
 import { useUiStore } from '../state/uiStore'
+import { useEnabledModules } from '../store/storeContext'
 import {
   useActiveShortcuts,
   useShortcut,
@@ -36,7 +36,7 @@ function subscribeResize(onChange: () => void): () => void {
 export function AppShell(): React.JSX.Element {
   const navigate = useNavigate()
   const location = useLocation()
-  const modules = useAccessStore((s) => s.modules)
+  const modules = useEnabledModules()
   const permissions = usePermissions()
   const {
     sidebarCollapsed,
