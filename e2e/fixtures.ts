@@ -40,9 +40,24 @@ export async function launchStorePro(userDataDir: string): Promise<StoreProApp> 
     args: [...EXTRA_ARGS, APP_DIR],
     env: launchEnv(userDataDir)
   })
+  // Tests must never open a real browser: record "open in system browser" calls instead.
+  await app.evaluate(({ shell }) => {
+    const opened: string[] = []
+    ;(globalThis as unknown as { openedExternalUrls: string[] }).openedExternalUrls = opened
+    shell.openExternal = async (url: string) => {
+      opened.push(url)
+    }
+  })
   const window = await app.firstWindow()
   await window.getByRole('heading', { level: 1 }).waitFor()
   return { app, window, userDataDir }
+}
+
+/** URLs the app asked the operating system to open (see the stub in launchStorePro). */
+export function openedExternalUrls({ app }: StoreProApp): Promise<string[]> {
+  return app.evaluate(
+    () => (globalThis as unknown as { openedExternalUrls: string[] }).openedExternalUrls
+  )
 }
 
 /**
@@ -66,6 +81,21 @@ export function readLog(userDataDir: string): string {
     return readFileSync(join(userDataDir, 'logs', 'main.log'), 'utf8')
   } catch {
     return ''
+  }
+}
+
+/**
+ * Delete a test's data folder. Best effort: on Windows a file can stay locked
+ * for a while after a process is force-killed, and a leftover temp folder must
+ * not fail a test whose checks passed. Failures are reported as warnings.
+ */
+export function removeUserDataDir(dir: string): void {
+  try {
+    rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+  } catch (error) {
+    const message = `Could not delete test data folder ${dir}: ${String(error)}`
+    console.warn(message)
+    test.info().annotations.push({ type: 'warning', description: message })
   }
 }
 
@@ -93,7 +123,7 @@ export const test = base.extend<Fixtures>({
   userDataDir: async ({}, use) => {
     const dir = createUserDataDir()
     await use(dir)
-    rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+    removeUserDataDir(dir)
   },
 
   storepro: async ({ userDataDir }, use, testInfo) => {

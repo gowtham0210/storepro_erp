@@ -14,13 +14,15 @@ concurrency:
 permissions:
   contents: read
 
+# Ubuntu is pinned: the Electron sandbox setup below is specific to 24.04, and
+# ubuntu-latest moves to a new release on GitHub's schedule, not ours.
 jobs:
   checks:
     name: Checks (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -59,7 +61,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-24.04, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -99,7 +101,7 @@ jobs:
 
   performance:
     name: Performance targets
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

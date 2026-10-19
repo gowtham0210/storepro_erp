@@ -1,4 +1,4 @@
-import { expect, readLog, test } from './fixtures'
+import { expect, openedExternalUrls, readLog, test } from './fixtures'
 
 test.describe('renderer security', () => {
   test('the UI is served from app:// and has no Node.js access', async ({ ui }) => {
@@ -44,16 +44,29 @@ test.describe('renderer security', () => {
     expect(ran).toBe(false)
   })
 
-  test('navigation away from the app and pop-up windows are blocked', async ({ storepro, ui }) => {
+  test('navigation away from the app is blocked', async ({ storepro, ui }) => {
     const before = ui.url()
-    expect(await ui.evaluate(() => window.open('https://example.com') === null)).toBe(true)
     await ui.evaluate(() => {
       location.href = 'https://example.com/'
     })
     await ui.waitForTimeout(500)
     expect(ui.url()).toBe(before)
-    expect(storepro.app.windows()).toHaveLength(1)
     expect(readLog(storepro.userDataDir)).toContain('Blocked navigation')
+  })
+
+  test('pop-ups never open; only safe https links go to the system browser', async ({
+    storepro,
+    ui
+  }) => {
+    const results = await ui.evaluate(() => [
+      window.open('https://example.com/help'),
+      window.open('http://insecure.example.com/'),
+      window.open('file:///C:/Windows/System32/calc.exe')
+    ])
+    expect(results).toEqual([null, null, null])
+    expect(storepro.app.windows()).toHaveLength(1)
+    await expect.poll(() => openedExternalUrls(storepro)).toEqual(['https://example.com/help'])
+    expect(readLog(storepro.userDataDir)).toContain('Blocked window.open')
   })
 
   test('renderer log entries reach the log file with secrets masked', async ({ storepro, ui }) => {

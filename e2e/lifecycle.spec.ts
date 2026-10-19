@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, rmSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   APP_DIR,
@@ -10,8 +10,19 @@ import {
   launchEnv,
   launchStorePro,
   readLog,
+  removeUserDataDir,
   test
 } from './fixtures'
+
+function isRunning(pid: number | undefined): boolean {
+  if (pid === undefined) return false
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
 
 test.describe('application lifecycle', () => {
   test('creates and migrates the store database on first start', async ({ storepro }) => {
@@ -58,6 +69,7 @@ test.describe('application lifecycle', () => {
       const exited = new Promise((resolve) => killed.once('exit', resolve))
       killed.kill('SIGKILL')
       await exited
+      expect(isRunning(killed.pid)).toBe(false)
       expect(existsSync(join(userDataDir, 'session.lock'))).toBe(true)
 
       const second = await launchStorePro(userDataDir)
@@ -74,7 +86,7 @@ test.describe('application lifecycle', () => {
       )
       await third.app.close()
     } finally {
-      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+      removeUserDataDir(userDataDir)
     }
   })
 
@@ -89,7 +101,7 @@ test.describe('application lifecycle', () => {
       // A clean close folds the WAL back into the database file.
       expect(existsSync(join(userDataDir, 'data', 'storepro.db-wal'))).toBe(false)
     } finally {
-      rmSync(userDataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+      removeUserDataDir(userDataDir)
     }
   })
 })
