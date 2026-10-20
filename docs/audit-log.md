@@ -67,13 +67,13 @@ db.transaction(() => {
 | Suppliers and purchases | supplier added, changed, archived, restored; purchase order started, changed, confirmed, closed (including when fully received), cancelled, deleted; goods receipt started, changed, posted (items, total, cost prices updated), deleted | M15 |
 | Customers           | customer added, changed (before and after), archived, restored                                                                                                                                                 | M17                |
 | Expenses            | expense recorded, changed (before and after), voided, restored; expense category added, renamed, archived, restored                                                                                           | M18                |
+| Sales and billing   | sale completed (invoice number, item count, total, discount, and manager approver if price or discount was overridden); sale voided (invoice number, total, reason, and manager approver); invoice reprinted (`sale.reprinted`, with manager approver if overridden); return taken (return and invoice numbers, items with what happened to the goods, refund by method, reason, and manager approver); return receipt reprinted (`return.reprinted`) | M11, M13, M16 |
 
 Sensitive actions of modules that aren't built yet must be added as those modules are built.
 Each must use `change()` with the request's `actor`:
 
 | Action (planned)         | Module |
 | ------------------------ | ------ |
-| Return and refund        | M16    |
 | Backup made, restored    | M20    |
 | Data imported / exported | M22    |
 

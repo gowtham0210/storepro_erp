@@ -169,6 +169,15 @@ billing counter, **Add customer** finds one by name or phone, or adds one withou
 billing works fine without. There is no credit or balance yet. See
 [`docs/customers.md`](docs/customers.md).
 
+### Returns and refunds
+
+**Sell → Sales → Returns** takes goods back against an invoice: choose the quantity and what happens
+to the goods (back into stock, quarantine or write-off, with a split for partly damaged lines), and
+refund exactly what was paid after discounts, by one or more methods. The return, tax credit,
+refunds and stock are saved in one transaction as `CN000001`, …; the original invoice is never
+changed. Cashiers need a manager's approval. A return receipt (credit note) prints on 58 or 80 mm
+paper, and a duplicate is audited. See [`docs/returns.md`](docs/returns.md).
+
 ### Billing, payments, printing and hardware
 
 **Sell → Billing** is the keyboard-driven Point of Sale counter: barcode/SKU scan (including a

@@ -10,6 +10,7 @@ import type { PricingService } from '../../pricing/pricingService'
 import type { PrintingService } from '../../printing/printingService'
 import type { PurchaseService } from '../../purchasing/purchaseService'
 import type { SupplierService } from '../../purchasing/supplierService'
+import type { ReturnService } from '../../returns/returnService'
 import type { SalesService } from '../../sales/salesService'
 import type { ConnectivityMonitor } from '../../connectivity/connectivityMonitor'
 import type { ModuleService } from '../../modules/moduleService'
@@ -30,6 +31,7 @@ import { createModuleHandlers } from './modules'
 import { createPricingHandlers } from './pricing'
 import { createPrintingHandlers } from './printing'
 import { createPurchasingHandlers } from './purchasing'
+import { createReturnHandlers } from './returns'
 import { createSalesHandlers } from './sales'
 import { createStoreHandlers } from './store'
 import { createUserHandlers } from './users'
@@ -53,6 +55,7 @@ export interface HandlerDeps extends AppHandlerDeps {
   purchases: PurchaseService
   expenses: ExpenseService
   customers: CustomerService
+  returns: ReturnService
 }
 
 export function createHandlers(deps: HandlerDeps): HandlerMap {
@@ -73,5 +76,6 @@ export function createHandlers(deps: HandlerDeps): HandlerMap {
     ...createPurchasingHandlers(deps.suppliers, deps.purchases),
     ...createExpenseHandlers(deps.expenses),
     ...createCustomerHandlers(deps.customers),
+    ...createReturnHandlers(deps.returns)
   }
 }

@@ -67,7 +67,9 @@ export function encodeEscPosReceipt(
       i === 0 ||
       line.includes('TOTAL PAYABLE') ||
       line.includes('DUPLICATE / REPRINT') ||
-      line.includes('VOIDED INVOICE')
+      line.includes('VOIDED INVOICE') ||
+      line.includes('TOTAL REFUND') ||
+      line.includes('RETURN / CREDIT NOTE')
 
     if (isBoldLine) {
       pushBytes(ESC, 0x45, 0x01) // Emphasized ON

@@ -390,7 +390,13 @@ Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing re
 
 ---
 
-## Phase 5 — Operations
+## Phase 5 — Operations ✅ Completed (2026-10-20)
+
+**Phase 5 is complete.** M15, M16, M17 and M18 are implemented. Items deliberately left for later:
+
+- Purchase returns and supplier credit notes, supplier payments and balances (P1), and GST input credit.
+- Customer credit and repayments (P1), exchanges, and a return window or policy.
+- The purchase, expense and returns reports (M19) and CSV export (M22).
 
 ### M15 · Suppliers & Purchases (MVP scope)
 
@@ -427,6 +433,18 @@ Not done: purchase returns and supplier credit notes, supplier payments and bala
 | M16-05 | Return screen and return receipt print | M16-04, M13-02 | M |
 | M16-06 | Permission + audit for returns | M16-04, M06-03, M07-02 | S |
 | M16-07 | Tests: over-return blocked, original sale unchanged, stock/payment reversals correct | M16-04 | S |
+
+**Status (2026-10-20):** M16-01 to M16-07 are implemented. See `docs/returns.md`. No new migration was needed: migration 0001 already holds the tables, triggers and views.
+
+- **Calculation (`src/shared/returns.ts`):** one pure `quoteReturn`, used by the service and the screen. A return credits a share of what the customer paid after line and bill discounts, with tax credited per component. Cumulative rounding makes the credits add up to exactly what was paid however a line comes back.
+- **Service (`ReturnService`):** find an invoice by number; refuse a voided one; check quantities against all earlier returns; refunds must equal what is due; one transaction saves the return, lines, tax, refunds and audit entry. The original sale is never changed.
+- **Goods:** restock, quarantine or write-off per line (with a split row on the screen). Only restocked goods enter the ledger.
+- **Permission:** `return.create` with manager approval for cashiers, audited with the approver.
+- **Screens:** **Sell → Sales → Returns** (take a return, list, detail) and **Return items** on an invoice.
+- **Receipt (M16-05):** the credit note uses the M13 receipt engine on 58 and 80 mm paper. The first print is the original, later ones are audited duplicates, and a failed print never affects the saved return. `PrintingService.printDocument` and two ESC/POS bold lines were added for it.
+- **Tests:** 22 service tests (credit maths with discounts, partial and repeated returns, over-return, dispositions, split refunds, tax-exclusive invoices, atomic failure, permissions, receipts), 10 for the calculation, 4 for the receipt, 11 screen tests including manager approval, and an axe check.
+
+Not done: exchanges, a return window, returns without an invoice, refund to store credit, and the returns report (M19).
 
 ### M17 · Customers (MVP scope, no credit)
 

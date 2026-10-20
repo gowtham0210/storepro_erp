@@ -15,6 +15,7 @@
 import type { ModuleCode } from '../modules'
 import type { PaymentKind } from '../payments'
 import type { Discount, TaxAmount, TaxRegime, TaxSummaryRow } from '../pricing'
+import type { ReturnDisposition, ReturnTaxShare } from '../returns'
 import type { PermissionCode } from '../permissions'
 import type { IpcResult } from './errors'
 
@@ -1189,6 +1190,155 @@ export interface CustomerPurchasePage {
 }
 
 // ---------------------------------------------------------------------------
+// Returns and refunds (M16)
+// ---------------------------------------------------------------------------
+
+/** One invoice line, with how much of it can still come back. */
+export interface ReturnableLine {
+  saleItemId: number
+  lineNumber: number
+  variantId: number
+  description: string
+  sku: string
+  unitCode: string
+  allowsFraction: boolean
+  soldMilli: number
+  returnedMilli: number
+  returnableMilli: number
+  unitPriceMinor: number
+  /** What the whole line cost the customer after discounts, on the invoice's price basis. */
+  netMinor: number
+  /** Tax charged on the whole line. */
+  taxes: ReturnTaxShare[]
+}
+
+export interface ReturnSummary {
+  saleReturnId: number
+  returnNumber: string
+  returnedAt: number
+  refundDueMinor: number
+}
+
+/** An invoice looked up for a return (M16-01). */
+export interface ReturnableSale {
+  saleId: number
+  invoiceNumber: string
+  completedAt: number
+  customerName: string | null
+  pricesIncludeTax: boolean
+  /** A voided invoice can't be returned. */
+  isVoided: boolean
+  lines: ReturnableLine[]
+  /** How the customer paid, to suggest how to refund. */
+  payments: {
+    paymentMethodId: number
+    methodName: string
+    kind: PaymentKind
+    amountMinor: number
+  }[]
+  /** Returns already made against this invoice. */
+  returns: ReturnSummary[]
+}
+
+export interface ReturnInputLine {
+  saleItemId: number
+  quantityMilli: number
+  disposition: ReturnDisposition
+}
+
+export interface ReturnRefundInput {
+  paymentMethodId: number
+  amountMinor: number
+  /** Such as a UPI transaction id. Recorded, not verified. */
+  reference?: string | null | undefined
+}
+
+export interface ReturnInput {
+  saleId: number
+  reason: string | null
+  lines: ReturnInputLine[]
+  /** How the refund is paid. Must add up to exactly what is due. */
+  refunds: ReturnRefundInput[]
+  /** A manager's approval, when the cashier's role can't take returns. */
+  overrideId?: string | undefined
+}
+
+export interface ReturnLineDetail {
+  saleReturnItemId: number
+  saleItemId: number
+  lineNumber: number
+  description: string
+  sku: string
+  unitCode: string
+  disposition: ReturnDisposition
+  quantityMilli: number
+  unitPriceMinor: number
+  creditMinor: number
+  taxMinor: number
+}
+
+export interface ReturnDetail {
+  saleReturnId: number
+  returnNumber: string
+  saleId: number
+  invoiceNumber: string
+  returnedAt: number
+  processedByName: string
+  reason: string | null
+  customerName: string | null
+  pricesIncludeTax: boolean
+  lines: ReturnLineDetail[]
+  creditMinor: number
+  taxMinor: number
+  /** Tax per component and rate, across the whole return. */
+  taxSummary: ReturnTaxShare[]
+  refundDueMinor: number
+  refundedMinor: number
+  refunds: ReturnRefundDetail[]
+}
+
+export interface ReturnListFilter {
+  search?: string | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface ReturnListItem {
+  saleReturnId: number
+  returnNumber: string
+  saleId: number
+  invoiceNumber: string
+  returnedAt: number
+  processedByName: string
+  customerName: string | null
+  itemCount: number
+  refundDueMinor: number
+}
+
+export interface ReturnListPage {
+  items: ReturnListItem[]
+  total: number
+}
+
+export interface ReturnReceiptInput {
+  saleReturnId: number
+  isReprint?: boolean | undefined
+}
+
+export interface ReturnReceiptPrintInput extends ReturnReceiptInput {
+  overrideId?: string | undefined
+}
+
+export interface ReturnReceiptPreview {
+  saleReturnId: number
+  returnNumber: string
+  paperWidthMm: ReceiptPaperWidthMm
+  columns: number
+  isReprint: boolean
+  lines: string[]
+  html: string
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -1337,6 +1487,12 @@ export interface IpcContract {
     input: { customerId: number; offset?: number | undefined; limit?: number | undefined }
     output: CustomerPurchasePage
   }
+  'returns:find-sale': { input: { invoiceNumber: string }; output: ReturnableSale | null }
+  'returns:create': { input: ReturnInput; output: ReturnDetail }
+  'returns:list': { input: ReturnListFilter; output: ReturnListPage }
+  'returns:get': { input: { saleReturnId: number }; output: ReturnDetail }
+  'returns:preview-receipt': { input: ReturnReceiptInput; output: ReturnReceiptPreview }
+  'returns:print-receipt': { input: ReturnReceiptPrintInput; output: PrintJobResult }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -1456,6 +1612,12 @@ const channelRegistry: Record<IpcChannel, true> = {
   'customers:update': true,
   'customers:set-active': true,
   'customers:purchases': true,
+  'returns:find-sale': true,
+  'returns:create': true,
+  'returns:list': true,
+  'returns:get': true,
+  'returns:preview-receipt': true,
+  'returns:print-receipt': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

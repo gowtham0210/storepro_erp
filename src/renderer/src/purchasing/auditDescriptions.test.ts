@@ -98,6 +98,26 @@ describe('audit descriptions for purchases, expenses, customers and returns (M15
       'Meena Sundar: tax number from nothing to 33AAAAA0000A1Z5'
     ],
     [
+      'return.created',
+      {
+        returnNumber: 'CN000001',
+        invoiceNumber: 'INV000001',
+        items: [{}, {}],
+        refundDue: '₹320.00',
+        refunds: [
+          { method: 'Cash', amount: '₹200.00' },
+          { method: 'UPI', amount: '₹120.00' }
+        ],
+        reason: 'Torn bag'
+      },
+      'CN000001 · invoice INV000001 · 2 items · refunded Cash ₹200.00, UPI ₹120.00 — Torn bag'
+    ],
+    [
+      'return.reprinted',
+      { returnNumber: 'CN000001', invoiceNumber: 'INV000001' },
+      'CN000001 · invoice INV000001'
+    ],
+    [
       'expense_category.updated',
       { changes: { name: { from: 'Packaging', to: 'Packing material' } } },
       'name from Packaging to Packing material'

@@ -20,6 +20,8 @@ import { PurchaseRepository } from '../../purchasing/purchaseRepository'
 import { PurchaseService } from '../../purchasing/purchaseService'
 import { SupplierRepository } from '../../purchasing/supplierRepository'
 import { SupplierService } from '../../purchasing/supplierService'
+import { ReturnRepository } from '../../returns/returnRepository'
+import { ReturnService } from '../../returns/returnService'
 import { SalesRepository } from '../../sales/salesRepository'
 import { SalesService } from '../../sales/salesService'
 import { AuditLog } from '../../audit/auditLog'
@@ -78,6 +80,8 @@ export interface Testbed {
   expenseService: ExpenseService
   customerRepository: CustomerRepository
   customerService: CustomerService
+  returnRepository: ReturnRepository
+  returnService: ReturnService
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -143,7 +147,17 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
   const purchaseRepository = new PurchaseRepository(db, clock)
   const expenseRepository = new ExpenseRepository(db, clock)
   const customerRepository = new CustomerRepository(db, clock)
+  const returnRepository = new ReturnRepository(db, clock, payments)
   return {
+    returnRepository,
+    returnService: new ReturnService({
+      db,
+      returns: returnRepository,
+      payments,
+      store: stores,
+      audit,
+      printing: printingService
+    }),
     customerRepository,
     customerService: new CustomerService({ db, customers: customerRepository, audit }),
     expenseRepository,

@@ -253,6 +253,16 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       return text(d['name'] ?? subject)
     case 'customer.updated':
       return `${text(d['name'] ?? subject)}: ${changes(d['changes'], CUSTOMER_FIELDS)}`
+    case 'return.created': {
+      const refunds = Array.isArray(d['refunds'])
+        ? (d['refunds'] as { method?: unknown; amount?: unknown }[])
+            .map((r) => `${text(r.method)} ${text(r.amount)}`)
+            .join(', ')
+        : ''
+      return `${text(d['returnNumber'])} · invoice ${text(d['invoiceNumber'])} · ${itemCount(d['items'])} · refunded ${refunds || text(d['refundDue'])}${d['reason'] ? ` — ${text(d['reason'])}` : ''}`
+    }
+    case 'return.reprinted':
+      return `${text(d['returnNumber'])} · invoice ${text(d['invoiceNumber'])}`
     case 'supplier.created':
     case 'supplier.archived':
     case 'supplier.restored':

@@ -252,6 +252,19 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   ],
   'customers:set-active': [{ customerId: 1, active: false }],
   'customers:purchases': [{ customerId: 1 }],
+  'returns:find-sale': [{ invoiceNumber: 'INV000001' }],
+  'returns:create': [
+    {
+      saleId: 1,
+      reason: null,
+      lines: [{ saleItemId: 1, quantityMilli: 1000, disposition: 'restock' }],
+      refunds: [{ paymentMethodId: 1, amountMinor: 100 }]
+    }
+  ],
+  'returns:list': [{}],
+  'returns:get': [{ saleReturnId: 1 }],
+  'returns:preview-receipt': [{ saleReturnId: 1 }],
+  'returns:print-receipt': [{ saleReturnId: 1 }]
 }
 
 describe('access control over IPC', () => {

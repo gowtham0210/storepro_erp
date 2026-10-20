@@ -283,6 +283,18 @@ export class PrintingService {
     })
   }
 
+  /**
+   * Prints any receipt document on the configured printer, and reports the same
+   * result as a sale receipt (M16-05: return receipts).
+   */
+  async printDocument(
+    doc: ReceiptDocument,
+    options: { openCashDrawer?: boolean } = {}
+  ): Promise<PrintJobResult> {
+    const config = this.deps.printers.getPrinterConfig()
+    return this.dispatchReceiptPrint(doc, config, options.openCashDrawer === true)
+  }
+
   private buildSaleReceipt(saleId: number, isReprint: boolean) {
     const sale = this.deps.sales.get(saleId)
     if (!sale) {

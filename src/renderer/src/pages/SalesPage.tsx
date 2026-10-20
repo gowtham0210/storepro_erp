@@ -5,7 +5,8 @@ import {
   ChevronRight,
   Eye,
   Printer,
-  ReceiptText
+  ReceiptText,
+  Undo2
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
@@ -18,6 +19,8 @@ import type {
 import { SALE_STATUS_FILTERS } from '@shared/schemas/sales'
 import { formatStoreTime } from '@shared/storeTime'
 import { useManagerApproval } from '../auth/ManagerApproval'
+import { NewReturnDialog } from '../returns/NewReturnDialog'
+import { ReturnDetailDialog, ReturnsListDialog } from '../returns/ReturnViews'
 import {
   Alert,
   Badge,
@@ -60,6 +63,12 @@ export default function SalesPage(): React.JSX.Element {
   const [search, setSearch] = useState(params.get('q') ?? '')
   const settledSearch = useSettled(search.trim())
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null)
+  const [returnsDialog, setReturnsDialog] = useState<
+    | { kind: 'list' }
+    | { kind: 'new'; invoiceNumber?: string | undefined }
+    | { kind: 'view'; saleReturnId: number; justCreated: boolean }
+    | null
+  >(null)
 
   const statusParam = params.get('status')
   const status: SaleStatusFilter = SALE_STATUS_FILTERS.includes(statusParam as SaleStatusFilter)
@@ -179,7 +188,12 @@ export default function SalesPage(): React.JSX.Element {
     <div className="space-y-5">
       <PageHeader
         title="Sales"
-        description="Search past invoices, inspect bill details and payment records, or void a sale."
+        description="Search past invoices, inspect bill details and payment records, take returns, or void a sale."
+        actions={
+          <Button icon={<Undo2 />} onClick={() => setReturnsDialog({ kind: 'list' })}>
+            Returns
+          </Button>
+        }
       />
 
       {list.isError && <Alert tone="danger">{describeError(list.error).message}</Alert>}
@@ -278,6 +292,36 @@ export default function SalesPage(): React.JSX.Element {
         <SaleDetailDialog
           saleId={selectedSaleId}
           onClose={() => setSelectedSaleId(null)}
+          onReturn={(invoiceNumber) => {
+            setSelectedSaleId(null)
+            setReturnsDialog({ kind: 'new', invoiceNumber })
+          }}
+        />
+      )}
+
+      {returnsDialog?.kind === 'list' && (
+        <ReturnsListDialog
+          onClose={() => setReturnsDialog(null)}
+          onNew={() => setReturnsDialog({ kind: 'new' })}
+          onOpen={(saleReturnId) =>
+            setReturnsDialog({ kind: 'view', saleReturnId, justCreated: false })
+          }
+        />
+      )}
+      {returnsDialog?.kind === 'new' && (
+        <NewReturnDialog
+          initialInvoiceNumber={returnsDialog.invoiceNumber}
+          onClose={() => setReturnsDialog(null)}
+          onDone={(made) =>
+            setReturnsDialog({ kind: 'view', saleReturnId: made.saleReturnId, justCreated: true })
+          }
+        />
+      )}
+      {returnsDialog?.kind === 'view' && (
+        <ReturnDetailDialog
+          saleReturnId={returnsDialog.saleReturnId}
+          justCreated={returnsDialog.justCreated}
+          onClose={() => setReturnsDialog(null)}
         />
       )}
     </div>
@@ -286,10 +330,12 @@ export default function SalesPage(): React.JSX.Element {
 
 function SaleDetailDialog({
   saleId,
-  onClose
+  onClose,
+  onReturn
 }: {
   saleId: number
   onClose: () => void
+  onReturn: (invoiceNumber: string) => void
 }): React.JSX.Element {
   const timeZone = useStoreTimeZone()
   const toast = useToast()
@@ -500,6 +546,11 @@ function SaleDetailDialog({
               >
                 Reprint receipt
               </Button>
+              {!sale.voidInfo && (
+                <Button icon={<Undo2 />} onClick={() => onReturn(sale.invoiceNumber)}>
+                  Return items
+                </Button>
+              )}
               {!sale.voidInfo && sale.refunds.length === 0 && (
                 <Button
                   variant="danger"

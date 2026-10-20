@@ -61,6 +61,8 @@ export const AUDIT_CATEGORIES = [
     actions: [
       { code: 'sale.created', label: 'Completed a sale' },
       { code: 'sale.voided', label: 'Voided a sale' },
+      { code: 'return.created', label: 'Took a return and refunded' },
+      { code: 'return.reprinted', label: 'Reprinted a return receipt' },
       { code: 'sale.reprinted', label: 'Reprinted an invoice' }
     ]
   },
