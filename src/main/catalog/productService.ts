@@ -13,6 +13,11 @@ import type {
 import { AppError } from '@shared/ipc/errors'
 import { formatMoney, type CurrencyFormat } from '@shared/money'
 import { formatQuantity, QUANTITY_SCALE } from '@shared/quantity'
+import {
+  DEFAULT_WEIGH_BARCODE_CONFIG,
+  parseWeighBarcode,
+  type WeighBarcodeConfig
+} from '@shared/scanner'
 import { changesBetween, type AuditLog } from '../audit/auditLog'
 import { assertCan, type Actor } from '../auth/access'
 import type { Database } from '../db/database'
@@ -29,6 +34,8 @@ export interface ProductServiceDeps {
   audit: AuditLog
   /** The store's currency, for amounts in audit entries. */
   currency(): CurrencyFormat
+  /** Variable-weight barcode configuration for grocery scales (M24-02). */
+  weighBarcodeConfig?: () => WeighBarcodeConfig
 }
 
 const SEARCH_LIMIT = 20
@@ -52,11 +59,42 @@ export class ProductService {
     return this.require(productId)
   }
 
-  /** M09-07: what a scanner typed, as a barcode or a SKU. Only items that can be sold. */
+  /**
+   * M09-07 & M24-02: what a scanner typed, as an exact barcode, SKU, or
+   * variable-weight/embedded-price grocery scale barcode. Only active items.
+   */
   findByBarcode(actor: Actor, { barcode }: { barcode: string }): ItemLookup | null {
     assertCan(actor, 'product.view')
     const code = barcode.trim()
-    return code === '' ? null : this.deps.products.findByCode(code)
+    if (code === '') return null
+
+    const exact = this.deps.products.findByCode(code)
+    if (exact) return exact
+
+    const weighConfig =
+      this.deps.weighBarcodeConfig?.() ?? DEFAULT_WEIGH_BARCODE_CONFIG
+    const parsedWeigh = parseWeighBarcode(code, weighConfig)
+    if (!parsedWeigh) return null
+
+    const item = this.deps.products.findForWeighItemCode(parsedWeigh.itemCode)
+    if (!item) return null
+
+    if (parsedWeigh.kind === 'weight') {
+      return {
+        ...item,
+        scannedQuantityMilli: parsedWeigh.quantityMilli
+      }
+    }
+
+    if (item.sellingPriceMinor <= 0) return null
+    const derivedQtyMilli = Math.max(
+      1,
+      Math.round((parsedWeigh.amountMinor * QUANTITY_SCALE) / item.sellingPriceMinor)
+    )
+    return {
+      ...item,
+      scannedQuantityMilli: derivedQtyMilli
+    }
   }
 
   search(

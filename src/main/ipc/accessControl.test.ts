@@ -141,7 +141,25 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   ],
   'sales:list-held': [],
   'sales:resume-held': [{ heldBillId: 1 }],
-  'sales:discard-held': [{ heldBillId: 1 }]
+  'sales:discard-held': [{ heldBillId: 1 }],
+  'printers:list': [],
+  'printers:get-config': [],
+  'printers:set-config': [
+    {
+      printerName: null,
+      paperWidthMm: 80,
+      printMode: 'driver',
+      autoPrintReceipt: false,
+      openCashDrawer: false
+    }
+  ],
+  'printers:test-print': [],
+  'receipts:preview': [{ saleId: 1 }],
+  'receipts:print': [{ saleId: 1 }],
+  'labels:preview': [{ variantId: 1 }],
+  'labels:print': [{ variantId: 1 }],
+  'grocery:get-weigh-barcode': [],
+  'grocery:set-weigh-barcode': [{ enabled: true, weightPrefix: '20', pricePrefix: '21' }]
 }
 
 describe('access control over IPC', () => {

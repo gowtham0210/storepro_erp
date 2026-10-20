@@ -226,6 +226,25 @@ describe('describeAuditEntry', () => {
           details: { invoiceNumber: 'INV000001', total: '₹890.00', reason: 'Wrong item' }
         },
         'INV000001 (₹890.00) — Wrong item'
+      ],
+      [
+        {
+          action: 'sale.reprinted',
+          details: { invoiceNumber: 'INV000001' }
+        },
+        'INV000001'
+      ],
+      [
+        {
+          action: 'printer.updated',
+          details: {
+            changes: {
+              paperWidth: { from: '80 mm', to: '58 mm' },
+              autoPrint: { from: 'no', to: 'yes' }
+            }
+          }
+        },
+        'Paper width from 80 mm to 58 mm; auto-print receipt from no to yes'
       ]
     ]
     for (const [overrides, sentence] of cases) {

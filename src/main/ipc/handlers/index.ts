@@ -5,6 +5,7 @@ import type { ProductService } from '../../catalog/productService'
 import type { InventoryService } from '../../inventory/inventoryService'
 import type { PaymentService } from '../../payments/paymentService'
 import type { PricingService } from '../../pricing/pricingService'
+import type { PrintingService } from '../../printing/printingService'
 import type { SalesService } from '../../sales/salesService'
 import type { ConnectivityMonitor } from '../../connectivity/connectivityMonitor'
 import type { ModuleService } from '../../modules/moduleService'
@@ -21,6 +22,7 @@ import { createInventoryHandlers } from './inventory'
 import { createLogHandlers } from './log'
 import { createModuleHandlers } from './modules'
 import { createPricingHandlers } from './pricing'
+import { createPrintingHandlers } from './printing'
 import { createSalesHandlers } from './sales'
 import { createStoreHandlers } from './store'
 import { createUserHandlers } from './users'
@@ -39,6 +41,7 @@ export interface HandlerDeps extends AppHandlerDeps {
   inventory: InventoryService
   payments: PaymentService
   sales: SalesService
+  printing: PrintingService
 }
 
 export function createHandlers(deps: HandlerDeps): HandlerMap {
@@ -54,6 +57,7 @@ export function createHandlers(deps: HandlerDeps): HandlerMap {
     ...createCatalogHandlers(deps.catalog, deps.products),
     ...createPricingHandlers(deps.pricing),
     ...createInventoryHandlers(deps.inventory),
-    ...createSalesHandlers(deps.payments, deps.sales)
+    ...createSalesHandlers(deps.payments, deps.sales),
+    ...createPrintingHandlers(deps.printing)
   }
 }

@@ -61,17 +61,16 @@ db.transaction(() => {
 | Approvals           | approval given, approval refused (wrong password, or the approver isn't allowed either)                                                                                             | M06            |
 | User accounts       | added, changed (name, role), password reset, deactivated, reactivated                                                                                                               | M05            |
 | StorePro itself     | store data upgraded (with the backup file name), unexpected shutdown recovered, data check found problems                                                                           | M07 (start-up) |
-| Store settings      | store set up, settings changed, module switched on or off, bill rounding or discount limit changed, tax rate added, changed, archived or restored, payment method added, changed, archived or restored | M03, M04, M10, M12 |
+| Store settings      | store set up, settings changed, module switched on or off, bill rounding or discount limit changed, tax rate added, changed, archived or restored, payment method added, changed, archived or restored, receipt printer settings changed, scale barcode settings changed | M03, M04, M10, M12, M21, M24 |
 | Products and prices | product added, changed, archived, restored; price changed (before and after); pack size added, archived, restored; category added, renamed, archived, restored; unit added, renamed                           | M09                |
 | Stock               | stock adjusted (reason, items, delta, balance after); physical stock counted (recorded, counted, delta)                                                                                                       | M14                |
-| Sales and billing   | sale completed (invoice number, item count, total, discount, and manager approver if price or discount was overridden); sale voided (invoice number, total, reason, and manager approver)                     | M11                |
+| Sales and billing   | sale completed (invoice number, item count, total, discount, and manager approver if price or discount was overridden); sale voided (invoice number, total, reason, and manager approver); invoice reprinted (`sale.reprinted`, with manager approver if overridden) | M11, M13           |
 
 Sensitive actions of modules that aren't built yet must be added as those modules are built.
 Each must use `change()` with the request's `actor`:
 
 | Action (planned)         | Module |
 | ------------------------ | ------ |
-| Invoice reprinted        | M13    |
 | Return and refund        | M16    |
 | Backup made, restored    | M20    |
 | Data imported / exported | M22    |

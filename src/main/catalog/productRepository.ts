@@ -251,6 +251,81 @@ export class ProductRepository extends Repository {
     return bySku ? toLookup(bySku) : null
   }
 
+  /**
+   * Resolves a 5-digit variable-weight barcode item code (e.g. "00007") to an
+   * active fractional-unit variant by 5-digit barcode, `ITEM-00007` SKU, or
+   * `variant_id` (M24-02).
+   */
+  findForWeighItemCode(itemCode: string): ItemLookup | null {
+    const activeFraction =
+      'v.archived_at IS NULL AND p.archived_at IS NULL AND u.allows_fraction = 1'
+    const byBarcode = this.db.get<LookupRow>(
+      `${LOOKUP} JOIN barcodes b ON b.variant_id = v.variant_id
+       WHERE b.barcode = ? AND ${activeFraction}`,
+      [itemCode]
+    )
+    if (byBarcode) return toLookup(byBarcode)
+
+    const skuCandidate = `ITEM-${itemCode}`
+    const bySku = this.db.get<LookupRow>(
+      `${LOOKUP} WHERE (v.sku = ? COLLATE NOCASE OR v.sku = ? COLLATE NOCASE) AND ${activeFraction}`,
+      [skuCandidate, itemCode]
+    )
+    if (bySku) return toLookup(bySku)
+
+    const numericId = Number(itemCode)
+    if (Number.isInteger(numericId) && numericId > 0) {
+      const byId = this.db.get<LookupRow>(
+        `${LOOKUP} WHERE v.variant_id = ? AND ${activeFraction}`,
+        [numericId]
+      )
+      if (byId) return toLookup(byId)
+    }
+    return null
+  }
+
+  /** Variant details needed for printing shelf/pack price labels (M24-03). */
+  findVariantForLabel(variantId: number): {
+    variantId: number
+    productName: string
+    variantName: string | null
+    sku: string
+    barcode: string | null
+    unitCode: string
+    sellingPriceMinor: number
+    mrpMinor: number | null
+  } | null {
+    const row = this.db.get<{
+      variant_id: number
+      product_name: string
+      variant_name: string | null
+      sku: string
+      barcodes: string | null
+      unit_code: string
+      selling_price_minor: number
+      mrp_minor: number | null
+    }>(
+      `SELECT v.variant_id, p.name AS product_name, v.variant_name, v.sku,
+              ${BARCODES} AS barcodes, v.unit_code, v.selling_price_minor, v.mrp_minor
+       FROM product_variants v
+       JOIN products p ON p.product_id = v.product_id
+       WHERE v.variant_id = ?`,
+      [variantId]
+    )
+    if (!row) return null
+    const barcodes = splitList(row.barcodes)
+    return {
+      variantId: row.variant_id,
+      productName: row.product_name,
+      variantName: row.variant_name,
+      sku: row.sku,
+      barcode: barcodes[0] ?? null,
+      unitCode: row.unit_code,
+      sellingPriceMinor: row.selling_price_minor,
+      mrpMinor: row.mrp_minor
+    }
+  }
+
   /** Active items whose name, SKU or barcode starts with the typed words, best match first. */
   search(query: string, limit: number): ItemLookup[] {
     const match = buildPrefixMatchQuery(query)

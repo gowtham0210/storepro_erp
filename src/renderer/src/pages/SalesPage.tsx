@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Printer,
   ReceiptText
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -291,14 +292,47 @@ function SaleDetailDialog({
   onClose: () => void
 }): React.JSX.Element {
   const timeZone = useStoreTimeZone()
+  const toast = useToast()
+  const withApproval = useManagerApproval()
   const [voiding, setVoiding] = useState(false)
+  const [reprinting, setReprinting] = useState(false)
+  const [reprintError, setReprintError] = useState<string | null>(null)
+  const [showReprintPreview, setShowReprintPreview] = useState(false)
 
   const detail = useQuery({
     queryKey: ['sales:get', saleId],
     queryFn: () => invoke('sales:get', { saleId })
   })
 
+  const reprintPreview = useQuery({
+    queryKey: ['receipts:preview', saleId, true],
+    queryFn: () => invoke('receipts:preview', { saleId, isReprint: true }),
+    enabled: showReprintPreview
+  })
+
   const sale = detail.data
+
+  const handleReprint = async (): Promise<void> => {
+    if (!sale) return
+    setReprintError(null)
+    setReprinting(true)
+    try {
+      const result = await withApproval((overrideId) =>
+        invoke('receipts:print', {
+          saleId: sale.saleId,
+          isReprint: true,
+          ...(overrideId === undefined ? {} : { overrideId })
+        })
+      )
+      if (!result) return
+      setShowReprintPreview(true)
+      toast.success(`Reprinted invoice ${sale.invoiceNumber} (Duplicate).`)
+    } catch (failure) {
+      setReprintError(describeError(failure).message)
+    } finally {
+      setReprinting(false)
+    }
+  }
 
   if (detail.isLoading || !sale) {
     return (
@@ -440,18 +474,42 @@ function SaleDetailDialog({
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2">
-            {!sale.voidInfo && sale.refunds.length === 0 ? (
-              <Button
-                variant="danger"
-                icon={<Ban />}
-                onClick={() => setVoiding(true)}
+          {reprintError && <Alert tone="danger">{reprintError}</Alert>}
+
+          {showReprintPreview && reprintPreview.data && (
+            <div className="rounded-md border border-border bg-surface-subtle p-3 space-y-2">
+              <div className="flex items-center justify-between text-xs font-semibold text-fg">
+                <span>Duplicate / Reprint receipt ({reprintPreview.data.paperWidthMm} mm)</span>
+                <Badge tone="warning">DUPLICATE / REPRINT</Badge>
+              </div>
+              <pre
+                aria-label="Duplicate receipt preview"
+                className="max-h-56 overflow-y-auto rounded bg-surface p-2 font-mono text-xs leading-snug text-fg"
               >
-                Void sale
+                {reprintPreview.data.lines.join('\n')}
+              </pre>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                icon={<Printer />}
+                loading={reprinting}
+                onClick={() => void handleReprint()}
+              >
+                Reprint receipt
               </Button>
-            ) : (
-              <span />
-            )}
+              {!sale.voidInfo && sale.refunds.length === 0 && (
+                <Button
+                  variant="danger"
+                  icon={<Ban />}
+                  onClick={() => setVoiding(true)}
+                >
+                  Void sale
+                </Button>
+              )}
+            </div>
             <Button onClick={onClose}>Close</Button>
           </div>
         </div>

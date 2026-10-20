@@ -145,16 +145,22 @@ running balances across sales, voids, returns, goods receipts and adjustments, m
 adjustments (`ADJ000001`, …) with reasons, and physical stock count reconciliation. Negative stock
 is blocked by default unless enabled in store settings. See [`docs/inventory.md`](docs/inventory.md).
 
-### Billing and payments
+### Billing, payments, printing and hardware
 
-**Sell → Billing** is the keyboard-driven Point of Sale counter: barcode/SKU scan, FTS item search
-(`F4`), fractional quantities for weight/volume items, line and bill discounts (`F6`) with manager
-override support, held bills (`F8`/`F9`), and single or split payments (`F12`) across Cash (with
-tendered/change calculation), UPI (labelled `Recorded (not verified)`), and Card. Checkout saves
-the sale, tax snapshot, payments, sequential invoice number (`INV000001`, …) and stock deduction in
-one atomic transaction with idempotency protection. **Sell → Sales** searches past invoices, shows
-full bill and payment details, and voids completed sales (`sale.void`) with stock reversal and
-audit logging. See [`docs/billing-and-payments.md`](docs/billing-and-payments.md).
+**Sell → Billing** is the keyboard-driven Point of Sale counter: barcode/SKU scan (including a
+global keyboard-wedge burst detector `M21-01` and variable-weight EAN-13 grocery scale barcodes
+`M24-02`), FTS item search (`F4`), fractional quantities for weight/volume items (`M24-01`), line
+and bill discounts (`F6`) with manager override support, held bills (`F8`/`F9`), and single or
+split payments (`F12`) across Cash (with tendered/change calculation), UPI (labelled `Recorded (not
+verified)`), and Card. Checkout saves the sale, tax snapshot, payments, sequential invoice number
+(`INV000001`, …) and stock deduction in one atomic transaction with idempotency protection.
+Receipts format for 58 mm (32-col) and 80 mm (48-col) thermal paper (`M13-02`, `M13-03`), support
+Windows driver and ESC/POS raw printing with cash-drawer kick (`M21-02`, `M21-04`), never block a
+saved sale if printing fails (`M13-04`), and require `sale.reprint` (or manager approval) with a
+`*** DUPLICATE / REPRINT ***` banner and audit log entry when reprinting (`M13-05`). **Stock →
+Products** also prints Code-128B shelf and pre-pack price labels (`M24-03`). See
+[`docs/billing-and-payments.md`](docs/billing-and-payments.md) and
+[`docs/printing-and-hardware.md`](docs/printing-and-hardware.md).
 
 ### Offline and connectivity
 

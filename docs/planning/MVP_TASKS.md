@@ -350,6 +350,12 @@ Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing re
 | M13-04 | Print after checkout; print failure does not affect saved sale; retry option | M13-03, M21-02 | S |
 | M13-05 | Reprint with permission and audit; marked "Duplicate/Reprint" | M13-04, M06-03, M07-02 | S |
 
+**Status (2026-10-20):** M13-01 to M13-05 are implemented. See `docs/printing-and-hardware.md`.
+
+- **Receipt template engine (`src/shared/receipt.ts`):** `buildReceiptDocument()` and `renderReceiptHtml()` format store header, GSTIN/Tax ID, invoice metadata in store time zone, itemized lines with HSN/qty/rate/discount, tax summary, payments, change due, linked return refunds, and receipt footer for both **58 mm** (`32` columns) and **80 mm** (`48` columns) thermal rolls.
+- **Checkout print & non-fatal failure (`CompletedSaleDialog`, `M13-04`):** previews receipts, supports optional automatic print on checkout completion, and surfaces a non-blocking warning alert with **Retry print** if the printer fails while keeping the saved sale intact.
+- **Reprint with permission & audit (`PrintingService.printReceipt`, `SalesPage.tsx`, `M13-05`):** requires `sale.reprint` (or manager approval override), prints the `*** DUPLICATE / REPRINT ***` banner, and records `sale.reprinted` in `audit_logs`.
+
 ### M21 · Hardware Integration
 
 | ID | Task | Depends on | Size |
@@ -360,6 +366,13 @@ Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing re
 | M21-04 | ESC/POS raw printing option (cash drawer kick if supported) | M21-02 | M |
 | M21-05 | Supported-device matrix; test on real scanners and printers | M21-04 | M |
 
+**Status (2026-10-20):** M21-01 to M21-05 are implemented. See `docs/printing-and-hardware.md`.
+
+- **Scanner burst detector (`src/shared/scanner.ts`, `BillingPage.tsx`, `M21-01`):** `ScannerBurstDetector` detects rapid keyboard-wedge barcode bursts (`<= 45 ms` inter-key gap, `<= 600 ms` total burst, ending in `Enter`/`Tab`) and routes them to POS barcode lookup even when focus is outside the barcode input field.
+- **Printer discovery, settings & test print (`electronPrinterAdapter.ts`, `PrintingService`, `PrintingSettings.tsx`, `M21-02`, `M21-03`):** lists OS printers via `webContents.getPrintersAsync()`, stores device-local printer configuration in `app_settings`, prints silently via hidden `BrowserWindow`, and provides a **Test print** action under **Manage → Settings**.
+- **ESC/POS encoder & cash drawer kick (`src/shared/escpos.ts`, `M21-04`):** `encodeEscPosReceipt()` encodes `ESC @` init, optional `ESC p 0 25 250` cash-drawer kick on cash sales, bold headers/totals, ASCII receipt lines, and `GS V 66 3` partial paper cut.
+- **Supported-device matrix (`docs/printing-and-hardware.md`, `M21-05`):** documents supported USB HID scanners, 58 mm / 80 mm thermal printers, RJ-11 cash drawers, barcode label printers, and label-printing weighing scales.
+
 ### M24 · Grocery / Retail Extension
 
 | ID | Task | Depends on | Size |
@@ -368,6 +381,12 @@ Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing re
 | M24-02 | Variable-weight barcode parsing (embedded weight/price, configurable prefix) | M11-03 | M |
 | M24-03 | Price label / barcode label printing | M21-02, M09-02 | M |
 | M24-04 | Weighing-scale integration (serial/USB read) — scope depends on open decision | M21-01 | L |
+
+**Status (2026-10-20):** M24-01 to M24-03 are implemented (`M24-04` serial/USB live scale read remains deferred on PRD §15 open decision). See `docs/printing-and-hardware.md`.
+
+- **Fractional POS quantities (`M24-01`):** weight/volume units (`kg`, `g`, `l`, `ml`) support 3-decimal quantities (`0.001` precision in milli-units) across POS cart entry and stock movements.
+- **Variable-weight & embedded-price EAN-13 barcodes (`parseWeighBarcode`, `ProductService.findByBarcode`, `M24-02`):** parses 13-digit scale barcodes (`PP IIIII VVVVV C`) with configurable 2-digit weight (`20`) and price (`21`) prefixes, resolving the item and populating `scannedQuantityMilli` automatically at POS.
+- **Shelf & pack price/barcode labels (`src/shared/label.ts`, `PrintLabelDialog.tsx`, `M24-03`):** generates Code-128B SVG barcodes and printable `50 mm × 30 mm` labels (`1..50` copies, store name, item title, selling price, MRP, optional packed date) from **Stock → Products**.
 
 ---
 

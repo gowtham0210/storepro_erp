@@ -50,7 +50,9 @@ export const AUDIT_CATEGORIES = [
       { code: 'payment_method.created', label: 'Added a payment method' },
       { code: 'payment_method.updated', label: 'Changed a payment method' },
       { code: 'payment_method.archived', label: 'Archived a payment method' },
-      { code: 'payment_method.restored', label: 'Restored a payment method' }
+      { code: 'payment_method.restored', label: 'Restored a payment method' },
+      { code: 'printer.updated', label: 'Changed printer settings' },
+      { code: 'weigh_barcode.updated', label: 'Changed scale barcode settings' }
     ]
   },
   {
@@ -58,7 +60,8 @@ export const AUDIT_CATEGORIES = [
     label: 'Sales and billing',
     actions: [
       { code: 'sale.created', label: 'Completed a sale' },
-      { code: 'sale.voided', label: 'Voided a sale' }
+      { code: 'sale.voided', label: 'Voided a sale' },
+      { code: 'sale.reprinted', label: 'Reprinted an invoice' }
     ]
   },
   {

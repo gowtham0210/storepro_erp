@@ -30,6 +30,9 @@ import { InventoryService } from './inventory/inventoryService'
 import { PaymentRepository } from './payments/paymentRepository'
 import { PaymentService } from './payments/paymentService'
 import { PricingService } from './pricing/pricingService'
+import { createElectronPrinterAdapter } from './printing/electronPrinterAdapter'
+import { PrinterRepository } from './printing/printerRepository'
+import { PrintingService } from './printing/printingService'
 import { SalesRepository } from './sales/salesRepository'
 import { SalesService } from './sales/salesService'
 import { ConnectivityMonitor } from './connectivity/connectivityMonitor'
@@ -236,6 +239,7 @@ function createServices(
   inventory: InventoryService
   payments: PaymentService
   sales: SalesService
+  printing: PrintingService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -261,13 +265,19 @@ function createServices(
   const modules = new ModuleService({ db, modules: new ModuleRepository(db, clock), audit })
   const catalogRepository = new CatalogRepository(db, clock)
   const catalog = new CatalogService({ db, catalog: catalogRepository, taxClasses, audit })
+  const productRepository = new ProductRepository(db, clock)
+  const printerRepository = new PrinterRepository(db, clock)
   const products = new ProductService({
     db,
-    products: new ProductRepository(db, clock),
+    products: productRepository,
     catalog: catalogRepository,
     taxClasses,
     audit,
-    currency: () => storeRepository.get()?.currency ?? DEFAULT_CURRENCY
+    currency: () => storeRepository.get()?.currency ?? DEFAULT_CURRENCY,
+    weighBarcodeConfig: () =>
+      modules.isEnabled('grocery')
+        ? printerRepository.getWeighBarcodeSettings()
+        : { enabled: false, weightPrefix: '20', pricePrefix: '21' }
   })
   const pricing = new PricingService({ db, store: storeRepository, taxClasses, audit })
   const inventory = new InventoryService({
@@ -278,14 +288,25 @@ function createServices(
   })
   const paymentsRepository = new PaymentRepository(db, clock)
   const payments = new PaymentService({ db, payments: paymentsRepository, audit })
+  const salesRepository = new SalesRepository(db, clock, paymentsRepository)
   const sales = new SalesService({
     db,
-    sales: new SalesRepository(db, clock, paymentsRepository),
+    sales: salesRepository,
     payments,
     pricing,
     inventory,
     store: storeRepository,
     audit
+  })
+  const printing = new PrintingService({
+    db,
+    printers: printerRepository,
+    sales: salesRepository,
+    products: productRepository,
+    store: storeRepository,
+    modules,
+    audit,
+    adapter: createElectronPrinterAdapter()
   })
   return {
     audit,
@@ -299,7 +320,8 @@ function createServices(
     pricing,
     inventory,
     payments,
-    sales
+    sales,
+    printing
   }
 }
 

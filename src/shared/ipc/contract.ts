@@ -391,6 +391,8 @@ export interface ItemLookup {
   taxClassId: number
   tracksInventory: boolean
   onHandMilli: number | null
+  /** Present when resolved from a variable-weight or embedded-price scale barcode (M24-02). */
+  scannedQuantityMilli?: number | undefined
 }
 
 /** Store-wide pricing rules an administrator sets (M10-04, M10-05). */
@@ -763,6 +765,92 @@ export interface HeldBillDetail {
   items: HeldBillLineDetail[]
 }
 
+// ===========================================================================
+// Printing, hardware & grocery extensions (M13, M21, M24)
+// ===========================================================================
+
+export type ReceiptPaperWidthMm = 58 | 80
+export type PrintMode = 'driver' | 'escpos'
+
+/** Device-local receipt & label printer settings stored in `app_settings` (M21-02, M21-03, M21-04). */
+export interface PrinterConfig {
+  /** Selected OS printer name; null uses the system default printer. */
+  printerName: string | null
+  /** Thermal paper width: 58 mm (32 columns) or 80 mm (48 columns) (M13-03). */
+  paperWidthMm: ReceiptPaperWidthMm
+  /** Windows printer driver vs. raw ESC/POS command stream (M21-04). */
+  printMode: PrintMode
+  /** Automatically send the receipt to the printer when checkout completes (M13-04). */
+  autoPrintReceipt: boolean
+  /** Send an ESC/POS cash-drawer kick pulse on cash sales when in ESC/POS mode (M21-04). */
+  openCashDrawer: boolean
+}
+
+export interface PrinterDeviceInfo {
+  name: string
+  displayName: string
+  isDefault: boolean
+}
+
+/** Store-level variable-weight EAN-13 scale barcode configuration (M24-02). */
+export interface WeighBarcodeSettings {
+  enabled: boolean
+  weightPrefix: string
+  pricePrefix: string
+}
+
+export interface PrintReceiptInput {
+  saleId: number
+  /** True when reprinting a past sale; requires `sale.reprint` and marks "DUPLICATE / REPRINT" (M13-05). */
+  isReprint?: boolean | undefined
+  overrideId?: string | undefined
+}
+
+export interface PreviewReceiptInput {
+  saleId: number
+  isReprint?: boolean | undefined
+}
+
+export interface ReceiptPreview {
+  saleId: number
+  invoiceNumber: string
+  paperWidthMm: ReceiptPaperWidthMm
+  columns: number
+  isReprint: boolean
+  isVoided: boolean
+  lines: string[]
+  html: string
+}
+
+export interface PrintLabelInput {
+  variantId: number
+  copies?: number | undefined
+  packedDate?: string | null | undefined
+}
+
+export interface LabelPreview {
+  variantId: number
+  title: string
+  storeName: string
+  codeText: string
+  priceText: string
+  mrpText: string | null
+  unitCode: string
+  packedDate: string | null
+  copies: number
+  svgBarcode: string
+  html: string
+}
+
+export interface PrintJobResult {
+  printed: boolean
+  printerName: string | null
+  printMode: PrintMode
+  paperWidthMm: ReceiptPaperWidthMm
+  /** Byte count when `printMode === 'escpos'`. */
+  escPosByteLength: number | null
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -853,6 +941,16 @@ export interface IpcContract {
   'sales:list-held': { input: void; output: HeldBillSummary[] }
   'sales:resume-held': { input: { heldBillId: number }; output: HeldBillDetail }
   'sales:discard-held': { input: { heldBillId: number }; output: void }
+  'printers:list': { input: void; output: PrinterDeviceInfo[] }
+  'printers:get-config': { input: void; output: PrinterConfig }
+  'printers:set-config': { input: PrinterConfig; output: PrinterConfig }
+  'printers:test-print': { input: void; output: PrintJobResult }
+  'receipts:preview': { input: PreviewReceiptInput; output: ReceiptPreview }
+  'receipts:print': { input: PrintReceiptInput; output: PrintJobResult }
+  'labels:preview': { input: PrintLabelInput; output: LabelPreview }
+  'labels:print': { input: PrintLabelInput; output: PrintJobResult }
+  'grocery:get-weigh-barcode': { input: void; output: WeighBarcodeSettings }
+  'grocery:set-weigh-barcode': { input: WeighBarcodeSettings; output: WeighBarcodeSettings }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -931,7 +1029,17 @@ const channelRegistry: Record<IpcChannel, true> = {
   'sales:hold': true,
   'sales:list-held': true,
   'sales:resume-held': true,
-  'sales:discard-held': true
+  'sales:discard-held': true,
+  'printers:list': true,
+  'printers:get-config': true,
+  'printers:set-config': true,
+  'printers:test-print': true,
+  'receipts:preview': true,
+  'receipts:print': true,
+  'labels:preview': true,
+  'labels:print': true,
+  'grocery:get-weigh-barcode': true,
+  'grocery:set-weigh-barcode': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

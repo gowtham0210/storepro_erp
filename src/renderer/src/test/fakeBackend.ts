@@ -291,6 +291,72 @@ class FakeBackend {
         return []
       case 'sales:find-by-invoice':
         return null
+      case 'printers:list':
+        return [
+          {
+            name: 'System Default Printer',
+            displayName: 'System Default Printer',
+            isDefault: true
+          }
+        ]
+      case 'printers:get-config':
+        return {
+          printerName: null,
+          paperWidthMm: 80,
+          printMode: 'driver',
+          autoPrintReceipt: false,
+          openCashDrawer: false
+        }
+      case 'printers:set-config':
+        return {
+          printerName: null,
+          paperWidthMm: 80,
+          printMode: 'driver',
+          autoPrintReceipt: false,
+          openCashDrawer: false
+        }
+      case 'printers:test-print':
+      case 'receipts:print':
+      case 'labels:print':
+        return {
+          printed: true,
+          printerName: null,
+          printMode: 'driver',
+          paperWidthMm: 80,
+          escPosByteLength: null
+        }
+      case 'receipts:preview':
+        return {
+          saleId: 1,
+          invoiceNumber: 'INV000001',
+          paperWidthMm: 80,
+          columns: 48,
+          isReprint: false,
+          isVoided: false,
+          lines: ['LAKSHMI STORES', 'Bill: INV000001', 'TOTAL PAYABLE'],
+          html: '<pre>LAKSHMI STORES\nBill: INV000001\nTOTAL PAYABLE</pre>'
+        }
+      case 'labels:preview':
+        return {
+          variantId: 1,
+          title: 'Sample Item',
+          storeName: STORE.name,
+          codeText: 'ITEM-00001',
+          priceText: '₹45.00',
+          mrpText: null,
+          unitCode: 'pcs',
+          packedDate: null,
+          copies: 1,
+          svgBarcode: '<svg role="img" aria-label="Barcode ITEM-00001"></svg>',
+          html: '<div>Sample Item</div>'
+        }
+      case 'grocery:get-weigh-barcode':
+      case 'grocery:set-weigh-barcode':
+        return {
+          enabled: true,
+          weightPrefix: '20',
+          pricePrefix: '21'
+        }
       default:
         return undefined
     }

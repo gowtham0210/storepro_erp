@@ -10,6 +10,8 @@ import { InventoryService } from '../../inventory/inventoryService'
 import { PaymentRepository } from '../../payments/paymentRepository'
 import { PaymentService } from '../../payments/paymentService'
 import { PricingService } from '../../pricing/pricingService'
+import { PrinterRepository } from '../../printing/printerRepository'
+import { PrintingService } from '../../printing/printingService'
 import { SalesRepository } from '../../sales/salesRepository'
 import { SalesService } from '../../sales/salesService'
 import { AuditLog } from '../../audit/auditLog'
@@ -58,6 +60,8 @@ export interface Testbed {
   paymentService: PaymentService
   sales: SalesRepository
   salesService: SalesService
+  printers: PrinterRepository
+  printingService: PrintingService
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -96,6 +100,8 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
   const inventory = new InventoryRepository(db, clock)
   const payments = new PaymentRepository(db, clock)
   const sales = new SalesRepository(db, clock, payments)
+  const printers = new PrinterRepository(db, clock)
+  const moduleService = new ModuleService({ db, modules: new ModuleRepository(db, clock), audit })
   const pricingService = new PricingService({ db, store: stores, taxClasses, audit })
   const inventoryService = new InventoryService({ db, inventory, store: stores, audit })
   const paymentService = new PaymentService({ db, payments, audit })
@@ -108,6 +114,15 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
     store: stores,
     audit
   })
+  const printingService = new PrintingService({
+    db,
+    printers,
+    sales,
+    products,
+    store: stores,
+    modules: moduleService,
+    audit
+  })
   return {
     taxClasses,
     catalog,
@@ -115,18 +130,24 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
     inventory,
     payments,
     sales,
+    printers,
     catalogService: new CatalogService({ db, catalog, taxClasses, audit }),
     pricingService,
     inventoryService,
     paymentService,
     salesService,
+    printingService,
     productService: new ProductService({
       db,
       products,
       catalog,
       taxClasses,
       audit,
-      currency: () => stores.get()?.currency ?? DEFAULT_CURRENCY
+      currency: () => stores.get()?.currency ?? DEFAULT_CURRENCY,
+      weighBarcodeConfig: () =>
+        moduleService.isEnabled('grocery')
+          ? printers.getWeighBarcodeSettings()
+          : { enabled: false, weightPrefix: '20', pricePrefix: '21' }
     }),
     auth,
     userService,
@@ -140,7 +161,7 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
     auditLogService: new AuditLogService(new AuditLogReader(db, clock)),
     storeService,
     stores,
-    moduleService: new ModuleService({ db, modules: new ModuleRepository(db, clock), audit }),
+    moduleService,
     actor: () => {
       const actor = auth.authorize('signed-in')
       if (!actor) throw new Error('authorize returned no actor')

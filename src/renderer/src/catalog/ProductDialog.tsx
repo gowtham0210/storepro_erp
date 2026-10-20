@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore, History, PackagePlus, Pencil, Plus, Save } from 'lucide-react'
+import { Archive, ArchiveRestore, History, PackagePlus, Pencil, Plus, Save, Tag } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { z } from 'zod'
@@ -22,6 +22,7 @@ import { useForm } from '../forms/useForm'
 import { invoke } from '../ipc/client'
 import { useIpcQuery } from '../ipc/hooks'
 import { describeError } from '../lib/describeError'
+import { PrintLabelDialog } from '../printing/PrintLabelDialog'
 import { useStore } from '../store/storeContext'
 import { ProductFields, VariantFields, type FormLike } from './ProductFields'
 import {
@@ -202,12 +203,15 @@ function ProductEditor({
 }): React.JSX.Element {
   const can = useCan()
   const canManage = can('product.manage')
+  const store = useStore()
+  const groceryEnabled = store.enabledModules.includes('grocery')
   const queryClient = useQueryClient()
   const toast = useToast()
   const confirm = useConfirm()
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
   const [variantDialog, setVariantDialog] = useState<VariantDialogState>(null)
+  const [labelVariant, setLabelVariant] = useState<VariantDetail | null>(null)
   const initial = productFormFrom(product)
   const form = useForm({
     schema: productFormSchema,
@@ -311,7 +315,7 @@ function ProductEditor({
           <Quantity milli={v.onHandMilli} unit={v.unitCode} />
         )
     },
-    ...(canManage
+    ...(canManage || groceryEnabled
       ? [
           {
             id: 'actions',
@@ -319,24 +323,39 @@ function ProductEditor({
             align: 'right' as const,
             cell: (v: VariantDetail) => (
               <span className="inline-flex flex-wrap justify-end gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  icon={<Pencil />}
-                  aria-label={`Edit ${v.variantName ?? 'pack size'}`}
-                  onClick={() => setVariantDialog({ kind: 'edit', variant: v })}
-                >
-                  Edit
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  icon={v.active ? <Archive /> : <ArchiveRestore />}
-                  aria-label={`${v.active ? 'Archive' : 'Restore'} ${v.variantName ?? 'pack size'}`}
-                  onClick={() => void toggleVariant(v)}
-                >
-                  {v.active ? 'Archive' : 'Restore'}
-                </Button>
+                {groceryEnabled && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Tag />}
+                    aria-label={`Print label for ${v.variantName ?? product.name}`}
+                    onClick={() => setLabelVariant(v)}
+                  >
+                    Print label
+                  </Button>
+                )}
+                {canManage && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Pencil />}
+                      aria-label={`Edit ${v.variantName ?? 'pack size'}`}
+                      onClick={() => setVariantDialog({ kind: 'edit', variant: v })}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={v.active ? <Archive /> : <ArchiveRestore />}
+                      aria-label={`${v.active ? 'Archive' : 'Restore'} ${v.variantName ?? 'pack size'}`}
+                      onClick={() => void toggleVariant(v)}
+                    >
+                      {v.active ? 'Archive' : 'Restore'}
+                    </Button>
+                  </>
+                )}
               </span>
             )
           }
@@ -429,6 +448,17 @@ function ProductEditor({
           variant={variantDialog.kind === 'edit' ? variantDialog.variant : null}
           units={units}
           onClose={() => setVariantDialog(null)}
+        />
+      )}
+      {labelVariant && (
+        <PrintLabelDialog
+          variantId={labelVariant.variantId}
+          itemTitle={
+            labelVariant.variantName
+              ? `${product.name} · ${labelVariant.variantName}`
+              : product.name
+          }
+          onClose={() => setLabelVariant(null)}
         />
       )}
     </div>

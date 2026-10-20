@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, PauseCircle, Percent, Plus, Search, Trash2, Wallet } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { CheckCircle2, PauseCircle, Percent, Plus, Printer, RotateCcw, Search, Trash2, Wallet } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   CheckoutPaymentInput,
   HeldBillDetail,
@@ -1001,7 +1001,11 @@ export function PaymentDialog({
   )
 }
 
-/** Shown immediately after checkout completes so the cashier sees the invoice number and change due. */
+/**
+ * M11-06, M13-04: Shown immediately after checkout completes so the cashier
+ * sees the invoice number, change due, and receipt preview, and can print or
+ * retry printing without losing the saved sale.
+ */
 export function CompletedSaleDialog({
   sale,
   onDone
@@ -1009,6 +1013,43 @@ export function CompletedSaleDialog({
   sale: SaleDetail
   onDone: () => void
 }): React.JSX.Element {
+  const toast = useToast()
+  const [printing, setPrinting] = useState(false)
+  const [printError, setPrintError] = useState<string | null>(null)
+  const [printedOnce, setPrintedOnce] = useState(false)
+  const autoPrintTriggeredRef = useRef(false)
+
+  const printerConfig = useQuery({
+    queryKey: ['printers:get-config'],
+    queryFn: () => invoke('printers:get-config')
+  })
+
+  const preview = useQuery({
+    queryKey: ['receipts:preview', sale.saleId, false],
+    queryFn: () => invoke('receipts:preview', { saleId: sale.saleId, isReprint: false })
+  })
+
+  const handlePrint = useCallback(async (): Promise<void> => {
+    setPrintError(null)
+    setPrinting(true)
+    try {
+      await invoke('receipts:print', { saleId: sale.saleId, isReprint: false })
+      setPrintedOnce(true)
+      toast.success(`Printed receipt for ${sale.invoiceNumber}.`)
+    } catch (failure) {
+      setPrintError(describeError(failure).message)
+    } finally {
+      setPrinting(false)
+    }
+  }, [sale.saleId, sale.invoiceNumber, toast])
+
+  useEffect(() => {
+    if (printerConfig.data?.autoPrintReceipt && !autoPrintTriggeredRef.current) {
+      autoPrintTriggeredRef.current = true
+      void handlePrint()
+    }
+  }, [printerConfig.data?.autoPrintReceipt, handlePrint])
+
   return (
     <Dialog
       open
@@ -1026,6 +1067,22 @@ export function CompletedSaleDialog({
               <Money minor={sale.changeMinor} />
             </span>{' '}
             (Cash tendered: <Money minor={sale.tenderedMinor} />)
+          </Alert>
+        )}
+
+        {printError && (
+          <Alert tone="warning" title="Sale is saved, but receipt printing failed">
+            <div className="space-y-2">
+              <p>{printError}</p>
+              <Button
+                size="sm"
+                icon={<RotateCcw />}
+                loading={printing}
+                onClick={() => void handlePrint()}
+              >
+                Retry print
+              </Button>
+            </div>
           </Alert>
         )}
 
@@ -1052,7 +1109,28 @@ export function CompletedSaleDialog({
           ))}
         </div>
 
-        <div className="flex justify-end pt-2">
+        {preview.data && (
+          <details className="rounded-md border border-border bg-surface-subtle p-3 text-xs">
+            <summary className="cursor-pointer font-medium text-fg">
+              Receipt preview ({preview.data.paperWidthMm} mm)
+            </summary>
+            <pre
+              aria-label="Receipt preview"
+              className="mt-2 max-h-56 overflow-y-auto rounded bg-surface p-2 font-mono text-xs leading-snug text-fg"
+            >
+              {preview.data.lines.join('\n')}
+            </pre>
+          </details>
+        )}
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <Button
+            icon={<Printer />}
+            loading={printing}
+            onClick={() => void handlePrint()}
+          >
+            {printedOnce ? 'Print again' : 'Print receipt'}
+          </Button>
           <Button variant="primary" icon={<CheckCircle2 />} onClick={onDone} autoFocus>
             Start next bill
           </Button>

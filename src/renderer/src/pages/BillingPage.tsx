@@ -13,10 +13,11 @@ import {
   Trash2,
   Wallet
 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HeldBillDetail, SaleDetail } from '@shared/ipc/contract'
 import { discountExceedsLimit, type PricingRules } from '@shared/pricing'
 import { formatQuantity, parseQuantity, QUANTITY_SCALE } from '@shared/quantity'
+import { ScannerBurstDetector } from '@shared/scanner'
 import {
   Alert,
   Badge,
@@ -140,9 +141,8 @@ export default function BillingPage(): React.JSX.Element {
     return rows
   }, [calculated, rules.pricesIncludeTax])
 
-  const handleBarcodeSubmit = async (event: React.FormEvent): Promise<void> => {
-    event.preventDefault()
-    const code = barcodeText.trim()
+  const lookupAndAddBarcode = useCallback(async (rawCode: string): Promise<void> => {
+    const code = rawCode.trim()
     if (!code) return
     setScanError(null)
     setScanning(true)
@@ -152,7 +152,7 @@ export default function BillingPage(): React.JSX.Element {
         setScanError(`No product matches barcode or SKU “${code}”.`)
         return
       }
-      setCart((prev) => addItemToCart(prev, found))
+      setCart((prev) => addItemToCart(prev, found, found.scannedQuantityMilli))
       setBarcodeText('')
       barcodeInputRef.current?.focus()
     } catch (failure) {
@@ -160,7 +160,39 @@ export default function BillingPage(): React.JSX.Element {
     } finally {
       setScanning(false)
     }
+  }, [])
+
+  const handleBarcodeSubmit = async (event: React.FormEvent): Promise<void> => {
+    event.preventDefault()
+    await lookupAndAddBarcode(barcodeText)
   }
+
+  // M21-01: Capture rapid keyboard-wedge barcode scanner bursts even when focus
+  // is outside the barcode input (as long as no modal dialog is open).
+  useEffect(() => {
+    if (modal !== null) return
+    const detector = new ScannerBurstDetector()
+    const onKeyDown = (event: KeyboardEvent): void => {
+      const target = event.target as HTMLElement | null
+      const tag = target?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable) {
+        return
+      }
+      const result = detector.feed({
+        key: event.key,
+        timestampMs: event.timeStamp,
+        ctrlKey: event.ctrlKey,
+        altKey: event.altKey,
+        metaKey: event.metaKey
+      })
+      if (result.barcode !== null) {
+        event.preventDefault()
+        void lookupAndAddBarcode(result.barcode)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [modal, lookupAndAddBarcode])
 
   const handleResumeHeld = (detail: HeldBillDetail): void => {
     setCart(resumeHeldBillToCart(detail))

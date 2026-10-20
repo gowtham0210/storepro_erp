@@ -2,6 +2,7 @@ import type { AuditLogEntry } from '@shared/ipc/contract'
 import { isPermissionCode, permissionDescription } from '@shared/permissions'
 import { PRODUCT_FIELD_LABELS } from '@shared/schemas/catalog'
 import { PRICING_FIELD_LABELS } from '@shared/schemas/pricing'
+import { PRINTER_FIELD_LABELS } from '@shared/schemas/printing'
 import { STORE_FIELD_LABELS } from '@shared/schemas/store'
 
 /** How changed fields are named in sentences. Unknown fields use their key. */
@@ -89,6 +90,11 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       const described = changes(d['changes'], PRICING_FIELD_LABELS)
       return described.charAt(0).toUpperCase() + described.slice(1)
     }
+    case 'printer.updated':
+    case 'weigh_barcode.updated': {
+      const described = changes(d['changes'], PRINTER_FIELD_LABELS)
+      return described.charAt(0).toUpperCase() + described.slice(1)
+    }
     case 'tax_class.created': {
       const cess = d['cess'] && d['cess'] !== '0%' ? ` + ${text(d['cess'])} cess` : ''
       return `${text(d['name'] ?? subject)}: ${text(d['rate'])}${cess}`
@@ -115,6 +121,8 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       const total = d['total'] ? ` (${text(d['total'])})` : ''
       return `${text(d['invoiceNumber'] ?? subject)}${total} — ${text(d['reason'])}`
     }
+    case 'sale.reprinted':
+      return text(d['invoiceNumber'] ?? subject)
     case 'product.created': {
       const items = Array.isArray(d['items']) ? (d['items'] as unknown[]).map(text) : []
       return [text(d['name']), items.join(', ')].filter(Boolean).join(': ')

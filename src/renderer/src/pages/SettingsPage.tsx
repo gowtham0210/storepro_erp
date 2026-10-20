@@ -37,6 +37,7 @@ import {
   type StoreFormValues
 } from '../setup/storeForm'
 import { PricingPolicySection, TaxRatesSection } from '../pricing/PricingSettings'
+import { ReceiptPrinterSection, WeighBarcodeSection } from '../printing/PrintingSettings'
 import { useStore } from '../store/storeContext'
 
 /**
@@ -106,6 +107,8 @@ export default function SettingsPage(): React.JSX.Element {
         >
           {(form) => <ReceiptFields form={form} storeName={profile.name} />}
         </Section>
+        <ReceiptPrinterSection canEdit={canEdit} />
+        <WeighBarcodeSection canEdit={canEdit} />
         <Section
           title="Stock"
           description="What billing does when the system shows an item as out of stock."

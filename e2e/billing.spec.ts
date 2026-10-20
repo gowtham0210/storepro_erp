@@ -62,13 +62,15 @@ test.describe('billing and payments (M11, M12)', () => {
 
     const completedDialog = ui.getByRole('dialog', { name: /Sale completed · INV000001/ })
     await expect(completedDialog).toBeVisible()
+    await completedDialog.getByRole('button', { name: 'Print receipt' }).click()
+    await expect(completedDialog.getByRole('button', { name: 'Print again' })).toBeVisible()
     await completedDialog.getByRole('button', { name: 'Start next bill' }).click()
 
     // Verify stock was deducted to 8 in Inventory.
     await goTo(ui, '/inventory')
     await expect(ui.getByRole('table', { name: 'Inventory' })).toContainText('8')
 
-    // Inspect and void the sale on Sales page, verifying stock is restored to 10.
+    // Inspect, reprint (with DUPLICATE / REPRINT banner), and void the sale on Sales page.
     await goTo(ui, '/sales')
     const salesTable = ui.getByRole('table', { name: 'Past sales invoices' })
     await expect(salesTable).toContainText('INV000001')
@@ -76,6 +78,10 @@ test.describe('billing and payments (M11, M12)', () => {
 
     const detailDialog = ui.getByRole('dialog', { name: 'Invoice INV000001' })
     await expect(detailDialog).toContainText('Tata Tea Gold')
+    await detailDialog.getByRole('button', { name: 'Reprint receipt' }).click()
+    await expect(detailDialog.getByLabel('Duplicate receipt preview')).toContainText(
+      '*** DUPLICATE / REPRINT ***'
+    )
     await detailDialog.getByRole('button', { name: 'Void sale' }).click()
 
     const voidDialog = ui.getByRole('dialog', { name: 'Void invoice INV000001' })
