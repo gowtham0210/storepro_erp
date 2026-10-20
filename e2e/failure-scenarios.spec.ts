@@ -12,7 +12,8 @@ import {
 
 /**
  * M30-07: the real app is killed with no warning (as a power cut or "End task"
- * does) right after the till has confirmed a sale or saved a held bill. Whatever
+ * does) right after the till has confirmed a sale, saved a held bill and brought it
+ * back to the counter. Whatever
  * the till confirmed must be there on the next start, whole, and the next
  * invoice number must carry on from it. (A kill part-way through a sale is
  * tested against the database in src/main/db/crashRecovery.test.ts.)
@@ -75,10 +76,12 @@ test.describe('failure scenarios (M30-07)', () => {
 
       const sale = await checkout('before-the-cut', 2)
       expect(sale.invoiceNumber).toBe('INV000001')
-      await invokeIpc(first.window, 'sales:hold', {
+      const held = await invokeIpc<{ heldBillId: number }>(first.window, 'sales:hold', {
         label: 'Counter 2',
         items: [{ variantId, quantityMilli: 3000 }]
       })
+      // The cashier brings it back to the counter, and then the power goes before Pay.
+      await invokeIpc(first.window, 'sales:resume-held', { heldBillId: held.heldBillId })
 
       const killed = first.app.process()
       await killProcessTree(killed)
@@ -94,11 +97,11 @@ test.describe('failure scenarios (M30-07)', () => {
         )
         expect(sales.total).toBe(1)
         expect(sales.items[0]?.invoiceNumber).toBe('INV000001')
-        const held = await invokeIpc<{ label: string | null; lineCount: number }[]>(
+        const stillHeld = await invokeIpc<{ label: string | null; lineCount: number }[]>(
           second.window,
           'sales:list-held'
         )
-        expect(held).toMatchObject([{ label: 'Counter 2', lineCount: 1 }])
+        expect(stillHeld).toMatchObject([{ label: 'Counter 2', lineCount: 1 }])
         const stock = await invokeIpc<{ items: { variantId: number; onHandMilli: number }[] }>(
           second.window,
           'inventory:list',
@@ -120,6 +123,15 @@ test.describe('failure scenarios (M30-07)', () => {
           payments: [{ paymentMethodId: cashId, amountMinor: 4500 }]
         })
         expect(next.invoiceNumber).toBe('INV000002')
+
+        // The held bill is finished at last: its sale removes it from the list.
+        await invokeIpc(second.window, 'sales:checkout', {
+          checkoutKey: 'held-after-the-cut',
+          heldBillId: held.heldBillId,
+          lines: [{ variantId, quantityMilli: 3000, unitPriceMinor: 4500 }],
+          payments: [{ paymentMethodId: cashId, amountMinor: 13_500 }]
+        })
+        expect(await invokeIpc<unknown[]>(second.window, 'sales:list-held')).toEqual([])
       } finally {
         await closeStorePro(second)
       }

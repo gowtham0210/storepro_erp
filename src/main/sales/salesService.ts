@@ -274,12 +274,16 @@ export class SalesService {
           )
         }
       })
-      return sales.holdBill({
+      const held = sales.holdBill({
         label: input.label,
         customerId,
         heldByUserId: actor.userId,
         items: input.items
       })
+      // Holding a resumed bill again replaces the one it came from, so it is not listed twice.
+      // Together, so a failure leaves the original in place.
+      if (input.replacesHeldBillId != null) sales.deleteHeldBill(input.replacesHeldBillId)
+      return held
     })
   }
 
@@ -288,15 +292,17 @@ export class SalesService {
     return this.deps.sales.listHeldBills()
   }
 
+  /**
+   * Bring a held bill back to the counter. The bill stays held until the sale is completed
+   * (checkout with its `heldBillId` deletes it in the same transaction), it is held again
+   * (which replaces it) or it is discarded. The cart lives only in the window, so deleting it
+   * here would lose the bill if the app closed or the power went before checkout.
+   */
   resumeHeldBill(actor: Actor, heldBillId: number): HeldBillDetail {
     assertCan(actor, 'sale.create')
-    const { db, sales } = this.deps
-    return db.transaction(() => {
-      const held = sales.getHeldBill(heldBillId)
-      if (!held) throw new AppError('NOT_FOUND', 'That held bill was not found.')
-      sales.deleteHeldBill(heldBillId)
-      return held
-    })
+    const held = this.deps.sales.getHeldBill(heldBillId)
+    if (!held) throw new AppError('NOT_FOUND', 'That held bill was not found.')
+    return held
   }
 
   discardHeldBill(actor: Actor, heldBillId: number): void {

@@ -734,6 +734,8 @@ export interface HoldBillInput {
   label: string | null
   customerId?: number | null | undefined
   items: HeldBillLineInput[]
+  /** The held bill this cart was resumed from, replaced by this one in the same step. */
+  replacesHeldBillId?: number | null | undefined
 }
 
 export interface HeldBillSummary {

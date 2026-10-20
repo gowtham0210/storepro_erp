@@ -530,9 +530,12 @@ export function HoldBillDialog({
 
 /** M11-09: View, resume, or discard held bills (F8). */
 export function HeldBillsDialog({
+  onCounterHeldBillId = null,
   onResume,
   onClose
 }: {
+  /** The held bill the current cart was resumed from: it stays held until the sale is done. */
+  onCounterHeldBillId?: number | null
   onResume: (detail: HeldBillDetail) => void
   onClose: () => void
 }): React.JSX.Element {
@@ -554,7 +557,6 @@ export function HeldBillsDialog({
     setBusyId(bill.heldBillId)
     try {
       const detail = await invoke('sales:resume-held', { heldBillId: bill.heldBillId })
-      await queryClient.invalidateQueries({ queryKey: ['sales:list-held'] })
       toast.info(
         detail.label ? `Resumed “${detail.label}”.` : `Resumed held bill #${detail.heldBillId}.`
       )
@@ -616,9 +618,17 @@ export function HeldBillsDialog({
               <tbody className="divide-y divide-border">
                 {bills.map((bill) => {
                   const title = bill.label ?? `Held bill #${bill.heldBillId}`
+                  const onCounter = bill.heldBillId === onCounterHeldBillId
                   return (
                     <tr key={bill.heldBillId}>
-                      <td className="px-3 py-2.5 font-medium text-fg">{title}</td>
+                      <td className="px-3 py-2.5 font-medium text-fg">
+                        {title}
+                        {onCounter && (
+                          <span className="block text-sm font-normal text-fg-muted">
+                            On the counter now
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3 py-2.5 text-sm text-fg-muted">
                         <span className="font-medium text-fg">{bill.lineCount}</span> ·{' '}
                         {bill.itemSummary}
@@ -633,6 +643,7 @@ export function HeldBillsDialog({
                             size="sm"
                             variant="primary"
                             loading={busyId === bill.heldBillId}
+                            disabled={onCounter}
                             aria-label={`Resume ${title}`}
                             onClick={() => void handleResume(bill)}
                           >

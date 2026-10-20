@@ -131,7 +131,8 @@ export const holdBillSchema = z.object({
   items: z
     .array(heldBillLineSchema)
     .min(1, 'Add at least one item before holding the bill')
-    .max(200, 'At most 200 items can be held on one bill')
+    .max(200, 'At most 200 items can be held on one bill'),
+  replacesHeldBillId: id.nullable().optional()
 })
 
 export const heldBillIdSchema = z.object({

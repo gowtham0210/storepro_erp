@@ -219,6 +219,80 @@ describe('SalesService and PaymentService (M11, M12, M13-01)', () => {
     expect(cleanSale.invoiceNumber).toBe('INV000001')
   })
 
+  it('keeps a resumed bill held until its sale is completed, then deletes it exactly once', async () => {
+    const { ipc, bed, riceVariantId, cash } = await setupStore()
+    const held = await ipc.invoke('sales:hold', {
+      label: 'Counter 2',
+      items: [{ variantId: riceVariantId, quantityMilli: 2000 }]
+    })
+
+    // Resumed, then the app is closed or the power goes: the bill is still there.
+    await ipc.invoke('sales:resume-held', { heldBillId: held.heldBillId })
+    await ipc.invoke('sales:resume-held', { heldBillId: held.heldBillId })
+    expect(await ipc.invoke('sales:list-held')).toMatchObject([{ label: 'Counter 2' }])
+
+    // A checkout that fails leaves it held too.
+    const refused = await ipc.send('sales:checkout', {
+      checkoutKey: 'chk-held-short',
+      heldBillId: held.heldBillId,
+      lines: [{ variantId: riceVariantId, quantityMilli: 2000, unitPriceMinor: 32_000 }],
+      payments: [{ paymentMethodId: cash.paymentMethodId, amountMinor: 100 }]
+    })
+    expect(refused.ok).toBe(false)
+    expect(await ipc.invoke('sales:list-held')).toHaveLength(1)
+
+    const sale = await ipc.invoke('sales:checkout', {
+      checkoutKey: 'chk-held-paid',
+      heldBillId: held.heldBillId,
+      lines: [{ variantId: riceVariantId, quantityMilli: 2000, unitPriceMinor: 32_000 }],
+      payments: [{ paymentMethodId: cash.paymentMethodId, amountMinor: 64_000 }]
+    })
+    expect(await ipc.invoke('sales:list-held')).toHaveLength(0)
+    // Pay pressed again for the same bill: the same sale, not a second one or an error.
+    const again = await ipc.invoke('sales:checkout', {
+      checkoutKey: 'chk-held-paid',
+      heldBillId: held.heldBillId,
+      lines: [{ variantId: riceVariantId, quantityMilli: 2000, unitPriceMinor: 32_000 }],
+      payments: [{ paymentMethodId: cash.paymentMethodId, amountMinor: 64_000 }]
+    })
+    expect(again.saleId).toBe(sale.saleId)
+    expect(bed.sales.list({}).total).toBe(1)
+  })
+
+  it('replaces the bill it came from when a resumed bill is held again', async () => {
+    const { ipc, db, riceVariantId, oilVariantId } = await setupStore()
+    const first = await ipc.invoke('sales:hold', {
+      label: 'Counter 2',
+      items: [{ variantId: riceVariantId, quantityMilli: 1000 }]
+    })
+    await ipc.invoke('sales:resume-held', { heldBillId: first.heldBillId })
+
+    // A failure while saving the new version leaves the original in place.
+    db.exec(`
+      CREATE TEMP TRIGGER fail_on_oil BEFORE INSERT ON held_bill_items
+      WHEN NEW.variant_id = ${oilVariantId}
+      BEGIN SELECT RAISE(ABORT, 'simulated failure'); END;
+    `)
+    const again = {
+      label: 'Counter 2',
+      items: [
+        { variantId: riceVariantId, quantityMilli: 1000 },
+        { variantId: oilVariantId, quantityMilli: 1000 }
+      ],
+      replacesHeldBillId: first.heldBillId
+    }
+    expect((await ipc.send('sales:hold', again)).ok).toBe(false)
+    expect((await ipc.invoke('sales:list-held')).map((b) => b.heldBillId)).toEqual([
+      first.heldBillId
+    ])
+
+    db.exec('DROP TRIGGER fail_on_oil')
+    const second = await ipc.invoke('sales:hold', again)
+    const list = await ipc.invoke('sales:list-held')
+    expect(list).toHaveLength(1)
+    expect(list[0]).toMatchObject({ heldBillId: second.heldBillId, lineCount: 2 })
+  })
+
   it('blocks checkout when allowNegativeStock is off and allows it when enabled (M14-01, M14-03)', async () => {
     const { ipc, bed, riceVariantId, cash } = await setupStore()
 
@@ -332,6 +406,9 @@ describe('SalesService and PaymentService (M11, M12, M13-01)', () => {
     const resumed = await ipc.invoke('sales:resume-held', { heldBillId: held.heldBillId })
     expect(resumed.items).toHaveLength(2)
     expect(resumed.items[0]!.discountMinor).toBe(1000)
+    // Resuming does not delete it: the cart is only in the window until checkout.
+    expect(await ipc.invoke('sales:list-held')).toHaveLength(1)
+    await ipc.invoke('sales:discard-held', { heldBillId: held.heldBillId })
     expect(await ipc.invoke('sales:list-held')).toHaveLength(0)
 
     // Holding another bill and completing checkout with heldBillId removes it automatically
@@ -412,13 +489,11 @@ describe('SalesService and PaymentService (M11, M12, M13-01)', () => {
 
     // Record a linked return and refund payment via PaymentRepository (M12-04)
     const saleReturnId = Number(
-      db
-        .run(
-          `INSERT INTO sale_returns (return_number, sale_id, returned_at, processed_by_user_id, reason)
+      db.run(
+        `INSERT INTO sale_returns (return_number, sale_id, returned_at, processed_by_user_id, reason)
            VALUES ('RET-000001', ?, ?, 1, 'Damaged pack')`,
-          [sale.saleId, bed.clock.now()]
-        )
-        .lastInsertRowid
+        [sale.saleId, bed.clock.now()]
+      ).lastInsertRowid
     )
     bed.payments.recordReturnRefunds(saleReturnId, [
       { paymentMethodId: upi.paymentMethodId, amountMinor: 32_000, reference: 'REF-UPI-99' }

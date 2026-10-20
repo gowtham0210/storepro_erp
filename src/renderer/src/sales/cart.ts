@@ -196,7 +196,8 @@ export function toHoldBillInput(
       // The line's whole discount: its own plus its share of the bill discount. A held bill has
       // no bill-level discount of its own, so without the share it would be lost on resume.
       discountMinor: calculated.lines[index]?.discountMinor ?? 0
-    }))
+    })),
+    replacesHeldBillId: cart.heldBillId
   }
 }
 

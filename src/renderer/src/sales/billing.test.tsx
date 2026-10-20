@@ -291,8 +291,8 @@ describe('POS Billing screen (M11-02 to M11-11, M12-02, M12-03)', () => {
       return summary
     })
     fakeBackend.on('sales:list-held', () => heldBills)
+    // Like the main process: resuming leaves the bill held until checkout or a new hold.
     fakeBackend.on('sales:resume-held', () => {
-      heldBills.length = 0
       return {
         heldBillId: 7,
         label: 'Counter 2',
@@ -338,6 +338,25 @@ describe('POS Billing screen (M11-02 to M11-11, M12-02, M12-03)', () => {
     expect(
       (screen.getByLabelText('Quantity of Gingelly Oil 1 L') as HTMLInputElement).value
     ).toBe('2')
+
+    // It is still listed, marked as the bill on the counter, and can't be resumed twice.
+    await user.click(screen.getByRole('button', { name: /Held bills/ }))
+    const listAgain = await screen.findByRole('dialog', { name: 'Held bills' })
+    expect(within(listAgain).getByText('On the counter now')).toBeTruthy()
+    expect(
+      (within(listAgain).getByRole('button', { name: 'Resume Counter 2' }) as HTMLButtonElement)
+        .disabled
+    ).toBe(true)
+    await user.click(within(listAgain).getAllByRole('button', { name: 'Close' })[0]!)
+
+    // Holding it again replaces the bill it came from.
+    await user.click(screen.getByRole('button', { name: /Hold bill/ }))
+    const holdAgain = await screen.findByRole('dialog', { name: 'Hold bill' })
+    await user.click(within(holdAgain).getByRole('button', { name: 'Hold bill' }))
+    expect(await screen.findByText('No items on this bill yet')).toBeTruthy()
+    const holds = fakeBackend.callsTo('sales:hold')
+    expect(holds[0]).toMatchObject({ replacesHeldBillId: null })
+    expect(holds[1]).toMatchObject({ replacesHeldBillId: 7 })
   })
 })
 

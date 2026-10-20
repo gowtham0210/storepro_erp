@@ -211,7 +211,10 @@ export default function BillingPage(): React.JSX.Element {
     if (cart.lines.length === 0) return
     const ok = await confirm({
       title: 'Cancel this bill?',
-      description: 'All items and discounts on the current unfinished bill will be cleared.',
+      description:
+        cart.heldBillId === null
+          ? 'All items and discounts on the current unfinished bill will be cleared.'
+          : 'The bill is cleared from the counter. The held bill it came from stays in Held bills.',
       confirmLabel: 'Clear bill',
       tone: 'danger'
     })
@@ -481,6 +484,7 @@ export default function BillingPage(): React.JSX.Element {
 
       {modal?.kind === 'held-list' && (
         <HeldBillsDialog
+          onCounterHeldBillId={cart.heldBillId}
           onResume={handleResumeHeld}
           onClose={() => setModal(null)}
         />

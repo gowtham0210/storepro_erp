@@ -68,6 +68,13 @@ shared `calculateBill()` engine (`src/shared/pricing.ts`):
 - **Held bills (`M11-09`):** Cashiers can park an unfinished bill (`sales:hold`, `F9`) with an
   optional reference label, list held bills (`sales:list-held`, `F8`), resume a held bill back into
   the cart (`sales:resume-held`), or discard it (`sales:discard-held`).
+- **A resumed bill stays held until it is finished.** The cart lives only in the window, so
+  resuming does not delete the held bill: a crash or power cut before Pay loses nothing. The bill
+  is deleted by the checkout that completes it (`heldBillId`, in the same transaction as the
+  sale), replaced when the cart is held again (`replacesHeldBillId`, in the same transaction as
+  the new hold), or discarded by hand. While it is on the counter, Held bills marks it "On the
+  counter now" and it can't be resumed a second time. Cancelling the bill (`F2`) clears the
+  counter and leaves it in Held bills.
 - **Cancel vs. void (`M11-10`):**
   - Clearing an unfinished cart (`F2`) only resets in-memory cart state after confirmation.
   - Voiding a completed sale (`sales:void`) requires `sale.void` (or a manager override for a
