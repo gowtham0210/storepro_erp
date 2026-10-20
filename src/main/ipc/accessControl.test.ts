@@ -271,7 +271,24 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'reports:stock-movements': [{ from: '2026-10-01', to: '2026-10-31' }],
   'reports:purchases': [{ from: '2026-10-01', to: '2026-10-31' }],
   'reports:expenses': [{ from: '2026-10-01', to: '2026-10-31' }],
-  'reports:export': [{ report: 'sales', from: '2026-10-01', to: '2026-10-31' }]
+  'reports:export': [{ report: 'sales', from: '2026-10-01', to: '2026-10-31' }],
+  'backup:get-status': [],
+  'backup:set-config': [
+    {
+      autoBackupEnabled: true,
+      scheduleIntervalHours: 24,
+      retentionCount: 30,
+      destinationDir: null
+    }
+  ],
+  'backup:pick-folder': [],
+  'backup:pick-file': [],
+  'backup:create': [{}],
+  'backup:validate': [{ filePath: 'D:\\backups\\storepro.db' }],
+  'backup:restore': [{ filePath: 'D:\\backups\\storepro.db' }],
+  'import:products-template': [],
+  'import:products-preview': [{ csvText: 'product_name,unit_code,selling_price\nRice,pcs,100' }],
+  'import:products-commit': [{ csvText: 'product_name,unit_code,selling_price\nRice,pcs,100' }]
 }
 
 describe('access control over IPC', () => {

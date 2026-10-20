@@ -94,6 +94,7 @@ erDiagram
 | Purchasing          | `purchase_orders`, `purchase_order_items`, `goods_receipts`, `goods_receipt_purchase_orders`, `goods_receipt_items`         |
 | Stock               | `stock_adjustments`, `stock_adjustment_items` (movements are the view `v_inventory_movements`)                              |
 | Expenses            | `expense_categories`, `expenses`                                                                                            |
+| Backup              | `backup_runs` (configuration in `app_settings` under `backupsettings`)                                                      |
 | Schema              | `schema_migrations` (managed by the migration runner)                                                                       |
 
 ### Mapping to the PRD (§8)
@@ -298,6 +299,9 @@ Migrations so far:
   `businesses.max_discount_bp` (the cashier discount limit in basis points), and seeds the `'TAX'`
   component in `tax_components` for stores outside India. See
   [`pricing-and-tax.md`](pricing-and-tax.md).
+- 0007: backup. Adds `backup_runs` to record manual, scheduled, and pre-restore backup runs,
+  their SHA-256 checksums, schema versions, and failure alerts (M20-01..M20-06). See
+  [`backup-and-recovery.md`](backup-and-recovery.md).
 
 Store setup (M03) needed no migration: `businesses` already held every field. Its single row
 existing is what "set up" means, and `region_code` holds the ISO 3166-2 subdivision code (`TN`).

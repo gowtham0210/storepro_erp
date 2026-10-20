@@ -20,8 +20,12 @@ import { LoginThrottle } from './auth/loginThrottle'
 import { OverrideGrants } from './auth/overrideGrants'
 import { PasswordHasher } from './auth/passwords'
 import { RoleRepository } from './auth/roleRepository'
+import { BackupRepository } from './backup/backupRepository'
+import { BackupService } from './backup/backupService'
+import { createElectronBackupAdapter } from './backup/electronBackupAdapter'
 import { CatalogRepository } from './catalog/catalogRepository'
 import { CatalogService } from './catalog/catalogService'
+import { ProductImportService } from './catalog/productImportService'
 import { ProductRepository } from './catalog/productRepository'
 import { ProductService } from './catalog/productService'
 import { TaxClassRepository } from './catalog/taxClassRepository'
@@ -184,7 +188,9 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
   hardenSession(session.defaultSession, { devServerOrigin, logger: logger.child('security') })
   if (devServerUrl === null) serveRendererFromAppScheme(join(import.meta.dirname, '../renderer'))
 
-  const services = createServices(db, logger)
+  const services = createServices(db, logger, join(userData, 'backups'))
+  services.backups.startScheduler()
+  shutdown.register('backup-scheduler', () => services.backups.stopScheduler())
   recordStartupEvents(services.audit, { migration, integrity, startup: startupStatus })
 
   // M08: watch the connection and tell the window when it changes.
@@ -238,7 +244,8 @@ function start(logger: Logger, shutdown: ShutdownCoordinator, userData: string):
 /** Application services, wired once per run. */
 function createServices(
   db: Database,
-  logger: Logger
+  logger: Logger,
+  defaultBackupDir: string
 ): {
   audit: AuditLog
   auth: AuthService
@@ -248,6 +255,8 @@ function createServices(
   modules: ModuleService
   catalog: CatalogService
   products: ProductService
+  imports: ProductImportService
+  backups: BackupService
   pricing: PricingService
   inventory: InventoryService
   payments: PaymentService
@@ -297,6 +306,25 @@ function createServices(
       modules.isEnabled('grocery')
         ? printerRepository.getWeighBarcodeSettings()
         : { enabled: false, weightPrefix: '20', pricePrefix: '21' }
+  })
+  const imports = new ProductImportService({
+    db,
+    products: productRepository,
+    catalog: catalogRepository,
+    taxClasses,
+    audit,
+    currency: () => storeRepository.get()?.currency ?? DEFAULT_CURRENCY
+  })
+  const backups = new BackupService({
+    db,
+    backups: new BackupRepository(db, clock),
+    store: storeRepository,
+    audit,
+    clock,
+    logger: logger.child('backup'),
+    defaultBackupDir,
+    appVersion: app.getVersion(),
+    adapter: createElectronBackupAdapter()
   })
   const pricing = new PricingService({ db, store: storeRepository, taxClasses, audit })
   const inventory = new InventoryService({
@@ -373,6 +401,8 @@ function createServices(
     modules,
     catalog,
     products,
+    imports,
+    backups,
     pricing,
     inventory,
     payments,

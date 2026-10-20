@@ -1,5 +1,6 @@
 import type { AuditLogEntry } from '@shared/ipc/contract'
 import { isPermissionCode, permissionDescription } from '@shared/permissions'
+import { BACKUP_FIELD_LABELS } from '@shared/schemas/backup'
 import { PRODUCT_FIELD_LABELS } from '@shared/schemas/catalog'
 import { PRICING_FIELD_LABELS } from '@shared/schemas/pricing'
 import { PRINTER_FIELD_LABELS } from '@shared/schemas/printing'
@@ -313,6 +314,20 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       return text(d['name'] ?? subject)
     case 'expense_category.updated':
       return changes(d['changes'], { name: 'name' })
+    case 'backup.settings_updated': {
+      const described = changes(d['changes'], BACKUP_FIELD_LABELS)
+      return described.charAt(0).toUpperCase() + described.slice(1)
+    }
+    case 'backup.created':
+      return `${text(d['fileName'])} · schema v${text(d['schemaVersion'])}`
+    case 'backup.restored': {
+      const mig = Array.isArray(d['migrationsApplied']) && d['migrationsApplied'].length > 0
+        ? ` (upgraded from v${text(d['fromSchemaVersion'])} to v${text(d['toSchemaVersion'])})`
+        : ''
+      return `From ${text(d['restoredFrom'])}${mig} · safety copy saved as ${text(d['safetyCopy'])}`
+    }
+    case 'data.products_imported':
+      return `${text(d['productsCreated'])} products (${text(d['variantsCreated'])} pack sizes)${Number(d['categoriesCreated'] ?? 0) > 0 ? `, ${text(d['categoriesCreated'])} new categories` : ''}`
     case 'system.database_upgraded':
       return `From version ${text(d['fromVersion'])} to ${text(d['toVersion'])}${d['backupFile'] ? `. A backup was saved first (${text(d['backupFile'])})` : ''}`
     case 'system.unclean_shutdown': {

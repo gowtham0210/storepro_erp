@@ -1,6 +1,8 @@
 import type { AuditLogService } from '../../audit/auditLogService'
 import type { AuthService } from '../../auth/authService'
+import type { BackupService } from '../../backup/backupService'
 import type { CatalogService } from '../../catalog/catalogService'
+import type { ProductImportService } from '../../catalog/productImportService'
 import type { ProductService } from '../../catalog/productService'
 import type { CustomerService } from '../../customers/customerService'
 import type { ExpenseService } from '../../expenses/expenseService'
@@ -22,10 +24,12 @@ import type { HandlerMap } from '../serviceHost'
 import { createAppHandlers, type AppHandlerDeps } from './app'
 import { createAuditHandlers } from './audit'
 import { createAuthHandlers } from './auth'
+import { createBackupHandlers } from './backup'
 import { createCatalogHandlers } from './catalog'
 import { createConnectivityHandlers } from './connectivity'
 import { createCustomerHandlers } from './customers'
 import { createExpenseHandlers } from './expenses'
+import { createImportHandlers } from './import'
 import { createInventoryHandlers } from './inventory'
 import { createLogHandlers } from './log'
 import { createModuleHandlers } from './modules'
@@ -48,6 +52,8 @@ export interface HandlerDeps extends AppHandlerDeps {
   connectivity: ConnectivityMonitor
   catalog: CatalogService
   products: ProductService
+  imports: ProductImportService
+  backups: BackupService
   pricing: PricingService
   inventory: InventoryService
   payments: PaymentService
@@ -72,6 +78,8 @@ export function createHandlers(deps: HandlerDeps): HandlerMap {
     ...createModuleHandlers(deps.modules),
     ...createConnectivityHandlers(deps.connectivity),
     ...createCatalogHandlers(deps.catalog, deps.products),
+    ...createImportHandlers(deps.imports),
+    ...createBackupHandlers(deps.backups),
     ...createPricingHandlers(deps.pricing),
     ...createInventoryHandlers(deps.inventory),
     ...createSalesHandlers(deps.payments, deps.sales),

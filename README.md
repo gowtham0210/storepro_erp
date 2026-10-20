@@ -127,7 +127,10 @@ off never deletes its data. See [`docs/modules.md`](docs/modules.md).
 price, MRP, cost, unit and barcodes), categories and units. A barcode belongs to one item; SKUs are
 assigned if left empty. Items are archived, never deleted, so past bills keep them. Price changes
 apply to the next bill and are audited with the old and new amounts. Billing finds items by
-barcode, SKU or name prefix. See [`docs/catalogue.md`](docs/catalogue.md).
+barcode, SKU or name prefix. Administrators can also bulk-import products from CSV with a
+downloadable template, column mapping, row-by-row validation preview, error report download, and
+atomic batch commit (`M22-01`, `M22-02`). See [`docs/catalogue.md`](docs/catalogue.md) and
+[`docs/data-import.md`](docs/data-import.md).
 
 ### Pricing, discounts and tax
 
@@ -261,7 +264,13 @@ checked for integrity if the last session ended uncleanly, migrated (after a bac
 See [`docs/data-model.md`](docs/data-model.md) for the principles, the table-by-table 3NF analysis,
 documented exceptions, migration rules and performance results.
 
-### User data
+### User data, backup and recovery
 
-The database, backups, window state, the session marker, crash history and logs live in `%APPDATA%\StorePro`. The
-installer never deletes this folder on uninstall or upgrade.
+The database, backups, window state, the session marker, crash history and logs live in
+`%APPDATA%\StorePro`. The installer never deletes this folder on uninstall or upgrade (`M30-09`).
+Under **Manage → Settings → Data backup and restore**, administrators and managers can take online
+SQLite backups (`VACUUM INTO`) with `.meta.json` SHA-256 checksums (`M20-01`, `M20-02`), configure
+scheduled automatic backups with retention pruning (`M20-03`), view last backup status and failure
+alerts (`M20-06`), and restore validated backups (including automatic migration of older-schema
+backups and a pre-restore safety copy, `M20-04`, `M20-05`). See
+[`docs/backup-and-recovery.md`](docs/backup-and-recovery.md).

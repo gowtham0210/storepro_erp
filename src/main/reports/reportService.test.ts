@@ -1,7 +1,7 @@
 import { TEST_STORE } from '@shared/test/stores'
 import { describe, expect, it } from 'vitest'
 import type { SaleDetail } from '@shared/ipc/contract'
-import { parseCsv } from '@shared/csv'
+import { parseCsvRows as parseCsv } from '@shared/csv'
 import { reportExportSchema, reportRangeSchema, topProductsSchema } from '@shared/schemas/reports'
 import { insertProduct, insertSale } from '../db/dev/builders'
 import { useMigratedDb } from '../db/test/testDb'

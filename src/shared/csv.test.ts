@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseCsv, toCsv } from './csv'
+import { parseCsvRows as parseCsv, toCsv } from './csv'
 
 describe('CSV (M22-03)', () => {
   it('quotes cells that need it and reads them back exactly', () => {

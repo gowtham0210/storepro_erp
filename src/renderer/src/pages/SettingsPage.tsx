@@ -38,6 +38,7 @@ import {
 } from '../setup/storeForm'
 import { PricingPolicySection, TaxRatesSection } from '../pricing/PricingSettings'
 import { ReceiptPrinterSection, WeighBarcodeSection } from '../printing/PrintingSettings'
+import { BackupSection } from '../backup/BackupSettings'
 import { useStore } from '../store/storeContext'
 
 /**
@@ -119,6 +120,7 @@ export default function SettingsPage(): React.JSX.Element {
           {(form) => <StockFields form={form} />}
         </Section>
         <ModulesSection canEdit={canEdit} />
+        <BackupSection canEdit={canEdit} />
       </div>
     </>
   )

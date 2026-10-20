@@ -357,6 +357,37 @@ class FakeBackend {
           weightPrefix: '20',
           pricePrefix: '21'
         }
+      case 'backup:get-status':
+      case 'backup:set-config':
+        return {
+          config: {
+            autoBackupEnabled: true,
+            scheduleIntervalHours: 24,
+            retentionCount: 30,
+            destinationDir: null
+          },
+          resolvedDestinationDir: 'D:\\StorePro\\backups',
+          lastSuccessfulBackup: null,
+          lastFailedBackup: null,
+          hasUnresolvedFailureAlert: false,
+          recentRuns: []
+        }
+      case 'backup:pick-folder':
+      case 'backup:pick-file':
+        return null
+      case 'import:products-template':
+        return {
+          filename: 'storepro-products-template.csv',
+          csvText: 'product_name,unit_code,selling_price\nRice,pcs,320.00\n',
+          columns: [
+            {
+              header: 'product_name',
+              required: true,
+              description: 'Product name',
+              example: 'Rice'
+            }
+          ]
+        }
       default:
         return undefined
     }
