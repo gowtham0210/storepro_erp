@@ -264,7 +264,24 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'returns:list': [{}],
   'returns:get': [{ saleReturnId: 1 }],
   'returns:preview-receipt': [{ saleReturnId: 1 }],
-  'returns:print-receipt': [{ saleReturnId: 1 }]
+  'returns:print-receipt': [{ saleReturnId: 1 }],
+  'backup:get-status': [],
+  'backup:set-config': [
+    {
+      autoBackupEnabled: true,
+      scheduleIntervalHours: 24,
+      retentionCount: 30,
+      destinationDir: null
+    }
+  ],
+  'backup:pick-folder': [],
+  'backup:pick-file': [],
+  'backup:create': [{}],
+  'backup:validate': [{ filePath: 'D:\\backups\\storepro.db' }],
+  'backup:restore': [{ filePath: 'D:\\backups\\storepro.db' }],
+  'import:products-template': [],
+  'import:products-preview': [{ csvText: 'product_name,unit_code,selling_price\nRice,pcs,100' }],
+  'import:products-commit': [{ csvText: 'product_name,unit_code,selling_price\nRice,pcs,100' }]
 }
 
 describe('access control over IPC', () => {

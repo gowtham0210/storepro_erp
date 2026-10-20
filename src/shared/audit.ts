@@ -52,7 +52,11 @@ export const AUDIT_CATEGORIES = [
       { code: 'payment_method.archived', label: 'Archived a payment method' },
       { code: 'payment_method.restored', label: 'Restored a payment method' },
       { code: 'printer.updated', label: 'Changed printer settings' },
-      { code: 'weigh_barcode.updated', label: 'Changed scale barcode settings' }
+      { code: 'weigh_barcode.updated', label: 'Changed scale barcode settings' },
+      { code: 'backup.settings_updated', label: 'Changed backup settings' },
+      { code: 'backup.created', label: 'Backed up store data' },
+      { code: 'backup.restored', label: 'Restored store data from a backup' },
+      { code: 'data.products_imported', label: 'Imported products from CSV' }
     ]
   },
   {

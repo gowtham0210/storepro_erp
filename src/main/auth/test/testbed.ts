@@ -1,6 +1,11 @@
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { DEFAULT_CURRENCY } from '@shared/money'
+import { BackupRepository } from '../../backup/backupRepository'
+import { BackupService } from '../../backup/backupService'
 import { CatalogRepository } from '../../catalog/catalogRepository'
 import { CatalogService } from '../../catalog/catalogService'
+import { ProductImportService } from '../../catalog/productImportService'
 import { ProductRepository } from '../../catalog/productRepository'
 import { ProductService } from '../../catalog/productService'
 import { TaxClassRepository } from '../../catalog/taxClassRepository'
@@ -63,6 +68,9 @@ export interface Testbed {
   products: ProductRepository
   catalogService: CatalogService
   productService: ProductService
+  productImportService: ProductImportService
+  backupRepository: BackupRepository
+  backupService: BackupService
   pricingService: PricingService
   inventory: InventoryRepository
   inventoryService: InventoryService
@@ -148,7 +156,27 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
   const expenseRepository = new ExpenseRepository(db, clock)
   const customerRepository = new CustomerRepository(db, clock)
   const returnRepository = new ReturnRepository(db, clock, payments)
+  const backupRepository = new BackupRepository(db, clock)
   return {
+    backupRepository,
+    backupService: new BackupService({
+      db,
+      backups: backupRepository,
+      store: stores,
+      audit,
+      clock,
+      logger: createTestLogger(),
+      defaultBackupDir: join(tmpdir(), 'storepro-test-backups'),
+      appVersion: '1.0.0'
+    }),
+    productImportService: new ProductImportService({
+      db,
+      products,
+      catalog,
+      taxClasses,
+      audit,
+      currency: () => stores.get()?.currency ?? DEFAULT_CURRENCY
+    }),
     returnRepository,
     returnService: new ReturnService({
       db,

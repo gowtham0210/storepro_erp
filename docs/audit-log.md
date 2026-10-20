@@ -68,14 +68,7 @@ db.transaction(() => {
 | Customers           | customer added, changed (before and after), archived, restored                                                                                                                                                 | M17                |
 | Expenses            | expense recorded, changed (before and after), voided, restored; expense category added, renamed, archived, restored                                                                                           | M18                |
 | Sales and billing   | sale completed (invoice number, item count, total, discount, and manager approver if price or discount was overridden); sale voided (invoice number, total, reason, and manager approver); invoice reprinted (`sale.reprinted`, with manager approver if overridden); return taken (return and invoice numbers, items with what happened to the goods, refund by method, reason, and manager approver); return receipt printed (`return.printed`) or reprinted (`return.reprinted`) | M11, M13, M16 |
-
-Sensitive actions of modules that aren't built yet must be added as those modules are built.
-Each must use `change()` with the request's `actor`:
-
-| Action (planned)         | Module |
-| ------------------------ | ------ |
-| Backup made, restored    | M20    |
-| Data imported / exported | M22    |
+| Backup and data     | backup settings changed (`backup.settings_updated`), store data backed up (`backup.created`), store data restored from a backup (`backup.restored`, with safety copy file name and any schema migrations applied), products imported from CSV (`data.products_imported`, with product, variant, and category counts) | M20, M22 |
 
 ## 5. The viewer (M07-04)
 

@@ -1339,6 +1339,166 @@ export interface ReturnReceiptPreview {
   html: string
 }
 
+// ---------------------------------------------------------------------------
+// Backup and restore (M20)
+// ---------------------------------------------------------------------------
+
+export type BackupTriggerKind = 'manual' | 'scheduled' | 'pre_restore'
+export type BackupRunStatus = 'succeeded' | 'failed'
+
+export interface BackupConfig {
+  autoBackupEnabled: boolean
+  scheduleIntervalHours: number
+  retentionCount: number
+  /** Custom backup folder; null uses `%APPDATA%\StorePro\backups`. */
+  destinationDir: string | null
+}
+
+export interface BackupRunSummary {
+  backupRunId: number
+  triggerKind: BackupTriggerKind
+  status: BackupRunStatus
+  startedAt: number
+  finishedAt: number
+  createdByName: string | null
+  filePath: string | null
+  fileSizeBytes: number | null
+  sha256Checksum: string | null
+  appVersion: string
+  schemaVersion: number
+  errorMessage: string | null
+}
+
+export interface BackupStatus {
+  config: BackupConfig
+  resolvedDestinationDir: string
+  lastSuccessfulBackup: BackupRunSummary | null
+  lastFailedBackup: BackupRunSummary | null
+  hasUnresolvedFailureAlert: boolean
+  recentRuns: BackupRunSummary[]
+}
+
+export interface BackupMetadata {
+  format: 'storepro-backup-v1'
+  createdAt: number
+  appVersion: string
+  schemaVersion: number
+  sha256Checksum: string
+  fileSizeBytes: number
+  storeName: string | null
+  encryption: 'none'
+  triggerKind: BackupTriggerKind
+}
+
+export interface BackupValidationResult {
+  valid: boolean
+  filePath: string
+  fileSizeBytes: number
+  sha256Checksum: string
+  checksumVerified: boolean
+  hasMetadataSidecar: boolean
+  appVersion: string | null
+  schemaVersion: number
+  currentSchemaVersion: number
+  needsMigration: boolean
+  storeName: string | null
+  productCount: number
+  saleCount: number
+  errorMessage: string | null
+}
+
+export interface BackupRestoreInput {
+  filePath: string
+  /** In production, relaunches Electron after swapping the DB; tests pass false. */
+  relaunchAfterRestore?: boolean | undefined
+}
+
+export interface BackupRestoreResult {
+  restoredFromPath: string
+  safetyCopyPath: string
+  fromSchemaVersion: number
+  toSchemaVersion: number
+  migrationsApplied: number[]
+  relaunchScheduled: boolean
+}
+
+// ---------------------------------------------------------------------------
+// CSV Product Import (M22-01, M22-02)
+// ---------------------------------------------------------------------------
+
+export interface ProductCsvColumnMapping {
+  productName?: string | undefined
+  variantName?: string | undefined
+  sku?: string | undefined
+  barcode?: string | undefined
+  category?: string | undefined
+  unitCode?: string | undefined
+  sellingPrice?: string | undefined
+  mrp?: string | undefined
+  costPrice?: string | undefined
+  taxClass?: string | undefined
+  hsnCode?: string | undefined
+  reorderLevel?: string | undefined
+  tracksInventory?: string | undefined
+}
+
+export interface ProductImportInput {
+  csvText: string
+  mapping?: ProductCsvColumnMapping | undefined
+}
+
+export interface ProductImportRowIssue {
+  field: string
+  message: string
+}
+
+export interface ProductImportRowPreview {
+  /** 1-based CSV row number (row 1 is header, so first data row is 2). */
+  rowNumber: number
+  valid: boolean
+  productName: string
+  variantName: string | null
+  sku: string | null
+  barcodes: string[]
+  categoryName: string | null
+  /** True when the category doesn't exist yet and will be created on commit. */
+  willCreateCategory: boolean
+  unitCode: string
+  sellingPriceMinor: number | null
+  mrpMinor: number | null
+  costPriceMinor: number | null
+  taxClassName: string | null
+  hsnCode: string | null
+  reorderLevelMilli: number | null
+  tracksInventory: boolean
+  issues: ProductImportRowIssue[]
+}
+
+export interface ProductImportPreview {
+  totalRows: number
+  validRowCount: number
+  errorRowCount: number
+  productCountToCreate: number
+  variantCountToCreate: number
+  categoriesToCreate: string[]
+  detectedHeaders: string[]
+  resolvedMapping: Required<ProductCsvColumnMapping>
+  rows: ProductImportRowPreview[]
+}
+
+export interface ProductImportCommitResult {
+  importedRowCount: number
+  createdProductCount: number
+  createdVariantCount: number
+  createdCategoryCount: number
+}
+
+export interface ProductImportTemplate {
+  filename: string
+  csvText: string
+  columns: { header: string; required: boolean; description: string; example: string }[]
+}
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -1493,6 +1653,16 @@ export interface IpcContract {
   'returns:get': { input: { saleReturnId: number }; output: ReturnDetail }
   'returns:preview-receipt': { input: ReturnReceiptInput; output: ReturnReceiptPreview }
   'returns:print-receipt': { input: ReturnReceiptPrintInput; output: PrintJobResult }
+  'backup:get-status': { input: void; output: BackupStatus }
+  'backup:set-config': { input: BackupConfig; output: BackupStatus }
+  'backup:pick-folder': { input: void; output: string | null }
+  'backup:pick-file': { input: void; output: string | null }
+  'backup:create': { input: { destinationDir?: string | null | undefined }; output: BackupRunSummary }
+  'backup:validate': { input: { filePath: string }; output: BackupValidationResult }
+  'backup:restore': { input: BackupRestoreInput; output: BackupRestoreResult }
+  'import:products-template': { input: void; output: ProductImportTemplate }
+  'import:products-preview': { input: ProductImportInput; output: ProductImportPreview }
+  'import:products-commit': { input: ProductImportInput; output: ProductImportCommitResult }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -1617,7 +1787,17 @@ const channelRegistry: Record<IpcChannel, true> = {
   'returns:list': true,
   'returns:get': true,
   'returns:preview-receipt': true,
-  'returns:print-receipt': true
+  'returns:print-receipt': true,
+  'backup:get-status': true,
+  'backup:set-config': true,
+  'backup:pick-folder': true,
+  'backup:pick-file': true,
+  'backup:create': true,
+  'backup:validate': true,
+  'backup:restore': true,
+  'import:products-template': true,
+  'import:products-preview': true,
+  'import:products-commit': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

@@ -507,6 +507,11 @@ Not done: recurring expenses, bill attachments, the expense summary report (M19-
 | M22-02 | Row-level validation preview with error report; commit only valid batch atomically | M22-01 | M |
 | M22-03 | CSV export for each report; figures reconcile with on-screen report | M19-04 | M |
 
+**Status (2026-10-20):** M22-01 and M22-02 are implemented (Stream B; `M22-03` report CSV export is in Stream A). See `docs/data-import.md`.
+
+- **CSV parser & template (`src/shared/csv.ts`, `M22-01`):** RFC-4180 CSV parser (UTF-8 BOM, quoted fields, escaped quotes, CRLF/LF), header alias auto-detection, custom column mapping overrides, and downloadable `storepro-products-template.csv`.
+- **Row-by-row validation & atomic commit (`ProductImportService`, `ProductImportDialog.tsx`, `M22-02`):** validates every row against catalogue rules (required fields, currency precision, `sellingPrice <= mrp`, unit existence and fractional rules, tax class lookup, HSN format, SKU/barcode uniqueness against both DB and the CSV batch, and multi-variant consistency), generates a downloadable error report CSV (`storepro-import-errors.csv`), refuses to commit any batch with invalid rows, and creates categories, products, variants, SKUs, barcodes, and `data.products_imported` audit entry in one transaction.
+
 ### M20 · Backup & Restore
 
 | ID | Task | Depends on | Size |
@@ -518,6 +523,14 @@ Not done: recurring expenses, bill attachments, the expense summary report (M19-
 | M20-05 | Restore older-schema backups through migrations | M20-04, M02-03 | S |
 | M20-06 | Backup status: last successful backup, failure alerts | M20-03 | S |
 | M20-07 | Tests: backup → restore to fresh install → data consistent | M20-04 | M |
+
+**Status (2026-10-20):** M20-01 to M20-07 are implemented (migration `0007_backup.sql`). See `docs/backup-and-recovery.md`.
+
+- **Online backup & `.meta.json` sidecar (`BackupService.createBackup`, `M20-01`, `M20-02`):** creates consistent online backups (`VACUUM INTO`) to a chosen folder or `%APPDATA%\StorePro\backups` alongside a `.db.meta.json` sidecar holding `format: 'storepro-backup-v1'`, `appVersion`, `schemaVersion`, `storeName`, `fileSizeBytes`, and `sha256Checksum`.
+- **Scheduled backups & retention (`BackupService.runScheduledBackupIfDue`, `M20-03`):** configurable interval (`1h`, `6h`, `12h`, `24h`, `168h`) and retention count (`5..100`, default `30`), pruning older `auto-backup-*.db` files and sidecars automatically.
+- **Restore & older-schema migration (`BackupService.validateBackup`, `BackupService.restoreBackup`, `M20-04`, `M20-05`):** verifies `.meta.json` SHA-256 checksum, `STOREPRO_APPLICATION_ID`, schema version, and `checkIntegrity('full')`; writes a `pre-restore-*.db` safety copy of the active database; stages and migrates older-schema backups forward to the current schema; swaps the database, records `backup.restored` in `audit_logs`, and triggers app relaunch.
+- **Backup status & failure alerts (`BackupSection`, `M20-06`):** tracks every run in `backup_runs`, shows the last successful backup, and surfaces an alert banner whenever the most recent backup attempt failed.
+- **Tests (`backupService.test.ts`, `backup.test.tsx`, `M20-07`):** covers manual backup, SHA-256 tamper detection, scheduled retention pruning, failure alerts, v3 → v7 older-schema restore, and full populated store backup → restore to a fresh install with consistent products, stock, customers, and sales.
 
 ---
 
@@ -535,6 +548,12 @@ Not done: recurring expenses, bill attachments, the expense summary report (M19-
 | DOC-01 | User guide: setup, billing, purchases, returns, backup/restore | All | M |
 | DOC-02 | Recovery procedures: restore from backup, failed update, corrupted DB | M20-04 | S |
 | PILOT-01 | Pilot deployment in grocery store(s); collect consented performance metrics | All | L |
+
+**Stream B Phase 7 Status (2026-10-20):**
+- **M30-09 (`src/main/db/upgrade.test.ts`):** automated clean-install and upgrade-from-previous-version (v6 → v7) test suite verifying pre-migration safety backup creation, `system.database_upgraded` audit logging, preservation of all historical store transactions, and Windows x64 NSIS `deleteAppDataOnUninstall: false` configuration (minimum target: Windows 10 22H2 64-bit / Windows 11 64-bit).
+- **M01-09 (`electron-builder.yml`):** Windows Authenticode SHA-256 + DigiCert RFC-3161 timestamp server configured (`signAndEditExecutable: true`), ready for `CSC_LINK` / `WIN_CSC_LINK` certificate injection in release builds while allowing unsigned local/CI test builds.
+- **DOC-02 (`docs/backup-and-recovery.md`):** step-by-step recovery procedures documented for restoring from a backup, recovering from a failed update or schema migration (`pre-migration-*.db`), and recovering from a corrupted database file after hardware fault.
+- **M30-10:** supported-device matrix is documented in `docs/printing-and-hardware.md`; physical printer/scanner sign-off is deferred until test hardware is connected.
 
 ---
 

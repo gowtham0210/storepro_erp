@@ -1,10 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, FolderTree, Package, Plus, Ruler } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FolderTree, Package, Plus, Ruler, Upload } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import type { ProductListFilter, ProductListItem, ProductStatusFilter } from '@shared/ipc/contract'
 import { useCan } from '../auth/permissions'
 import { NewProductDialog, ProductDialog } from '../catalog/ProductDialog'
+import { ProductImportDialog } from '../catalog/ProductImportDialog'
 import { CategoriesDialog, UnitsDialog } from '../catalog/ReferenceDialogs'
 import {
   Alert,
@@ -29,6 +30,7 @@ const STATUSES: ProductStatusFilter[] = ['active', 'archived', 'all']
 
 type DialogState =
   | { kind: 'new' }
+  | { kind: 'import' }
   | { kind: 'product'; productId: number }
   | { kind: 'categories' }
   | { kind: 'units' }
@@ -123,7 +125,9 @@ const columns: Column<ProductListItem>[] = [
 
 /** M09-05: every item the store sells, searchable by name, SKU and barcode. */
 export default function ProductsPage(): React.JSX.Element {
-  const canManage = useCan()('product.manage')
+  const can = useCan()
+  const canManage = can('product.manage')
+  const canImport = can('data.import')
   const [params, setParams] = useSearchParams()
   const [dialog, setDialog] = useState<DialogState>(null)
   const [search, setSearch] = useState(params.get('q') ?? '')
@@ -190,6 +194,11 @@ export default function ProductsPage(): React.JSX.Element {
             <Button icon={<Ruler />} onClick={() => setDialog({ kind: 'units' })}>
               Units
             </Button>
+            {canImport && (
+              <Button icon={<Upload />} onClick={() => setDialog({ kind: 'import' })}>
+                Import CSV
+              </Button>
+            )}
             {canManage && (
               <Button variant="primary" icon={<Plus />} onClick={() => setDialog({ kind: 'new' })}>
                 Add product
@@ -310,6 +319,7 @@ export default function ProductsPage(): React.JSX.Element {
       )}
       {dialog?.kind === 'categories' && <CategoriesDialog onClose={() => setDialog(null)} />}
       {dialog?.kind === 'units' && <UnitsDialog onClose={() => setDialog(null)} />}
+      {dialog?.kind === 'import' && <ProductImportDialog onClose={() => setDialog(null)} />}
     </>
   )
 }

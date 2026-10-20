@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { IPC_CHANNELS } from '@shared/ipc/contract'
 import type { AuditLogService } from '../../audit/auditLogService'
 import type { AuthService } from '../../auth/authService'
+import type { BackupService } from '../../backup/backupService'
 import type { CatalogService } from '../../catalog/catalogService'
+import type { ProductImportService } from '../../catalog/productImportService'
 import type { ProductService } from '../../catalog/productService'
 import type { CustomerService } from '../../customers/customerService'
 import type { ExpenseService } from '../../expenses/expenseService'
@@ -50,6 +52,8 @@ function setup() {
     connectivity: {} as ConnectivityMonitor,
     catalog: {} as CatalogService,
     products: {} as ProductService,
+    imports: {} as ProductImportService,
+    backups: {} as BackupService,
     pricing: {} as PricingService,
     inventory: {} as InventoryService,
     payments: {} as PaymentService,

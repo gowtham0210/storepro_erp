@@ -28,6 +28,8 @@ export function createRealIpc(bed: Testbed): IpcHarness & { handlers: HandlerMap
     modules: bed.moduleService,
     catalog: bed.catalogService,
     products: bed.productService,
+    imports: bed.productImportService,
+    backups: bed.backupService,
     pricing: bed.pricingService,
     inventory: bed.inventoryService,
     payments: bed.paymentService,
