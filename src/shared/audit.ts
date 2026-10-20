@@ -93,6 +93,16 @@ export const AUDIT_CATEGORIES = [
     ]
   },
   {
+    id: 'customers',
+    label: 'Customers',
+    actions: [
+      { code: 'customer.created', label: 'Added a customer' },
+      { code: 'customer.updated', label: 'Changed a customer' },
+      { code: 'customer.archived', label: 'Archived a customer' },
+      { code: 'customer.restored', label: 'Restored a customer' }
+    ]
+  },
+  {
     id: 'purchasing',
     label: 'Suppliers and purchases',
     actions: [

@@ -236,6 +236,22 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
     }
   ],
   'expenses:set-voided': [{ expenseId: 1, voided: true }],
+  'customers:list': [{}],
+  'customers:create': [
+    { name: 'Rogue Customer', phone: null, email: null, address: null, taxRegistrationNumber: null }
+  ],
+  'customers:update': [
+    {
+      customerId: 1,
+      name: 'Hijacked',
+      phone: null,
+      email: null,
+      address: null,
+      taxRegistrationNumber: null
+    }
+  ],
+  'customers:set-active': [{ customerId: 1, active: false }],
+  'customers:purchases': [{ customerId: 1 }],
 }
 
 describe('access control over IPC', () => {

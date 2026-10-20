@@ -25,6 +25,8 @@ import { CatalogService } from './catalog/catalogService'
 import { ProductRepository } from './catalog/productRepository'
 import { ProductService } from './catalog/productService'
 import { TaxClassRepository } from './catalog/taxClassRepository'
+import { CustomerRepository } from './customers/customerRepository'
+import { CustomerService } from './customers/customerService'
 import { ExpenseRepository } from './expenses/expenseRepository'
 import { ExpenseService } from './expenses/expenseService'
 import { InventoryRepository } from './inventory/inventoryRepository'
@@ -249,6 +251,7 @@ function createServices(
   suppliers: SupplierService
   purchases: PurchaseService
   expenses: ExpenseService
+  customers: CustomerService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -333,6 +336,11 @@ function createServices(
     audit,
     currency: () => storeRepository.get()?.currency ?? DEFAULT_CURRENCY
   })
+  const customers = new CustomerService({
+    db,
+    customers: new CustomerRepository(db, clock),
+    audit
+  })
   return {
     audit,
     auth,
@@ -350,6 +358,7 @@ function createServices(
     suppliers,
     purchases,
     expenses,
+    customers,
   }
 }
 

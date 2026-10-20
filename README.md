@@ -161,6 +161,14 @@ cost each time it arrived. See [`docs/purchasing.md`](docs/purchasing.md).
 payment method and totals everything that matches; a mistaken expense is voided, never deleted. See
 [`docs/expenses.md`](docs/expenses.md).
 
+### Customers
+
+**Sell → Customers** keeps who you sell to: contact details, a phone number that identifies one
+customer, purchase counts and each customer's invoice history (billed minus refunded). At the
+billing counter, **Add customer** finds one by name or phone, or adds one without leaving the bill;
+billing works fine without. There is no credit or balance yet. See
+[`docs/customers.md`](docs/customers.md).
+
 ### Billing, payments, printing and hardware
 
 **Sell → Billing** is the keyboard-driven Point of Sale counter: barcode/SKU scan (including a

@@ -33,6 +33,7 @@ import {
   useConfirm,
   useToast
 } from '../components/ui'
+import { CustomerBar, CustomerPickerDialog } from '../customers/CustomerPicker'
 import { invoke } from '../ipc/client'
 import { useIpcQuery } from '../ipc/hooks'
 import { describeError } from '../lib/describeError'
@@ -53,6 +54,7 @@ import {
   removeLineFromCart,
   resumeHeldBillToCart,
   setBillDiscount,
+  setCartCustomer,
   updateLinePriceAndDiscount,
   updateLineQuantity,
   type CartLine,
@@ -66,6 +68,7 @@ type BillingModal =
   | { kind: 'hold' }
   | { kind: 'held-list' }
   | { kind: 'payment' }
+  | { kind: 'customer' }
   | { kind: 'completed'; sale: SaleDetail }
   | null
 
@@ -254,6 +257,15 @@ export default function BillingPage(): React.JSX.Element {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
         {/* Left column: Scan bar + Cart lines */}
         <div className="lg:col-span-8 space-y-4">
+          <CustomerBar
+            customer={
+              cart.customerId === null
+                ? null
+                : { customerId: cart.customerId, name: cart.customerName ?? 'Customer' }
+            }
+            onChoose={() => setModal({ kind: 'customer' })}
+            onClear={() => setCart((prev) => setCartCustomer(prev, null))}
+          />
           <Card>
             <form
               noValidate
@@ -405,6 +417,17 @@ export default function BillingPage(): React.JSX.Element {
         <ProductSearchDialog
           onSelect={(item) => {
             setCart((prev) => addItemToCart(prev, item))
+            barcodeInputRef.current?.focus()
+          }}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal?.kind === 'customer' && (
+        <CustomerPickerDialog
+          onPick={(customer) => {
+            setCart((prev) => setCartCustomer(prev, customer))
+            setModal(null)
             barcodeInputRef.current?.focus()
           }}
           onClose={() => setModal(null)}

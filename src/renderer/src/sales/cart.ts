@@ -28,6 +28,8 @@ export interface CartState {
   lines: CartLine[]
   billDiscount: Discount | null
   customerId: number | null
+  /** The chosen customer's name, for showing on the bill. Not sent to checkout. */
+  customerName: string | null
   heldBillId: number | null
 }
 
@@ -44,6 +46,7 @@ export function createEmptyCart(): CartState {
     lines: [],
     billDiscount: null,
     customerId: null,
+    customerName: null,
     heldBillId: null
   }
 }
@@ -123,10 +126,23 @@ export function setBillDiscount(cart: CartState, billDiscount: Discount | null):
   }
 }
 
+/** M17-02: attach a customer to the bill, or null for a walk-in. */
+export function setCartCustomer(
+  cart: CartState,
+  customer: { customerId: number; name: string } | null
+): CartState {
+  return {
+    ...cart,
+    customerId: customer?.customerId ?? null,
+    customerName: customer?.name ?? null
+  }
+}
+
 export function resumeHeldBillToCart(held: HeldBillDetail): CartState {
   return {
     checkoutKey: nextCheckoutKey(),
     customerId: held.customerId,
+    customerName: held.customerName,
     heldBillId: held.heldBillId,
     billDiscount: null,
     lines: held.items.map((row) => ({

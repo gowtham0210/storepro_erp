@@ -436,6 +436,16 @@ Not done: purchase returns and supplier credit notes, supplier payments and bala
 | M17-02 | Attach/quick-create customer at POS | M17-01, M11-02 | S |
 | M17-03 | Customer purchase history view | M17-01, M11-12 | S |
 
+**Status (2026-10-20):** M17-01 to M17-03 are implemented. See `docs/customers.md`. No new migration was needed.
+
+- **Records (`CustomerService`):** add, edit, archive and restore. A phone number identifies one customer: it is stored without spaces or dashes and a clash names who has it. Search finds phones however they are typed. Changes are audited with before and after.
+- **At the counter (M17-02):** **Customer** above the scan bar, with search or **Add new customer** without leaving the bill. A held bill keeps its customer. Billing works with none.
+- **History (M17-03):** invoices newest first with refunds, and billed minus refunded for invoices that weren't voided.
+- **Screens:** **Sell → Customers**, and the picker on **Sell → Billing**.
+- **Tests:** 11 service tests, access-control coverage for all 5 new channels, 9 screen tests including checkout sending the customer, and an axe check.
+
+Not done: customer credit and balances (P1), loyalty, importing customers (M22), merging duplicates, and a counter shortcut for choosing the customer.
+
 ### M18 · Expenses
 
 | ID | Task | Depends on | Size |

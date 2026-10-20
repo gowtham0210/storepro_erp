@@ -1130,6 +1130,65 @@ export interface ExpenseListPage {
 }
 
 // ---------------------------------------------------------------------------
+// Customers (M17)
+// ---------------------------------------------------------------------------
+
+export type CustomerStatusFilter = 'active' | 'archived' | 'all'
+
+export interface CustomerInput {
+  name: string
+  /** Stored without spaces or dashes (`+919840012345`), so one number is one customer. */
+  phone: string | null
+  email: string | null
+  address: string | null
+  taxRegistrationNumber: string | null
+}
+
+export interface CustomerUpdate extends CustomerInput {
+  customerId: number
+}
+
+export interface CustomerSummary extends CustomerInput {
+  customerId: number
+  active: boolean
+  /** Completed sales that were not voided. */
+  saleCount: number
+  lastPurchaseAt: number | null
+}
+
+export interface CustomerListFilter {
+  search?: string | undefined
+  status?: CustomerStatusFilter | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface CustomerListPage {
+  items: CustomerSummary[]
+  total: number
+}
+
+export interface CustomerPurchase {
+  saleId: number
+  invoiceNumber: string
+  completedAt: number
+  lineCount: number
+  grandTotalMinor: number
+  /** What was refunded on returns against this invoice. */
+  returnedMinor: number
+  isVoided: boolean
+}
+
+export interface CustomerPurchasePage {
+  customerId: number
+  customerName: string
+  items: CustomerPurchase[]
+  total: number
+  /** Billed minus refunded, over every sale that was not voided (all pages). */
+  totalSpentMinor: number
+}
+
+// ---------------------------------------------------------------------------
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -1267,6 +1326,17 @@ export interface IpcContract {
   'expenses:create': { input: ExpenseInput; output: ExpenseSummary }
   'expenses:update': { input: ExpenseUpdate; output: ExpenseSummary }
   'expenses:set-voided': { input: { expenseId: number; voided: boolean }; output: ExpenseSummary }
+  'customers:list': { input: CustomerListFilter; output: CustomerListPage }
+  'customers:create': { input: CustomerInput; output: CustomerSummary }
+  'customers:update': { input: CustomerUpdate; output: CustomerSummary }
+  'customers:set-active': {
+    input: { customerId: number; active: boolean }
+    output: CustomerSummary
+  }
+  'customers:purchases': {
+    input: { customerId: number; offset?: number | undefined; limit?: number | undefined }
+    output: CustomerPurchasePage
+  }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -1381,6 +1451,11 @@ const channelRegistry: Record<IpcChannel, true> = {
   'expenses:create': true,
   'expenses:update': true,
   'expenses:set-voided': true,
+  'customers:list': true,
+  'customers:create': true,
+  'customers:update': true,
+  'customers:set-active': true,
+  'customers:purchases': true,
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

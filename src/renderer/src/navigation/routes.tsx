@@ -26,6 +26,7 @@ const InventoryPage = lazy(() => import('../pages/InventoryPage'))
 const SuppliersPage = lazy(() => import('../pages/SuppliersPage'))
 const PurchasesPage = lazy(() => import('../pages/PurchasesPage'))
 const ExpensesPage = lazy(() => import('../pages/ExpensesPage'))
+const CustomersPage = lazy(() => import('../pages/CustomersPage'))
 
 /** Screens that exist; every other navigation item shows its placeholder. */
 const SCREENS: Partial<Record<string, ReactNode>> = {
@@ -35,6 +36,7 @@ const SCREENS: Partial<Record<string, ReactNode>> = {
   inventory: <InventoryPage />,
   purchases: <PurchasesPage />,
   expenses: <ExpensesPage />,
+  customers: <CustomersPage />,
   suppliers: <SuppliersPage />,
   users: <UsersPage />,
   audit: <AuditLogPage />,

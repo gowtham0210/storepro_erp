@@ -49,6 +49,14 @@ const SUPPLIER_FIELDS: Record<string, string> = {
   taxRegistrationNumber: 'tax number'
 }
 
+const CUSTOMER_FIELDS: Record<string, string> = {
+  name: 'name',
+  phone: 'phone',
+  email: 'email',
+  address: 'address',
+  taxRegistrationNumber: 'tax number'
+}
+
 const DOCUMENT_FIELDS: Record<string, string> = {
   supplier: 'supplier',
   notes: 'note',
@@ -236,6 +244,15 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       const note = d['notes'] ? ` — ${text(d['notes'])}` : ''
       return `${text(d['adjustmentNumber'] ?? subject)}: ${items}${note}`
     }
+    case 'customer.created':
+      return [text(d['name'] ?? subject), d['phone'] ? text(d['phone']) : '']
+        .filter(Boolean)
+        .join(' · ')
+    case 'customer.archived':
+    case 'customer.restored':
+      return text(d['name'] ?? subject)
+    case 'customer.updated':
+      return `${text(d['name'] ?? subject)}: ${changes(d['changes'], CUSTOMER_FIELDS)}`
     case 'supplier.created':
     case 'supplier.archived':
     case 'supplier.restored':

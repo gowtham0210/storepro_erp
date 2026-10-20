@@ -85,6 +85,19 @@ describe('audit descriptions for purchases, expenses, customers and returns (M15
       'Electricity on 2026-10-10: amount from ₹4,000.00 to ₹4,500.00'
     ],
     [
+      'customer.created',
+      { name: 'Meena Sundar', phone: '+919840012345' },
+      'Meena Sundar · +919840012345'
+    ],
+    [
+      'customer.updated',
+      {
+        name: 'Meena Sundar',
+        changes: { taxRegistrationNumber: { from: null, to: '33AAAAA0000A1Z5' } }
+      },
+      'Meena Sundar: tax number from nothing to 33AAAAA0000A1Z5'
+    ],
+    [
       'expense_category.updated',
       { changes: { name: { from: 'Packaging', to: 'Packing material' } } },
       'name from Packaging to Packing material'
