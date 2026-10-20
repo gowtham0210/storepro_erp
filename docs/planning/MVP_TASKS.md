@@ -483,7 +483,9 @@ Not done: recurring expenses, bill attachments, the expense summary report (M19-
 
 ---
 
-## Phase 6 — Insight & Safety
+## Phase 6 — Insight & Safety (in progress)
+
+**Done so far:** M19 Reports & Dashboard and M22-03 CSV export. **Remaining:** M20 Backup & Restore and M22-01/02 CSV product import.
 
 ### M19 · Reports & Dashboard
 
@@ -499,6 +501,16 @@ Not done: recurring expenses, bill attachments, the expense summary report (M19-
 | M19-08 | Expense summary report | M18-02, M19-01 | S |
 | M19-09 | Reconciliation tests: report totals match stored transactions | M19-04 | M |
 
+**Status (2026-10-20):** M19-01 to M19-09 are implemented. See `docs/reports.md`. No new migration was needed: reports read the existing ledger views.
+
+- **Definitions (`src/shared/reports.ts`):** one place that says what gross sales, discounts, tax, round-off, billed total, refunds, net sales, collections and voided mean. Reports show finalised, non-voided sales on the store's own days; a refund counts on the day of the return.
+- **Queries (`ReportRepository`, `ReportService`):** sales for a period and for each day (quiet days listed as zeros), money by payment method, top items net of returns, stock on hand with value at cost, every stock movement in a period, goods receipts by supplier, and expenses by category and payment method.
+- **Screen:** **Manage → Reports** with Overview (the dashboard), Sales, Top items, Stock, Stock movements, Purchases and Expenses tabs, a shared period (kept in the address) with quick periods, and each figure's definition beside it.
+- **Reconciliation (M19-09):** every figure is tested against totals worked out separately from the invoices and returns; the daily rows add up to the period; and store-day edges and a 25-hour daylight-saving day land on the right dates.
+- **Tests:** 25 service tests, 13 screen tests (including an axe check, which caught and fixed a definition-list markup problem), 2 for the definitions.
+
+Not done: profit and margin reports, reports by cashier, category or customer, a dashboard on the home screen, printing reports, and Excel or PDF export.
+
 ### M22 · Data Import / Export
 
 | ID | Task | Depends on | Size |
@@ -506,6 +518,13 @@ Not done: recurring expenses, bill attachments, the expense summary report (M19-
 | M22-01 | CSV product import: template download, parse, column mapping | M09-02 | M |
 | M22-02 | Row-level validation preview with error report; commit only valid batch atomically | M22-01 | M |
 | M22-03 | CSV export for each report; figures reconcile with on-screen report | M19-04 | M |
+
+**Status (2026-10-20):** M22-03 is implemented; M22-01 and M22-02 (CSV product import) are not started. See `docs/reports.md` section 4.
+
+- **Export CSV** on every report tab for people with `data.export`. The file is built from the same report the screen shows (all of it, not just the page on screen), so its figures reconcile; tests compare each file with its report and with the invoices.
+- **Safe and spreadsheet-friendly:** UTF-8 with a byte-order mark, money as plain decimals, store-local times, and a leading apostrophe on text that starts with `=`, `+`, `-` or `@` so a product name cannot run as a formula.
+- **The person chooses where it goes** (the system save dialog, via a swappable `FileSaver`); closing the dialog writes nothing. Every saved export is audited as `report.exported`. Exports over 500,000 rows are refused with a request to choose a shorter period.
+- **Tests:** 5 for the CSV writer and reader, 6 export tests in the report service tests, 4 export screen tests.
 
 ### M20 · Backup & Restore
 

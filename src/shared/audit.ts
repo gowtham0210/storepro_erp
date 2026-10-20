@@ -126,6 +126,11 @@ export const AUDIT_CATEGORIES = [
     ]
   },
   {
+    id: 'reports',
+    label: 'Reports',
+    actions: [{ code: 'report.exported', label: 'Exported a report to a file' }]
+  },
+  {
     id: 'expenses',
     label: 'Expenses',
     actions: [

@@ -264,7 +264,14 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'returns:list': [{}],
   'returns:get': [{ saleReturnId: 1 }],
   'returns:preview-receipt': [{ saleReturnId: 1 }],
-  'returns:print-receipt': [{ saleReturnId: 1 }]
+  'returns:print-receipt': [{ saleReturnId: 1 }],
+  'reports:sales': [{ from: '2026-10-01', to: '2026-10-31' }],
+  'reports:top-products': [{ from: '2026-10-01', to: '2026-10-31', rankBy: 'value' }],
+  'reports:stock': [{}],
+  'reports:stock-movements': [{ from: '2026-10-01', to: '2026-10-31' }],
+  'reports:purchases': [{ from: '2026-10-01', to: '2026-10-31' }],
+  'reports:expenses': [{ from: '2026-10-01', to: '2026-10-31' }],
+  'reports:export': [{ report: 'sales', from: '2026-10-01', to: '2026-10-31' }]
 }
 
 describe('access control over IPC', () => {

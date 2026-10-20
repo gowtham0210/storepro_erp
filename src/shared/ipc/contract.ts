@@ -1339,6 +1339,236 @@ export interface ReturnReceiptPreview {
   html: string
 }
 
+// ---------------------------------------------------------------------------
+// Reports (M19)
+// ---------------------------------------------------------------------------
+
+/** Money in and out through one payment method over a report period. */
+export interface PaymentTotal {
+  paymentMethodId: number
+  methodName: string
+  kind: PaymentKind
+  /** Received on bills in the period. */
+  collectedMinor: number
+  /** Paid back as refunds on returns in the period. */
+  refundedMinor: number
+  /** Collected minus refunded. */
+  netMinor: number
+}
+
+/** The sales figures for a period; what each means is in `src/shared/reports.ts`. */
+export interface SalesSummary {
+  billCount: number
+  grossMinor: number
+  discountMinor: number
+  taxMinor: number
+  roundOffMinor: number
+  billedMinor: number
+  averageBillMinor: number
+  refundCount: number
+  refundsMinor: number
+  refundedTaxMinor: number
+  netSalesMinor: number
+  voidedCount: number
+  voidedMinor: number
+  payments: PaymentTotal[]
+  collectedMinor: number
+  paidBackMinor: number
+  netCollectedMinor: number
+}
+
+export interface DailySalesRow {
+  /** The store's business date, YYYY-MM-DD. */
+  date: string
+  billCount: number
+  grossMinor: number
+  discountMinor: number
+  taxMinor: number
+  billedMinor: number
+  refundsMinor: number
+  netSalesMinor: number
+}
+
+export interface SalesReport {
+  /** The first and last business dates, both included. */
+  from: string
+  to: string
+  summary: SalesSummary
+  /** One row for every date in the range, including days with no sales. */
+  days: DailySalesRow[]
+}
+
+export type TopProductRank = 'quantity' | 'value'
+
+export interface TopProductRow {
+  variantId: number
+  name: string
+  sku: string
+  unitCode: string
+  soldMilli: number
+  returnedMilli: number
+  /** Sold minus returned. */
+  netMilli: number
+  /** What customers paid for the items sold (line total after discounts). */
+  soldValueMinor: number
+  returnedValueMinor: number
+  netValueMinor: number
+}
+
+export interface TopProductsReport {
+  from: string
+  to: string
+  rankBy: TopProductRank
+  items: TopProductRow[]
+}
+
+export interface StockReportRow {
+  variantId: number
+  name: string
+  sku: string
+  unitCode: string
+  categoryName: string | null
+  onHandMilli: number
+  reorderLevelMilli: number | null
+  costPriceMinor: number | null
+  /** On hand × cost price, for items in stock with a cost price; otherwise null. */
+  valueMinor: number | null
+  isLow: boolean
+}
+
+export interface StockReportTotals {
+  /** Items matching the filter. */
+  itemCount: number
+  lowCount: number
+  outCount: number
+  /** Value at cost of the items in stock that have a cost price. */
+  valueMinor: number
+  /** Items in stock with no cost price, which the value leaves out. */
+  itemsWithoutCost: number
+}
+
+export interface StockReportFilter {
+  search?: string | undefined
+  categoryId?: number | undefined
+  level?: StockLevelFilter | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface StockReport {
+  items: StockReportRow[]
+  totals: StockReportTotals
+}
+
+export interface StockMovementRow {
+  occurredAt: number
+  movementType: MovementType
+  variantId: number
+  name: string
+  sku: string
+  unitCode: string
+  quantityDeltaMilli: number
+  documentNumber: string
+}
+
+export interface StockMovementsFilter {
+  from: string
+  to: string
+  movementType?: MovementType | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface StockMovementsReport {
+  from: string
+  to: string
+  items: StockMovementRow[]
+  total: number
+}
+
+export interface PurchaseSupplierRow {
+  supplierId: number
+  supplierName: string
+  receiptCount: number
+  totalMinor: number
+}
+
+export interface PurchaseReceiptRow {
+  goodsReceiptId: number
+  receiptNumber: string
+  supplierId: number
+  supplierName: string
+  postedAt: number
+  supplierInvoiceNumber: string | null
+  orderNumber: string | null
+  totalMinor: number
+}
+
+export interface PurchasesReportFilter {
+  from: string
+  to: string
+  supplierId?: number | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface PurchasesReport {
+  from: string
+  to: string
+  /** Posted goods receipts in the period. */
+  receiptCount: number
+  totalMinor: number
+  bySupplier: PurchaseSupplierRow[]
+  /** The receipts themselves, newest first, one page. */
+  receipts: PurchaseReceiptRow[]
+}
+
+export interface ExpenseCategoryTotal {
+  expenseCategoryId: number
+  name: string
+  count: number
+  totalMinor: number
+}
+
+export interface ExpenseMethodTotal {
+  paymentMethodId: number
+  methodName: string
+  count: number
+  totalMinor: number
+}
+
+export interface ExpensesReport {
+  from: string
+  to: string
+  count: number
+  totalMinor: number
+  /** Voided expenses, which the figures above leave out. */
+  voidedCount: number
+  voidedMinor: number
+  byCategory: ExpenseCategoryTotal[]
+  byMethod: ExpenseMethodTotal[]
+}
+
+/** Which report to save as a CSV file, with the same choices the screen has (M22-03). */
+export type ReportExportRequest =
+  | { report: 'sales'; from: string; to: string }
+  | { report: 'top-products'; from: string; to: string; rankBy: TopProductRank }
+  | {
+      report: 'stock'
+      search?: string | undefined
+      categoryId?: number | undefined
+      level?: StockLevelFilter | undefined
+    }
+  | { report: 'stock-movements'; from: string; to: string; movementType?: MovementType | undefined }
+  | { report: 'purchases'; from: string; to: string; supplierId?: number | undefined }
+  | { report: 'expenses'; from: string; to: string }
+
+export type ReportExportResult =
+  /** The file was written; `rows` counts the data rows of its main table. */
+  | { status: 'saved'; fileName: string; rows: number }
+  /** The person closed the save dialog. */
+  | { status: 'cancelled' }
+
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -1493,6 +1723,16 @@ export interface IpcContract {
   'returns:get': { input: { saleReturnId: number }; output: ReturnDetail }
   'returns:preview-receipt': { input: ReturnReceiptInput; output: ReturnReceiptPreview }
   'returns:print-receipt': { input: ReturnReceiptPrintInput; output: PrintJobResult }
+  'reports:sales': { input: { from: string; to: string }; output: SalesReport }
+  'reports:top-products': {
+    input: { from: string; to: string; rankBy: TopProductRank; limit?: number | undefined }
+    output: TopProductsReport
+  }
+  'reports:stock': { input: StockReportFilter; output: StockReport }
+  'reports:stock-movements': { input: StockMovementsFilter; output: StockMovementsReport }
+  'reports:purchases': { input: PurchasesReportFilter; output: PurchasesReport }
+  'reports:expenses': { input: { from: string; to: string }; output: ExpensesReport }
+  'reports:export': { input: ReportExportRequest; output: ReportExportResult }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -1617,7 +1857,14 @@ const channelRegistry: Record<IpcChannel, true> = {
   'returns:list': true,
   'returns:get': true,
   'returns:preview-receipt': true,
-  'returns:print-receipt': true
+  'returns:print-receipt': true,
+  'reports:sales': true,
+  'reports:top-products': true,
+  'reports:stock': true,
+  'reports:stock-movements': true,
+  'reports:purchases': true,
+  'reports:expenses': true,
+  'reports:export': true
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

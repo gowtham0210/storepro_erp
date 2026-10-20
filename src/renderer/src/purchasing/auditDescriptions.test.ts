@@ -125,6 +125,16 @@ describe('audit descriptions for purchases, expenses, customers and returns (M15
       'GRN000006 · Anand Wholesale · 150 items · ₹48,000.00'
     ],
     [
+      'report.exported',
+      {
+        report: 'Sales',
+        period: '2026-10-19 to 2026-10-20',
+        rows: 2,
+        file: 'sales_2026-10-19_to_2026-10-20.csv'
+      },
+      'Sales 2026-10-19 to 2026-10-20 · 2 rows · sales_2026-10-19_to_2026-10-20.csv'
+    ],
+    [
       'return.printed',
       { returnNumber: 'CN000001', invoiceNumber: 'INV000001' },
       'CN000001 · invoice INV000001'

@@ -270,6 +270,8 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
     case 'return.printed':
     case 'return.reprinted':
       return `${text(d['returnNumber'])} · invoice ${text(d['invoiceNumber'])}`
+    case 'report.exported':
+      return `${text(d['report'])}${d['period'] ? ` ${text(d['period'])}` : ''} · ${text(d['rows'])} rows · ${text(d['file'])}`
     case 'supplier.created':
     case 'supplier.archived':
     case 'supplier.restored':

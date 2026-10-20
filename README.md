@@ -178,6 +178,14 @@ refunds and stock are saved in one transaction as `CN000001`, …; the original 
 changed. Cashiers need a manager's approval. A return receipt (credit note) prints on 58 or 80 mm
 paper, and a duplicate is audited. See [`docs/returns.md`](docs/returns.md).
 
+### Reports and export
+
+**Manage → Reports** has a dashboard and sales, top-items, stock, stock-movement, purchase and expense
+reports, by the store's own days (a bill at 23:59 and one at 00:01 are on different days). Gross sales,
+discounts, tax, refunds, net sales and collections are kept apart, with each figure's meaning shown on
+screen and defined once in code. **Export CSV** saves any report as a file that reconciles with the
+screen, with spreadsheet formula injection blocked. See [`docs/reports.md`](docs/reports.md).
+
 ### Billing, payments, printing and hardware
 
 **Sell → Billing** is the keyboard-driven Point of Sale counter: barcode/SKU scan (including a

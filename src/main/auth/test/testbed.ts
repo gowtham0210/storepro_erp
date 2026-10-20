@@ -20,6 +20,8 @@ import { PurchaseRepository } from '../../purchasing/purchaseRepository'
 import { PurchaseService } from '../../purchasing/purchaseService'
 import { SupplierRepository } from '../../purchasing/supplierRepository'
 import { SupplierService } from '../../purchasing/supplierService'
+import { ReportRepository } from '../../reports/reportRepository'
+import { ReportService } from '../../reports/reportService'
 import { ReturnRepository } from '../../returns/returnRepository'
 import { ReturnService } from '../../returns/returnService'
 import { SalesRepository } from '../../sales/salesRepository'
@@ -82,6 +84,10 @@ export interface Testbed {
   customerService: CustomerService
   returnRepository: ReturnRepository
   returnService: ReturnService
+  reportService: ReportService
+  /** Files an export "saved", in order. Set `cancelNextSave` to close the save dialog. */
+  savedFiles: { suggestedName: string; fileName: string; content: string }[]
+  fileDialog: { cancelNextSave: boolean }
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -148,7 +154,27 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
   const expenseRepository = new ExpenseRepository(db, clock)
   const customerRepository = new CustomerRepository(db, clock)
   const returnRepository = new ReturnRepository(db, clock, payments)
+  const savedFiles: Testbed['savedFiles'] = []
+  const fileDialog = { cancelNextSave: false }
   return {
+    savedFiles,
+    fileDialog,
+    reportService: new ReportService({
+      reports: new ReportRepository(db, clock),
+      store: stores,
+      audit,
+      clock,
+      files: {
+        async saveText(suggestedName, content) {
+          if (fileDialog.cancelNextSave) {
+            fileDialog.cancelNextSave = false
+            return null
+          }
+          savedFiles.push({ suggestedName, fileName: suggestedName, content })
+          return { fileName: suggestedName }
+        }
+      }
+    }),
     returnRepository,
     returnService: new ReturnService({
       db,

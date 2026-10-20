@@ -29,6 +29,9 @@ import { CustomerRepository } from './customers/customerRepository'
 import { CustomerService } from './customers/customerService'
 import { ExpenseRepository } from './expenses/expenseRepository'
 import { ExpenseService } from './expenses/expenseService'
+import { ReportRepository } from './reports/reportRepository'
+import { createElectronFileSaver } from './reports/electronFileSaver'
+import { ReportService } from './reports/reportService'
 import { ReturnRepository } from './returns/returnRepository'
 import { ReturnService } from './returns/returnService'
 import { InventoryRepository } from './inventory/inventoryRepository'
@@ -255,6 +258,7 @@ function createServices(
   expenses: ExpenseService
   customers: CustomerService
   returns: ReturnService
+  reports: ReportService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -353,6 +357,13 @@ function createServices(
     printing,
     clock
   })
+  const reports = new ReportService({
+    reports: new ReportRepository(db, clock),
+    store: storeRepository,
+    audit,
+    clock,
+    files: createElectronFileSaver()
+  })
   return {
     audit,
     auth,
@@ -371,7 +382,8 @@ function createServices(
     purchases,
     expenses,
     customers,
-    returns
+    returns,
+    reports
   }
 }
 
