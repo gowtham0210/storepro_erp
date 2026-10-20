@@ -443,6 +443,16 @@ Not done: purchase returns and supplier credit notes, supplier payments and bala
 | M18-01 | Expense categories and expense entry (amount, date, category, note, payment method) | M02-09 | M |
 | M18-02 | Expense list with date filter and totals | M18-01, M23-02 | S |
 
+**Status (2026-10-20):** M18-01 and M18-02 are implemented. See `docs/expenses.md`. No new migration was needed.
+
+- **Recording (`ExpenseService`):** category, date (a business date in the store's time zone, today by default), amount in minor units, how it was paid, and a note. Categories are added, renamed, archived and restored; an expense keeps an archived category it already has.
+- **Corrections:** edit (audited with before and after) or void and restore. Nothing is deleted, and a voided expense is left out of totals.
+- **List (M18-02):** newest first with filters for words, dates (inclusive), category, payment method and voided. The **Total** covers every matching expense across all pages.
+- **Screen:** **Manage → Expenses**, with add/edit and category dialogs.
+- **Tests:** 11 service tests, access-control coverage for all 8 new channels, screen tests and an axe check.
+
+Not done: recurring expenses, bill attachments, the expense summary report (M19-08), CSV export (M22), and any link between a cash expense and the till.
+
 ---
 
 ## Phase 6 — Insight & Safety

@@ -65,6 +65,7 @@ db.transaction(() => {
 | Products and prices | product added, changed, archived, restored; price changed (before and after); pack size added, archived, restored; category added, renamed, archived, restored; unit added, renamed                           | M09                |
 | Stock               | stock adjusted (reason, items, delta, balance after); physical stock counted (recorded, counted, delta)                                                                                                       | M14                |
 | Suppliers and purchases | supplier added, changed, archived, restored; purchase order started, changed, confirmed, closed (including when fully received), cancelled, deleted; goods receipt started, changed, posted (items, total, cost prices updated), deleted | M15 |
+| Expenses            | expense recorded, changed (before and after), voided, restored; expense category added, renamed, archived, restored                                                                                           | M18                |
 
 Sensitive actions of modules that aren't built yet must be added as those modules are built.
 Each must use `change()` with the request's `actor`:

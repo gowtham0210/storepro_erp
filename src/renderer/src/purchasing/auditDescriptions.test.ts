@@ -64,6 +64,31 @@ describe('audit descriptions for purchases, expenses, customers and returns (M15
       { receiptNumber: 'GRN000005', supplier: 'Balaji Traders' },
       'GRN000005 · Balaji Traders'
     ],
+    [
+      'expense.recorded',
+      {
+        category: 'Rent',
+        amount: '₹12,000.00',
+        date: '2026-10-05',
+        paymentMethod: 'UPI',
+        description: 'October shop rent'
+      },
+      'Rent · ₹12,000.00 · 2026-10-05 · paid by UPI · “October shop rent”'
+    ],
+    [
+      'expense.updated',
+      {
+        category: 'Electricity',
+        date: '2026-10-10',
+        changes: { amount: { from: '₹4,000.00', to: '₹4,500.00' } }
+      },
+      'Electricity on 2026-10-10: amount from ₹4,000.00 to ₹4,500.00'
+    ],
+    [
+      'expense_category.updated',
+      { changes: { name: { from: 'Packaging', to: 'Packing material' } } },
+      'name from Packaging to Packing material'
+    ]
   ]
 
   it.each(cases)('describes %s', (action, details, sentence) => {

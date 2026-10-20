@@ -113,6 +113,20 @@ export const AUDIT_CATEGORIES = [
     ]
   },
   {
+    id: 'expenses',
+    label: 'Expenses',
+    actions: [
+      { code: 'expense.recorded', label: 'Recorded an expense' },
+      { code: 'expense.updated', label: 'Changed an expense' },
+      { code: 'expense.voided', label: 'Voided an expense' },
+      { code: 'expense.restored', label: 'Restored an expense' },
+      { code: 'expense_category.created', label: 'Added an expense category' },
+      { code: 'expense_category.updated', label: 'Renamed an expense category' },
+      { code: 'expense_category.archived', label: 'Archived an expense category' },
+      { code: 'expense_category.restored', label: 'Restored an expense category' }
+    ]
+  },
+  {
     id: 'system',
     label: 'StorePro',
     actions: [

@@ -211,6 +211,31 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'purchases:post-receipt': [{ goodsReceiptId: 1 }],
   'purchases:delete-receipt': [{ goodsReceiptId: 1 }],
   'purchases:cost-history': [{ variantId: 1 }],
+  'expenses:list-categories': [],
+  'expenses:create-category': [{ name: 'Rogue category' }],
+  'expenses:rename-category': [{ expenseCategoryId: 1, name: 'Renamed' }],
+  'expenses:set-category-active': [{ expenseCategoryId: 1, active: false }],
+  'expenses:list': [{}],
+  'expenses:create': [
+    {
+      expenseCategoryId: 1,
+      expenseDate: '2026-10-19',
+      amountMinor: 100_00,
+      paymentMethodId: 1,
+      description: null
+    }
+  ],
+  'expenses:update': [
+    {
+      expenseId: 1,
+      expenseCategoryId: 1,
+      expenseDate: '2026-10-19',
+      amountMinor: 1,
+      paymentMethodId: 1,
+      description: null
+    }
+  ],
+  'expenses:set-voided': [{ expenseId: 1, voided: true }],
 }
 
 describe('access control over IPC', () => {

@@ -154,6 +154,13 @@ posting one adds its goods to stock in a single transaction, closes an order tha
 received, and can set each item's cost price to what was paid. **Cost history** shows what an item
 cost each time it arrived. See [`docs/purchasing.md`](docs/purchasing.md).
 
+### Expenses
+
+**Manage → Expenses** records rent, salaries, electricity and other running costs by category, date
+(in the store's time zone), amount and how it was paid. The list filters by dates, category and
+payment method and totals everything that matches; a mistaken expense is voided, never deleted. See
+[`docs/expenses.md`](docs/expenses.md).
+
 ### Billing, payments, printing and hardware
 
 **Sell → Billing** is the keyboard-driven Point of Sale counter: barcode/SKU scan (including a

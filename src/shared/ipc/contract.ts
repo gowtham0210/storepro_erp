@@ -1072,6 +1072,64 @@ export interface CostHistory {
 }
 
 // ---------------------------------------------------------------------------
+// Expenses (M18)
+// ---------------------------------------------------------------------------
+
+export type ExpenseStatusFilter = 'active' | 'voided' | 'all'
+
+export interface ExpenseCategorySummary {
+  expenseCategoryId: number
+  name: string
+  active: boolean
+  /** Expenses filed under this category, voided ones included. */
+  expenseCount: number
+}
+
+export interface ExpenseInput {
+  expenseCategoryId: number
+  /** The day the money was spent, YYYY-MM-DD in the store's time zone. */
+  expenseDate: string
+  amountMinor: number
+  paymentMethodId: number
+  description: string | null
+}
+
+export interface ExpenseUpdate extends ExpenseInput {
+  expenseId: number
+}
+
+export interface ExpenseSummary extends ExpenseInput {
+  expenseId: number
+  categoryName: string
+  paymentMethodName: string
+  recordedByName: string
+  recordedAt: number
+  updatedAt: number
+  /** A voided expense stays on record but is left out of totals. */
+  voided: boolean
+}
+
+export interface ExpenseListFilter {
+  search?: string | undefined
+  categoryId?: number | undefined
+  paymentMethodId?: number | undefined
+  /** Inclusive business dates (YYYY-MM-DD). */
+  from?: string | undefined
+  to?: string | undefined
+  status?: ExpenseStatusFilter | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface ExpenseListPage {
+  items: ExpenseSummary[]
+  /** How many expenses match the filter (all pages). */
+  total: number
+  /** The sum of the matching expenses that are not voided (all pages). */
+  totalMinor: number
+}
+
+// ---------------------------------------------------------------------------
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -1195,6 +1253,20 @@ export interface IpcContract {
     input: { variantId: number; limit?: number | undefined }
     output: CostHistory
   }
+  'expenses:list-categories': { input: void; output: ExpenseCategorySummary[] }
+  'expenses:create-category': { input: { name: string }; output: ExpenseCategorySummary }
+  'expenses:rename-category': {
+    input: { expenseCategoryId: number; name: string }
+    output: ExpenseCategorySummary
+  }
+  'expenses:set-category-active': {
+    input: { expenseCategoryId: number; active: boolean }
+    output: ExpenseCategorySummary
+  }
+  'expenses:list': { input: ExpenseListFilter; output: ExpenseListPage }
+  'expenses:create': { input: ExpenseInput; output: ExpenseSummary }
+  'expenses:update': { input: ExpenseUpdate; output: ExpenseSummary }
+  'expenses:set-voided': { input: { expenseId: number; voided: boolean }; output: ExpenseSummary }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -1301,6 +1373,14 @@ const channelRegistry: Record<IpcChannel, true> = {
   'purchases:post-receipt': true,
   'purchases:delete-receipt': true,
   'purchases:cost-history': true,
+  'expenses:list-categories': true,
+  'expenses:create-category': true,
+  'expenses:rename-category': true,
+  'expenses:set-category-active': true,
+  'expenses:list': true,
+  'expenses:create': true,
+  'expenses:update': true,
+  'expenses:set-voided': true,
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

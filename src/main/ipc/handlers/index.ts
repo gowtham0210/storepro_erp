@@ -2,6 +2,7 @@ import type { AuditLogService } from '../../audit/auditLogService'
 import type { AuthService } from '../../auth/authService'
 import type { CatalogService } from '../../catalog/catalogService'
 import type { ProductService } from '../../catalog/productService'
+import type { ExpenseService } from '../../expenses/expenseService'
 import type { InventoryService } from '../../inventory/inventoryService'
 import type { PaymentService } from '../../payments/paymentService'
 import type { PricingService } from '../../pricing/pricingService'
@@ -20,6 +21,7 @@ import { createAuditHandlers } from './audit'
 import { createAuthHandlers } from './auth'
 import { createCatalogHandlers } from './catalog'
 import { createConnectivityHandlers } from './connectivity'
+import { createExpenseHandlers } from './expenses'
 import { createInventoryHandlers } from './inventory'
 import { createLogHandlers } from './log'
 import { createModuleHandlers } from './modules'
@@ -47,6 +49,7 @@ export interface HandlerDeps extends AppHandlerDeps {
   printing: PrintingService
   suppliers: SupplierService
   purchases: PurchaseService
+  expenses: ExpenseService
 }
 
 export function createHandlers(deps: HandlerDeps): HandlerMap {
@@ -65,5 +68,6 @@ export function createHandlers(deps: HandlerDeps): HandlerMap {
     ...createSalesHandlers(deps.payments, deps.sales),
     ...createPrintingHandlers(deps.printing),
     ...createPurchasingHandlers(deps.suppliers, deps.purchases),
+    ...createExpenseHandlers(deps.expenses),
   }
 }

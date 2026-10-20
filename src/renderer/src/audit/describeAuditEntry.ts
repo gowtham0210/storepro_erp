@@ -58,6 +58,14 @@ const DOCUMENT_FIELDS: Record<string, string> = {
   supplierBillDate: 'supplier bill date'
 }
 
+const EXPENSE_FIELDS: Record<string, string> = {
+  category: 'category',
+  date: 'date',
+  amount: 'amount',
+  paymentMethod: 'paid by',
+  description: 'note'
+}
+
 /** "GRN000004 · Anand Wholesale · against PO000002 · bill AW-1042 · 3 items · ₹1,920.00" */
 function documentSummary(d: Record<string, unknown>, number: string): string {
   return [
@@ -78,6 +86,18 @@ function costUpdates(value: unknown): string {
     .map((u) => `${text(u.item)} ${text(u.from)} → ${text(u.to)}`)
     .join(', ')
   return ` — cost prices updated: ${described}`
+}
+
+function expenseSummary(d: Record<string, unknown>): string {
+  return [
+    text(d['category']),
+    text(d['amount']),
+    text(d['date']),
+    d['paymentMethod'] ? `paid by ${text(d['paymentMethod'])}` : '',
+    d['description'] ? `“${text(d['description'])}”` : ''
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 /** Any other details, as "key: value" pairs, so nothing recorded is hidden. */
@@ -245,6 +265,18 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       return `${documentSummary(d, 'receiptNumber')}${d['orderClosed'] === true ? ' — order fully received' : ''}${costUpdates(d['costPricesUpdated'])}`
     case 'goods_receipt.deleted':
       return `${text(d['receiptNumber'])} · ${text(d['supplier'])}`
+    case 'expense.recorded':
+    case 'expense.voided':
+    case 'expense.restored':
+      return expenseSummary(d)
+    case 'expense.updated':
+      return `${text(d['category'])} on ${text(d['date'])}: ${changes(d['changes'], EXPENSE_FIELDS)}`
+    case 'expense_category.created':
+    case 'expense_category.archived':
+    case 'expense_category.restored':
+      return text(d['name'] ?? subject)
+    case 'expense_category.updated':
+      return changes(d['changes'], { name: 'name' })
     case 'system.database_upgraded':
       return `From version ${text(d['fromVersion'])} to ${text(d['toVersion'])}${d['backupFile'] ? `. A backup was saved first (${text(d['backupFile'])})` : ''}`
     case 'system.unclean_shutdown': {
