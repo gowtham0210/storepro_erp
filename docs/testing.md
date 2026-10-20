@@ -34,6 +34,23 @@ Run one file or test with `npx vitest run src/main/db/schema.test.ts -t "barcode
 
 On Linux without a display, prefix end-to-end runs with `xvfb-run -a`.
 
+### Demo data for exploring the app
+
+`e2e/demo/southIndianStore.seed.ts` fills a store you are exploring by hand with a South Indian
+provision store's catalogue: about 55 products in 10 categories, with loose items sold by the kg or
+litre, packed brands with barcodes and MRP, and opening stock. A few items start low or out of stock.
+It is not part of the test suite. It drives the real app signed in as you: the app opens, you sign
+in, and the script adds the products through the same calls the screens use. Products that already
+exist are skipped. Close StorePro first, then run:
+
+```bash
+npx electron-vite build && npx playwright test --config e2e/demo/playwright.demo.config.ts
+```
+
+The data folder is `~/StorePro-explore` (run the app on it with
+`STOREPRO_USER_DATA_DIR="$HOME/StorePro-explore" npm run dev`) unless `STOREPRO_SEED_DIR` names
+another. Its prices and GST rates are illustrative demo values.
+
 ## 3. Writing tests
 
 ### Shared helpers
