@@ -533,6 +533,24 @@ export async function fillCatalogue(ui: Page): Promise<string> {
     })
     if (existing) {
       skipped++
+      // An earlier run may have stopped after creating it but before its opening stock went
+      // in: give stock to any pack with no stock history at all, and leave the rest alone.
+      for (const pack of item.packs) {
+        if (pack.stock <= 0) continue
+        const found = await invokeIpc<{ variantId: number } | null>(
+          ui,
+          'products:find-by-barcode',
+          { barcode: pack.sku }
+        )
+        if (!found) continue
+        const history = await invokeIpc<{ total: number }>(ui, 'inventory:movements', {
+          variantId: found.variantId,
+          limit: 1
+        })
+        if (history.total === 0) {
+          opening.push({ variantId: found.variantId, quantityDeltaMilli: pack.stock * 1000 })
+        }
+      }
       continue
     }
     const product = await invokeIpc<{ variants: { variantId: number; sku: string }[] }>(
@@ -573,7 +591,7 @@ export async function fillCatalogue(ui: Page): Promise<string> {
     })
   }
   return (
-    `Added ${createdProducts} products (${opening.length} with opening stock) in ${categories.size} categories.` +
+    `Added ${createdProducts} products in ${categories.size} categories, and opening stock for ${opening.length} pack sizes.` +
     (skipped > 0 ? ` Skipped ${skipped} that were already there.` : '')
   )
 }
