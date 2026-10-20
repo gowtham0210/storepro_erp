@@ -483,7 +483,7 @@ Not done: recurring expenses, bill attachments, the expense summary report (M19-
 
 ---
 
-## Phase 6 — Insight & Safety (in progress)
+## Phase 6 — Insight & Safety (complete)
 
 **Done so far:** M19 Reports & Dashboard and M22-03 CSV export. **Remaining:** M20 Backup & Restore and M22-01/02 CSV product import.
 
@@ -566,7 +566,7 @@ Not done: profit and margin reports, reports by cashier, category or customer, a
 | M30-09 | Clean Windows install and upgrade-from-previous-version tests | M01-08, M02-04 | M |
 | M30-10 | Hardware compatibility testing with supported-device matrix | M21-05 | M |
 
-**Status (2026-10-20):** M30-06, M30-07 and M30-08 are done. M30-05, M30-09, M30-10, M01-09, DOC-01, DOC-02 and PILOT-01 are not started.
+**Status (2026-10-20):** M30-06, M30-07 and M30-08 (Stream A) and M30-09, M01-09 and DOC-02 (Stream B) are done, with the limits noted below. M30-10 has its device matrix but no hardware sign-off. M30-05, DOC-01 and PILOT-01 are not started.
 
 - **M30-06 keyboard-only billing (`e2e/keyboard-billing.spec.ts`):** a whole bill with no mouse: scan twice, `F4` search, `F6` bill discount, `F9` hold, `F8` resume, `F12` pay, start the next bill. A tripwire fails the test on any real pointer input. It found and fixed four bugs: a fast second scan was lost (the scan field was cleared only after the lookup returned), dialogs opened on the Close button instead of their `autoFocus` field, focus was lost when a dialog was removed, and a held bill dropped its bill-level discount on resume (it is now stored as line discounts, with the same total).
 - **M30-07 failure scenarios:** a real process is killed mid-transaction against the real database file (`src/main/db/crashRecovery.test.ts`: uncommitted sale leaves nothing, committed sale survives whole); audit-write failures roll back a sale, a goods receipt, a held bill and an expense, and the retry works once (`src/main/failureScenarios.test.ts`); the real app is hard-killed after a sale and a held bill and both are there on restart, with the next invoice number carrying on (`e2e/failure-scenarios.spec.ts`).
