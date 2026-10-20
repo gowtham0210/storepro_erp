@@ -1,3 +1,4 @@
+import { spawnSync, type ChildProcess } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -144,6 +145,32 @@ export async function closeStorePro({ app }: StoreProApp): Promise<void> {
   await exited
 }
 
+export /**
+ * Kill the app and all of its helper processes at once, as a crash, power cut
+ * or Task Manager "End task" does. On Windows, killing only the main process
+ * leaves Chromium's helper processes alive for a while, still holding the
+ * single-instance lock and the database file.
+ */
+async function killProcessTree(child: ChildProcess): Promise<void> {
+  const exited = new Promise((resolve) => child.once('exit', resolve))
+  if (process.platform === 'win32' && child.pid !== undefined) {
+    spawnSync('taskkill', ['/F', '/T', '/PID', String(child.pid)])
+  } else {
+    child.kill('SIGKILL')
+  }
+  await exited
+}
+
+export function isProcessRunning(pid: number | undefined): boolean {
+  if (pid === undefined) return false
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function readLog(userDataDir: string): string {
   try {
     return readFileSync(join(userDataDir, 'logs', 'main.log'), 'utf8')
@@ -211,3 +238,24 @@ export const test = base.extend<Fixtures>({
     await use(storepro.window)
   }
 })
+
+/** Call a main-process channel from the page as the app does, and return its data (or throw). */
+export async function invokeIpc<T = unknown>(
+  ui: Page,
+  channel: string,
+  input?: unknown
+): Promise<T> {
+  return ui.evaluate(
+    async ({ channel, input }) => {
+      const result = await (
+        window.storepro.invoke as (
+          c: string,
+          i?: unknown
+        ) => Promise<{ ok: boolean; data?: unknown; error?: unknown }>
+      )(channel, input)
+      if (!result.ok) throw new Error(`${channel} failed: ${JSON.stringify(result.error)}`)
+      return result.data
+    },
+    { channel, input }
+  ) as Promise<T>
+}

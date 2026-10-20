@@ -322,6 +322,24 @@ not the reference hardware:
 | Full stock list (11,368 variants)                           | 375 ms  | —          |
 | Quick integrity check                                       | 680 ms  | —          |
 
+Through the services the screens call (`src/main/servicePerformance.perf.test.ts`, same data,
+development machine):
+
+| Measurement                                           | Result  | Target (PRD, or provisional) |
+| ----------------------------------------------------- | ------- | ---------------------------- |
+| Barcode scan through the product service (worst 1000) | 3.2 ms  | < 100 ms                     |
+| Search through the product service (worst of 8)       | 21.6 ms | < 300 ms                     |
+| 5-line checkout through the sales service (worst 20)  | 14.5 ms | < 500 ms                     |
+| Sales report, 30 days (45,000 bills)                  | 628 ms  | < 2 s (provisional)          |
+| Top 50 products by value, 30 days                     | 107 ms  | < 2 s (provisional)          |
+| Stock report (11,368 variants)                        | 473 ms  | < 3 s (provisional)          |
+| Sales CSV export, 30 days                             | 617 ms  | < 3 s (provisional)          |
+
+Reading stock for an item must bind the variant (`WHERE variant_id = ?`) so SQLite can use the
+ledger's indexes. Written as a column that refers to the outer row, the same subquery rebuilt the
+whole ledger for every row: 51 ms per scan, 225 ms per search and 153 ms per checkout, before the
+fix, and growing with history.
+
 Deriving stock costs about 0.4 s for a full-catalogue stock report at this volume, and grows with
 history. If a larger store needs it faster, the fix is a documented derived table maintained by
 triggers and verified by `checkIntegrity`, added in its own migration with a measured need (M14).

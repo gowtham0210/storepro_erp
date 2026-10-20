@@ -110,6 +110,15 @@ const ON_HAND_SUBQUERY = `(SELECT coalesce(sum(m.quantity_delta_milli), 0)
   FROM v_inventory_movements m WHERE m.variant_id = v.variant_id)`
 
 /**
+ * Stock for the one variant bound as the first `?`. Unlike ON_HAND_SUBQUERY it does not
+ * refer to the outer row, so SQLite can use the ledger's indexes instead of rebuilding
+ * the whole ledger (27 ms a call at one month of trading, growing with history). Use
+ * it wherever a single variant is read, as every checkout line does.
+ */
+const ON_HAND_FOR_VARIANT = `(SELECT coalesce(sum(m.quantity_delta_milli), 0)
+  FROM v_inventory_movements m WHERE m.variant_id = ?)`
+
+/**
  * The stock ledger and adjustments repository (M14): reads stock balances and
  * movement history from `v_inventory_movements` / `v_stock_on_hand`, and writes
  * `stock_adjustments` and `stock_adjustment_items`.
@@ -148,13 +157,13 @@ export class InventoryRepository extends Repository {
       `SELECT v.variant_id, p.product_id, p.name AS product_name, v.variant_name, v.sku,
               v.unit_code, u.allows_fraction, p.tracks_inventory,
               (v.archived_at IS NULL AND p.archived_at IS NULL) AS active,
-              ${ON_HAND_SUBQUERY} AS on_hand_milli,
+              ${ON_HAND_FOR_VARIANT} AS on_hand_milli,
               v.reorder_level_milli
        FROM product_variants v
        JOIN products p ON p.product_id = v.product_id
        JOIN units u ON u.unit_code = v.unit_code
        WHERE v.variant_id = ?`,
-      [variantId]
+      [variantId, variantId]
     )
     if (!row) return null
     return {

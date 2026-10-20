@@ -1,4 +1,4 @@
-import { spawnSync, type ChildProcess } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -7,38 +7,14 @@ import {
   ELECTRON_PATH,
   expect,
   EXTRA_ARGS,
+  isProcessRunning,
   launchEnv,
+  killProcessTree,
   launchStorePro,
   readLog,
   removeUserDataDir,
   test
 } from './fixtures'
-
-/**
- * Kill the app and all of its helper processes at once, as a crash, power cut
- * or Task Manager "End task" does. On Windows, killing only the main process
- * leaves Chromium's helper processes alive for a while, still holding the
- * single-instance lock and the database file.
- */
-async function killProcessTree(child: ChildProcess): Promise<void> {
-  const exited = new Promise((resolve) => child.once('exit', resolve))
-  if (process.platform === 'win32' && child.pid !== undefined) {
-    spawnSync('taskkill', ['/F', '/T', '/PID', String(child.pid)])
-  } else {
-    child.kill('SIGKILL')
-  }
-  await exited
-}
-
-function isRunning(pid: number | undefined): boolean {
-  if (pid === undefined) return false
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch {
-    return false
-  }
-}
 
 test.describe('application lifecycle', () => {
   test('creates and migrates the store database on first start', async ({ storepro }) => {
@@ -83,7 +59,7 @@ test.describe('application lifecycle', () => {
       // Simulates a power cut or Task Manager "End task": no shutdown hooks run.
       const killed = first.app.process()
       await killProcessTree(killed)
-      expect(isRunning(killed.pid)).toBe(false)
+      expect(isProcessRunning(killed.pid)).toBe(false)
       expect(existsSync(join(userDataDir, 'session.lock'))).toBe(true)
 
       const second = await launchStorePro(userDataDir)

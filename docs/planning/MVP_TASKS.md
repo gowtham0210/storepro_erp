@@ -550,6 +550,13 @@ Not done: profit and margin reports, reports by cashier, category or customer, a
 | M30-08 | Performance tests on reference hardware (lookup, search, checkout) | M02-12 | M |
 | M30-09 | Clean Windows install and upgrade-from-previous-version tests | M01-08, M02-04 | M |
 | M30-10 | Hardware compatibility testing with supported-device matrix | M21-05 | M |
+
+**Status (2026-10-20):** M30-06, M30-07 and M30-08 are done. M30-05, M30-09, M30-10, M01-09, DOC-01, DOC-02 and PILOT-01 are not started.
+
+- **M30-06 keyboard-only billing (`e2e/keyboard-billing.spec.ts`):** a whole bill with no mouse: scan twice, `F4` search, `F6` bill discount, `F9` hold, `F8` resume, `F12` pay, start the next bill. A tripwire fails the test on any real pointer input. It found and fixed four bugs: a fast second scan was lost (the scan field was cleared only after the lookup returned), dialogs opened on the Close button instead of their `autoFocus` field, focus was lost when a dialog was removed, and a held bill dropped its bill-level discount on resume (it is now stored as line discounts, with the same total).
+- **M30-07 failure scenarios:** a real process is killed mid-transaction against the real database file (`src/main/db/crashRecovery.test.ts`: uncommitted sale leaves nothing, committed sale survives whole); audit-write failures roll back a sale, a goods receipt, a held bill and an expense, and the retry works once (`src/main/failureScenarios.test.ts`); the real app is hard-killed after a sale and a held bill and both are there on restart, with the next invoice number carrying on (`e2e/failure-scenarios.spec.ts`).
+- **M30-08 performance (`src/main/servicePerformance.perf.test.ts`):** the PRD §11 targets measured through the services the screens call, plus the M19 reports and CSV export. It found that every scan, search and checkout line recomputed stock from the whole ledger (27 ms per scan, 200 ms per search at one month of history, growing with it); stock is now read per item with a bound variant. Scan 51 → 3 ms, search 225 → 22 ms, checkout 153 → 15 ms. The report targets are provisional until the size-targets decision (Open decisions) and the reference hardware are settled.
+- **Known gap (not changed):** resuming a held bill deletes it at once, while the cart lives only in the window. If the app is killed after a resume and before checkout, that bill is gone. Fix by keeping the held bill until checkout (the checkout already accepts `heldBillId`) and having Hold replace the bill it came from.
 | M01-09 | Code signing for installer | M01-08 | S |
 | DOC-01 | User guide: setup, billing, purchases, returns, backup/restore | All | M |
 | DOC-02 | Recovery procedures: restore from backup, failed update, corrupted DB | M20-04 | S |

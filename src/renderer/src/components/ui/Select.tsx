@@ -52,7 +52,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
 ) {
   return (
     <div className="relative">
-      <select ref={ref} className={cx(controlClasses, 'appearance-none pr-9', className)} {...rest}>
+      <select
+        ref={ref}
+        className={cx(controlClasses, 'appearance-none pr-9', className)}
+        data-autofocus={rest.autoFocus ? '' : undefined}
+        {...rest}
+      >
         {placeholder !== undefined && <option value="">{placeholder}</option>}
         {renderOptions(options)}
       </select>

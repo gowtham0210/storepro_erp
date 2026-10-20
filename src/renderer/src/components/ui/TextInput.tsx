@@ -14,6 +14,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(function T
       type={type}
       className={cx(controlClasses, className)}
       spellCheck={false}
+      data-autofocus={rest.autoFocus ? '' : undefined}
       {...rest}
     />
   )

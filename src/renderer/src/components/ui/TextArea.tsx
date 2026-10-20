@@ -14,6 +14,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
       ref={ref}
       rows={rows}
       className={cx(controlClasses, 'h-auto min-h-20 resize-y py-2 leading-normal', className)}
+      data-autofocus={rest.autoFocus ? '' : undefined}
       {...rest}
     />
   )

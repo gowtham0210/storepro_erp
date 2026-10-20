@@ -42,6 +42,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
               detectCaps(event)
               onKeyUp?.(event)
             }}
+            data-autofocus={rest.autoFocus ? '' : undefined}
             {...rest}
           />
           <button

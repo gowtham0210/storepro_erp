@@ -193,7 +193,9 @@ export function toHoldBillInput(
       quantityMilli: line.quantityMilli,
       unitPriceOverrideMinor:
         line.unitPriceMinor !== line.item.sellingPriceMinor ? line.unitPriceMinor : null,
-      discountMinor: calculated.lines[index]?.lineDiscountMinor ?? 0
+      // The line's whole discount: its own plus its share of the bill discount. A held bill has
+      // no bill-level discount of its own, so without the share it would be lost on resume.
+      discountMinor: calculated.lines[index]?.discountMinor ?? 0
     }))
   }
 }

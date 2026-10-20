@@ -149,14 +149,19 @@ export default function BillingPage(): React.JSX.Element {
     if (!code) return
     setScanError(null)
     setScanning(true)
+    // Clear the field now, not when the lookup finishes: a scanner can send the next
+    // barcode while this one is still being looked up, and it must not be glued onto
+    // this one or wiped by it. Anything else already typed is left alone.
+    setBarcodeText((current) => (current.trim() === code ? '' : current))
     try {
       const found = await invoke('products:find-by-barcode', { barcode: code })
       if (!found) {
         setScanError(`No product matches barcode or SKU “${code}”.`)
+        // Put an unknown code back so it can be corrected, unless something new is being typed.
+        setBarcodeText((current) => (current === '' ? code : current))
         return
       }
       setCart((prev) => addItemToCart(prev, found, found.scannedQuantityMilli))
-      setBarcodeText('')
       barcodeInputRef.current?.focus()
     } catch (failure) {
       setScanError(describeError(failure).message)

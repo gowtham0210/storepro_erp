@@ -18,6 +18,8 @@ const axeSource = readFileSync(
 
 /** Full axe-core scan in real Chromium, including colour contrast (which jsdom can't check). */
 async function axeViolations(ui: Page): Promise<string[]> {
+  // A dialog fades in over 150 ms; text measured part-way through the fade has too little contrast.
+  await ui.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)))
   await ui.evaluate(axeSource)
   return ui.evaluate(async () => {
     const axe = (

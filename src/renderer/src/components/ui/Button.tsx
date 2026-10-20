@@ -72,6 +72,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       aria-keyshortcuts={shortcut}
+      data-autofocus={rest.autoFocus ? '' : undefined}
       {...rest}
     >
       {loading ? <Spinner className="absolute" /> : null}

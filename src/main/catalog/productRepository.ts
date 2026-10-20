@@ -68,7 +68,6 @@ interface LookupRow {
   mrp_minor: number | null
   tax_class_id: number
   tracks_inventory: number
-  on_hand_milli: number | null
 }
 
 /** A variant's name with its product, as printed on bills: "Toor Dal 1 kg". */
@@ -91,13 +90,12 @@ const BARCODES = `(SELECT group_concat(b.barcode, char(31)) FROM
 
 const LOOKUP = `
   SELECT v.variant_id, p.product_id, p.name AS product_name, v.variant_name, v.sku, v.unit_code,
-         u.allows_fraction, v.selling_price_minor, v.mrp_minor, p.tax_class_id, p.tracks_inventory,
-         ${ON_HAND} AS on_hand_milli
+         u.allows_fraction, v.selling_price_minor, v.mrp_minor, p.tax_class_id, p.tracks_inventory
   FROM product_variants v
   JOIN products p ON p.product_id = v.product_id
   JOIN units u ON u.unit_code = v.unit_code`
 
-function toLookup(row: LookupRow): ItemLookup {
+function toLookup(row: LookupRow, onHandMilli: number | null): ItemLookup {
   return {
     variantId: row.variant_id,
     productId: row.product_id,
@@ -109,7 +107,7 @@ function toLookup(row: LookupRow): ItemLookup {
     mrpMinor: row.mrp_minor,
     taxClassId: row.tax_class_id,
     tracksInventory: row.tracks_inventory === 1,
-    onHandMilli: row.on_hand_milli
+    onHandMilli
   }
 }
 
@@ -235,6 +233,25 @@ export class ProductRepository extends Repository {
   }
 
   /**
+   * A lookup row with its stock on hand. Stock is read per item with the variant
+   * as a bound value, which lets SQLite use the indexes behind the ledger view.
+   * Done as one correlated column of the lookup query instead, it rebuilt the
+   * whole ledger for every row: 27 ms per scan and 200 ms per search at one month
+   * of trading, growing with the history (found by the M30-08 performance tests).
+   */
+  private toLookup(row: LookupRow): ItemLookup {
+    const onHand =
+      row.tracks_inventory === 1
+        ? (this.db.get<{ q: number }>(
+            `SELECT coalesce(sum(quantity_delta_milli), 0) AS q
+             FROM v_inventory_movements WHERE variant_id = ?`,
+            [row.variant_id]
+          )?.q ?? 0)
+        : null
+    return toLookup(row, onHand)
+  }
+
+  /**
    * The active item with this barcode, or failing that this SKU, as a scanner
    * would type either (M09-07). Exact match on the primary key: well under 100 ms.
    */
@@ -244,11 +261,11 @@ export class ProductRepository extends Repository {
       `${LOOKUP} JOIN barcodes b ON b.variant_id = v.variant_id WHERE b.barcode = ? AND ${active}`,
       [code]
     )
-    if (byBarcode) return toLookup(byBarcode)
+    if (byBarcode) return this.toLookup(byBarcode)
     const bySku = this.db.get<LookupRow>(`${LOOKUP} WHERE v.sku = ? COLLATE NOCASE AND ${active}`, [
       code
     ])
-    return bySku ? toLookup(bySku) : null
+    return bySku ? this.toLookup(bySku) : null
   }
 
   /**
@@ -264,14 +281,14 @@ export class ProductRepository extends Repository {
        WHERE b.barcode = ? AND ${activeFraction}`,
       [itemCode]
     )
-    if (byBarcode) return toLookup(byBarcode)
+    if (byBarcode) return this.toLookup(byBarcode)
 
     const skuCandidate = `ITEM-${itemCode}`
     const bySku = this.db.get<LookupRow>(
       `${LOOKUP} WHERE (v.sku = ? COLLATE NOCASE OR v.sku = ? COLLATE NOCASE) AND ${activeFraction}`,
       [skuCandidate, itemCode]
     )
-    if (bySku) return toLookup(bySku)
+    if (bySku) return this.toLookup(bySku)
 
     const numericId = Number(itemCode)
     if (Number.isInteger(numericId) && numericId > 0) {
@@ -279,7 +296,7 @@ export class ProductRepository extends Repository {
         `${LOOKUP} WHERE v.variant_id = ? AND ${activeFraction}`,
         [numericId]
       )
-      if (byId) return toLookup(byId)
+      if (byId) return this.toLookup(byId)
     }
     return null
   }
@@ -338,7 +355,7 @@ export class ProductRepository extends Repository {
          ORDER BY s.rank LIMIT ?`,
         [match, limit]
       )
-      .map(toLookup)
+      .map((row) => this.toLookup(row))
   }
 
   /** Which variant, if any, already has this barcode. */

@@ -117,6 +117,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(functi
           suffix && 'pr-10',
           className
         )}
+        data-autofocus={rest.autoFocus ? '' : undefined}
         {...rest}
       />
       {suffix && (

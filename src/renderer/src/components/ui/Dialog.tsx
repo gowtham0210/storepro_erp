@@ -24,7 +24,7 @@ export interface DialogProps {
   size?: 'sm' | 'md' | 'lg'
   /** Clicking outside closes the dialog. Turn off for forms with unsaved input. */
   closeOnBackdrop?: boolean
-  /** Element to focus when the dialog opens; defaults to the first [autofocus] element. */
+  /** Element to focus when the dialog opens; defaults to the first field marked `autoFocus`. */
   initialFocusRef?: RefObject<HTMLElement | null>
 }
 
@@ -60,8 +60,23 @@ export function Dialog({
     const dialog = ref.current
     if (!dialog) return
     if (open && !dialog.open) {
+      const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
       dialog.showModal()
-      initialFocusRef?.current?.focus()
+      // React's autoFocus runs while the dialog is still closed, where focus can't land, and the
+      // browser would then focus the Close button. So focus the field that asked for it, now.
+      const preferred =
+        initialFocusRef?.current ?? dialog.querySelector<HTMLElement>('[data-autofocus]')
+      preferred?.focus()
+      return () => {
+        // Most dialogs are removed from the page rather than closed, and a removed dialog doesn't
+        // give focus back. Return it to where it was (the scan field, the button that opened
+        // the dialog), unless the page has already put it somewhere on purpose.
+        const stranded =
+          document.activeElement === null ||
+          document.activeElement === document.body ||
+          dialog.contains(document.activeElement)
+        if (stranded && opener?.isConnected) opener.focus()
+      }
     } else if (!open && dialog.open) {
       dialog.close()
     }

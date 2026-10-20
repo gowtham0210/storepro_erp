@@ -73,6 +73,18 @@ On Linux without a display, prefix end-to-end runs with `xvfb-run -a`.
 - **New screens** add an axe check (component test, and an end-to-end path in
   `e2e/accessibility.spec.ts`).
 
+### Failure and crash tests (M30-07)
+
+| What                                                              | Where                               |
+| ----------------------------------------------------------------- | ----------------------------------- |
+| A process killed mid-transaction, then the file reopened          | `src/main/db/crashRecovery.test.ts` |
+| A failure at the last step of a sale, receipt, hold or expense    | `src/main/failureScenarios.test.ts` |
+| The real app hard-killed after a sale and a held bill             | `e2e/failure-scenarios.spec.ts`     |
+| Hard kill, integrity check and the "didn't close properly" notice | `e2e/lifecycle.spec.ts`             |
+
+Inject the failure after every other row has been written, so a leak shows. Check that nothing was
+kept, that no invoice number was used up, and that trying again works exactly once.
+
 ## 4. Coverage
 
 Coverage counts unit, integration and component tests. The thin Electron wiring (`main/index.ts`,
@@ -107,9 +119,9 @@ off. Older runs of a branch are cancelled when a newer commit is pushed.
 
 ## 6. Not automated yet
 
-| Area                                                                       | Plan                                                                                |
-| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Installing and upgrading the packaged installer on a clean Windows machine | M30-09: manual checklist, then a Windows VM job                                     |
-| Real receipt printers and barcode scanners                                 | M30-10: supported-device matrix, manual                                             |
-| Performance on the reference hardware                                      | M30-08: once the reference machine is chosen (PRD §15)                              |
-| End-to-end tests against the _packaged_ app                                | Needs a test-only way in that the fuses still allow; added with the installer tests |
+| Area                                                                       | Plan                                                                                                     |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Installing and upgrading the packaged installer on a clean Windows machine | M30-09: manual checklist, then a Windows VM job                                                          |
+| Real receipt printers and barcode scanners                                 | M30-10: supported-device matrix, manual                                                                  |
+| Performance on the reference hardware                                      | M30-08 tests exist and run in CI; run `npm run test:perf` on the reference machine once chosen (PRD §15) |
+| End-to-end tests against the _packaged_ app                                | Needs a test-only way in that the fuses still allow; added with the installer tests                      |
