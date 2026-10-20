@@ -257,12 +257,11 @@ export class ReportService {
       }
       case 'top-products': {
         const range = businessDayRange(request.from, request.to, ctx.timeZone)
-        const report = {
-          from: request.from,
-          to: request.to,
-          rankBy: request.rankBy,
-          items: reports.topProducts(range.from, range.to, request.rankBy, 5000)
-        }
+        // Every item sold in the period, as the other exports do; one more than the cap tells
+        // a period that is too long from one that just fits.
+        const items = reports.topProducts(range.from, range.to, request.rankBy, MAX_EXPORT_ROWS + 1)
+        if (items.length > MAX_EXPORT_ROWS) tooMany('items')
+        const report = { from: request.from, to: request.to, rankBy: request.rankBy, items }
         return {
           fileName: `top-items_${span(request.from, request.to)}.csv`,
           rows: topProductsCsvRows(report, ctx),

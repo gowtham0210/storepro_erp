@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { SaleDetail } from '@shared/ipc/contract'
 import { parseCsv } from '@shared/csv'
 import { reportExportSchema, reportRangeSchema, topProductsSchema } from '@shared/schemas/reports'
+import { insertProduct, insertSale } from '../db/dev/builders'
 import { useMigratedDb } from '../db/test/testDb'
 import { rejection, setUpStore, taxClassId, variant } from '../test/store'
 
@@ -805,6 +806,42 @@ describe('ReportService (M19)', () => {
       expect(rows.at(-1)?.[7]).toBe(dec(onScreen.totals.valueMinor))
       expect(rows.some((r) => r[0] === `'=HYPERLINK("http://bad","x")`)).toBe(true)
       expect(rows.some((r) => r[0]?.startsWith('='))).toBe(false)
+    })
+
+    it('writes every item sold, not just the first few thousand', async () => {
+      const w = await world()
+      const db = getDb()
+      const gst5 = taxClassId(w.bed, 'GST 5%')
+      const many = Array.from({ length: 5_001 }, (_, i) => {
+        const { variantIds } = insertProduct(db, {
+          name: `Loose item ${i + 1}`,
+          taxClassId: gst5,
+          variants: [{ sku: `LOOSE-${i + 1}`, priceMinor: 1000 + i }]
+        })
+        return variantIds[0]!
+      })
+      insertSale(db, {
+        invoiceNumber: 'INV-MANY',
+        cashierId: 1,
+        completedAt: IST(2026, 10, 19, 11),
+        lines: many.map((variantId, i) => ({
+          variantId,
+          quantityMilli: 1000,
+          unitPriceMinor: 1000 + i
+        })),
+        payments: [
+          { methodCode: 'cash', amountMinor: many.reduce((sum, _, i) => sum + 1000 + i, 0) }
+        ]
+      })
+
+      const { result, rows } = await exportOf(w, {
+        report: 'top-products',
+        from: '2026-10-19',
+        to: '2026-10-19',
+        rankBy: 'quantity'
+      })
+      expect(result).toMatchObject({ status: 'saved', rows: 5_001 })
+      expect(rows.some((r) => r.includes('LOOSE-5001'))).toBe(true)
     })
 
     it('writes nothing when the save dialog is closed', async () => {
