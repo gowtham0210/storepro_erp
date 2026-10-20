@@ -145,6 +145,15 @@ running balances across sales, voids, returns, goods receipts and adjustments, m
 adjustments (`ADJ000001`, …) with reasons, and physical stock count reconciliation. Negative stock
 is blocked by default unless enabled in store settings. See [`docs/inventory.md`](docs/inventory.md).
 
+### Suppliers and purchases
+
+**Stock → Suppliers** keeps the people you buy from. **Stock → Purchases** writes purchase orders
+(`PO000001`, …; draft, then confirmed, then closed or cancelled) and records goods as they arrive
+(`GRN000001`, …), against an order or as a direct purchase. A draft receipt changes nothing;
+posting one adds its goods to stock in a single transaction, closes an order that is now fully
+received, and can set each item's cost price to what was paid. **Cost history** shows what an item
+cost each time it arrived. See [`docs/purchasing.md`](docs/purchasing.md).
+
 ### Billing, payments, printing and hardware
 
 **Sell → Billing** is the keyboard-driven Point of Sale counter: barcode/SKU scan (including a

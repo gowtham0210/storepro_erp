@@ -93,6 +93,26 @@ export const AUDIT_CATEGORIES = [
     ]
   },
   {
+    id: 'purchasing',
+    label: 'Suppliers and purchases',
+    actions: [
+      { code: 'supplier.created', label: 'Added a supplier' },
+      { code: 'supplier.updated', label: 'Changed a supplier' },
+      { code: 'supplier.archived', label: 'Archived a supplier' },
+      { code: 'supplier.restored', label: 'Restored a supplier' },
+      { code: 'purchase_order.created', label: 'Started a purchase order' },
+      { code: 'purchase_order.updated', label: 'Changed a draft purchase order' },
+      { code: 'purchase_order.confirmed', label: 'Confirmed a purchase order' },
+      { code: 'purchase_order.closed', label: 'Closed a purchase order' },
+      { code: 'purchase_order.cancelled', label: 'Cancelled a purchase order' },
+      { code: 'purchase_order.deleted', label: 'Deleted a draft purchase order' },
+      { code: 'goods_receipt.created', label: 'Started a goods receipt' },
+      { code: 'goods_receipt.updated', label: 'Changed a draft goods receipt' },
+      { code: 'goods_receipt.posted', label: 'Received goods into stock' },
+      { code: 'goods_receipt.deleted', label: 'Deleted a draft goods receipt' }
+    ]
+  },
+  {
     id: 'system',
     label: 'StorePro',
     actions: [

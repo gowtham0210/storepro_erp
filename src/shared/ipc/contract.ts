@@ -851,6 +851,227 @@ export interface PrintJobResult {
   escPosByteLength: number | null
 }
 
+// ---------------------------------------------------------------------------
+// Suppliers and purchasing (M15)
+// ---------------------------------------------------------------------------
+
+export type SupplierStatusFilter = 'active' | 'archived' | 'all'
+
+export interface SupplierInput {
+  name: string
+  contactPerson: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  taxRegistrationNumber: string | null
+}
+
+export interface SupplierUpdate extends SupplierInput {
+  supplierId: number
+}
+
+export interface SupplierSummary extends SupplierInput {
+  supplierId: number
+  active: boolean
+  /** Purchase orders and goods receipts on file for this supplier. */
+  documentCount: number
+}
+
+export interface SupplierListFilter {
+  search?: string | undefined
+  status?: SupplierStatusFilter | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface SupplierListPage {
+  items: SupplierSummary[]
+  total: number
+}
+
+export type PurchaseOrderStatus = 'draft' | 'confirmed' | 'closed' | 'cancelled'
+export type PurchaseOrderStatusFilter = 'all' | PurchaseOrderStatus
+export type GoodsReceiptStatus = 'draft' | 'posted'
+export type GoodsReceiptStatusFilter = 'all' | GoodsReceiptStatus
+
+export interface PurchaseLineInput {
+  variantId: number
+  quantityMilli: number
+  unitCostMinor: number
+}
+
+export interface PurchaseOrderInput {
+  /** Leave out to start a new order; give a draft's id to replace its contents. */
+  purchaseOrderId?: number | undefined
+  supplierId: number
+  notes: string | null
+  lines: PurchaseLineInput[]
+  /** Confirm the order straight away instead of keeping it as a draft. */
+  confirm?: boolean | undefined
+}
+
+export interface PurchaseLineDetail {
+  lineNumber: number
+  variantId: number
+  name: string
+  sku: string
+  unitCode: string
+  allowsFraction: boolean
+  quantityMilli: number
+  unitCostMinor: number
+  /** Quantity × unit cost, rounded to the minor unit. */
+  totalMinor: number
+}
+
+/** An order line with how much of it has arrived (FR-062). */
+export interface PurchaseOrderLineDetail extends PurchaseLineDetail {
+  receivedMilli: number
+  /** Ordered minus received; never below zero. */
+  outstandingMilli: number
+}
+
+export interface PurchaseOrderReceiptRef {
+  goodsReceiptId: number
+  receiptNumber: string
+  status: GoodsReceiptStatus
+  postedAt: number | null
+  totalMinor: number
+}
+
+export interface PurchaseOrderDetail {
+  purchaseOrderId: number
+  orderNumber: string
+  status: PurchaseOrderStatus
+  supplierId: number
+  supplierName: string
+  notes: string | null
+  createdByName: string
+  createdAt: number
+  updatedAt: number
+  confirmedAt: number | null
+  closedAt: number | null
+  cancelledAt: number | null
+  totalMinor: number
+  lines: PurchaseOrderLineDetail[]
+  receipts: PurchaseOrderReceiptRef[]
+}
+
+export interface PurchaseOrderListFilter {
+  search?: string | undefined
+  status?: PurchaseOrderStatusFilter | undefined
+  supplierId?: number | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface PurchaseOrderListItem {
+  purchaseOrderId: number
+  orderNumber: string
+  status: PurchaseOrderStatus
+  supplierId: number
+  supplierName: string
+  createdAt: number
+  lineCount: number
+  totalMinor: number
+}
+
+export interface PurchaseOrderListPage {
+  items: PurchaseOrderListItem[]
+  total: number
+}
+
+export interface PurchaseOrderCancelInput {
+  purchaseOrderId: number
+  reason?: string | null | undefined
+}
+
+export interface GoodsReceiptInput {
+  /** Leave out to start a new receipt; give a draft's id to replace its contents. */
+  goodsReceiptId?: number | undefined
+  supplierId: number
+  /** The confirmed order this delivery fulfils; null for a direct purchase (M15-04). */
+  purchaseOrderId: number | null
+  supplierInvoiceNumber: string | null
+  /** YYYY-MM-DD */
+  supplierInvoiceDate: string | null
+  lines: PurchaseLineInput[]
+  /** Post now (adds the goods to stock) instead of saving a draft. */
+  post: boolean
+  /** On posting, set each item's cost price to what was paid (M15-05). */
+  updateCosts?: boolean | undefined
+}
+
+export interface GoodsReceiptPostInput {
+  goodsReceiptId: number
+  updateCosts?: boolean | undefined
+}
+
+export interface GoodsReceiptDetail {
+  goodsReceiptId: number
+  receiptNumber: string
+  status: GoodsReceiptStatus
+  supplierId: number
+  supplierName: string
+  purchaseOrderId: number | null
+  orderNumber: string | null
+  supplierInvoiceNumber: string | null
+  supplierInvoiceDate: string | null
+  createdByName: string
+  createdAt: number
+  postedAt: number | null
+  postedByName: string | null
+  totalMinor: number
+  lines: PurchaseLineDetail[]
+}
+
+export interface GoodsReceiptListFilter {
+  search?: string | undefined
+  status?: GoodsReceiptStatusFilter | undefined
+  supplierId?: number | undefined
+  offset?: number | undefined
+  limit?: number | undefined
+}
+
+export interface GoodsReceiptListItem {
+  goodsReceiptId: number
+  receiptNumber: string
+  status: GoodsReceiptStatus
+  supplierId: number
+  supplierName: string
+  orderNumber: string | null
+  supplierInvoiceNumber: string | null
+  /** When it was posted; for a draft, when it was started. */
+  occurredAt: number
+  lineCount: number
+  totalMinor: number
+}
+
+export interface GoodsReceiptListPage {
+  items: GoodsReceiptListItem[]
+  total: number
+}
+
+export interface CostHistoryEntry {
+  goodsReceiptId: number
+  receiptNumber: string
+  supplierName: string
+  postedAt: number
+  quantityMilli: number
+  unitCostMinor: number
+}
+
+/** What an item has cost on posted goods receipts, newest first (M15-05). */
+export interface CostHistory {
+  variantId: number
+  name: string
+  sku: string
+  unitCode: string
+  /** The item's cost price today. */
+  currentCostMinor: number | null
+  entries: CostHistoryEntry[]
+}
+
+// ---------------------------------------------------------------------------
 export interface IpcContract {
   'app:get-info': { input: void; output: AppInfo }
   'app:get-startup-status': { input: void; output: StartupStatus }
@@ -951,6 +1172,29 @@ export interface IpcContract {
   'labels:print': { input: PrintLabelInput; output: PrintJobResult }
   'grocery:get-weigh-barcode': { input: void; output: WeighBarcodeSettings }
   'grocery:set-weigh-barcode': { input: WeighBarcodeSettings; output: WeighBarcodeSettings }
+  'suppliers:list': { input: SupplierListFilter; output: SupplierListPage }
+  'suppliers:create': { input: SupplierInput; output: SupplierSummary }
+  'suppliers:update': { input: SupplierUpdate; output: SupplierSummary }
+  'suppliers:set-active': {
+    input: { supplierId: number; active: boolean }
+    output: SupplierSummary
+  }
+  'purchases:list-orders': { input: PurchaseOrderListFilter; output: PurchaseOrderListPage }
+  'purchases:get-order': { input: { purchaseOrderId: number }; output: PurchaseOrderDetail }
+  'purchases:save-order': { input: PurchaseOrderInput; output: PurchaseOrderDetail }
+  'purchases:confirm-order': { input: { purchaseOrderId: number }; output: PurchaseOrderDetail }
+  'purchases:cancel-order': { input: PurchaseOrderCancelInput; output: PurchaseOrderDetail }
+  'purchases:close-order': { input: { purchaseOrderId: number }; output: PurchaseOrderDetail }
+  'purchases:delete-order': { input: { purchaseOrderId: number }; output: void }
+  'purchases:list-receipts': { input: GoodsReceiptListFilter; output: GoodsReceiptListPage }
+  'purchases:get-receipt': { input: { goodsReceiptId: number }; output: GoodsReceiptDetail }
+  'purchases:save-receipt': { input: GoodsReceiptInput; output: GoodsReceiptDetail }
+  'purchases:post-receipt': { input: GoodsReceiptPostInput; output: GoodsReceiptDetail }
+  'purchases:delete-receipt': { input: { goodsReceiptId: number }; output: void }
+  'purchases:cost-history': {
+    input: { variantId: number; limit?: number | undefined }
+    output: CostHistory
+  }
 }
 
 export type IpcChannel = keyof IpcContract
@@ -1039,7 +1283,24 @@ const channelRegistry: Record<IpcChannel, true> = {
   'labels:preview': true,
   'labels:print': true,
   'grocery:get-weigh-barcode': true,
-  'grocery:set-weigh-barcode': true
+  'grocery:set-weigh-barcode': true,
+  'suppliers:list': true,
+  'suppliers:create': true,
+  'suppliers:update': true,
+  'suppliers:set-active': true,
+  'purchases:list-orders': true,
+  'purchases:get-order': true,
+  'purchases:save-order': true,
+  'purchases:confirm-order': true,
+  'purchases:cancel-order': true,
+  'purchases:close-order': true,
+  'purchases:delete-order': true,
+  'purchases:list-receipts': true,
+  'purchases:get-receipt': true,
+  'purchases:save-receipt': true,
+  'purchases:post-receipt': true,
+  'purchases:delete-receipt': true,
+  'purchases:cost-history': true,
 }
 
 export const IPC_CHANNELS = Object.keys(channelRegistry) as IpcChannel[]

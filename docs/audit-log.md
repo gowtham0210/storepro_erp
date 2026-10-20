@@ -64,7 +64,7 @@ db.transaction(() => {
 | Store settings      | store set up, settings changed, module switched on or off, bill rounding or discount limit changed, tax rate added, changed, archived or restored, payment method added, changed, archived or restored, receipt printer settings changed, scale barcode settings changed | M03, M04, M10, M12, M21, M24 |
 | Products and prices | product added, changed, archived, restored; price changed (before and after); pack size added, archived, restored; category added, renamed, archived, restored; unit added, renamed                           | M09                |
 | Stock               | stock adjusted (reason, items, delta, balance after); physical stock counted (recorded, counted, delta)                                                                                                       | M14                |
-| Sales and billing   | sale completed (invoice number, item count, total, discount, and manager approver if price or discount was overridden); sale voided (invoice number, total, reason, and manager approver); invoice reprinted (`sale.reprinted`, with manager approver if overridden) | M11, M13           |
+| Suppliers and purchases | supplier added, changed, archived, restored; purchase order started, changed, confirmed, closed (including when fully received), cancelled, deleted; goods receipt started, changed, posted (items, total, cost prices updated), deleted | M15 |
 
 Sensitive actions of modules that aren't built yet must be added as those modules are built.
 Each must use `change()` with the request's `actor`:

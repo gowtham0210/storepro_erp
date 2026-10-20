@@ -16,3 +16,8 @@ export function buildPrefixMatchQuery(input: string, maxTerms = 8): string | nul
   if (tokens.length === 0) return null
   return tokens.map((token) => `"${token}"*`).join(' ')
 }
+
+/** A LIKE pattern that matches `text` anywhere, with its wildcard characters taken literally. Use with `ESCAPE '\'`. */
+export function likePattern(text: string): string {
+  return `%${text.replace(/[\\%_]/g, (char) => `\\${char}`)}%`
+}

@@ -404,6 +404,18 @@ Practitioner sign-off on the provisional GST 2.0 slabs and B2B IGST invoicing re
 | M15-06 | Purchase list and detail screens | M15-02 | M |
 | M15-07 | Tests: drafts don't change stock; receipt increases stock exactly once | M15-03 | S |
 
+**Status (2026-10-20):** M15-01 to M15-07 are implemented. See `docs/purchasing.md`. No new migration was needed: migration 0001 already holds the tables, triggers and views.
+
+- **Suppliers (`SupplierService`):** add, edit, archive and restore, with unique names and audit entries showing what changed. **Stock → Suppliers** has search and an archived filter.
+- **Orders (`PurchaseService`):** draft orders (`PO000001`, …) can be edited or deleted; confirming fixes them; confirmed orders can be closed or cancelled (not once goods have arrived). They never touch stock.
+- **Receipts:** against an order or direct. A draft changes nothing. Posting freezes the receipt, adds its goods to stock through the ledger view, closes an order that is now fully received, and writes the audit entry in one transaction. Receiving more than ordered is allowed; items not on the order are not.
+- **Supplier bills:** one bill number per supplier, and the error names the receipt that holds it.
+- **Cost (M15-05):** cost history per item from posted receipts; an optional, `product.manage`-gated update of the item's cost price when posting.
+- **Screens:** **Stock → Suppliers** and **Stock → Purchases** (orders, goods received, cost history), with an item picker that searches by name, SKU or barcode.
+- **Tests:** 20 service tests (stock effects, partial and full receipt, atomic posting under an injected audit failure, duplicate bills, permissions), access-control coverage for all 17 new channels, screen tests and an axe check.
+
+Not done: purchase returns and supplier credit notes, supplier payments and balances (P1), printing orders, GST input credit, date filters on the lists, and the purchase report (M19-07).
+
 ### M16 · Returns & Refunds (MVP scope)
 
 | ID | Task | Depends on | Size |

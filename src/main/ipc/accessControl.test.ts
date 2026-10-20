@@ -159,7 +159,58 @@ const SAMPLE_INPUTS: { [C in IpcChannel]: IpcArgs<C> } = {
   'labels:preview': [{ variantId: 1 }],
   'labels:print': [{ variantId: 1 }],
   'grocery:get-weigh-barcode': [],
-  'grocery:set-weigh-barcode': [{ enabled: true, weightPrefix: '20', pricePrefix: '21' }]
+  'grocery:set-weigh-barcode': [{ enabled: true, weightPrefix: '20', pricePrefix: '21' }],
+  'suppliers:list': [{}],
+  'suppliers:create': [
+    {
+      name: 'Rogue Traders',
+      contactPerson: null,
+      phone: null,
+      email: null,
+      address: null,
+      taxRegistrationNumber: null
+    }
+  ],
+  'suppliers:update': [
+    {
+      supplierId: 1,
+      name: 'Hijacked Traders',
+      contactPerson: null,
+      phone: null,
+      email: null,
+      address: null,
+      taxRegistrationNumber: null
+    }
+  ],
+  'suppliers:set-active': [{ supplierId: 1, active: false }],
+  'purchases:list-orders': [{}],
+  'purchases:get-order': [{ purchaseOrderId: 1 }],
+  'purchases:save-order': [
+    {
+      supplierId: 1,
+      notes: null,
+      lines: [{ variantId: 1, quantityMilli: 1000, unitCostMinor: 100 }]
+    }
+  ],
+  'purchases:confirm-order': [{ purchaseOrderId: 1 }],
+  'purchases:cancel-order': [{ purchaseOrderId: 1 }],
+  'purchases:close-order': [{ purchaseOrderId: 1 }],
+  'purchases:delete-order': [{ purchaseOrderId: 1 }],
+  'purchases:list-receipts': [{}],
+  'purchases:get-receipt': [{ goodsReceiptId: 1 }],
+  'purchases:save-receipt': [
+    {
+      supplierId: 1,
+      purchaseOrderId: null,
+      supplierInvoiceNumber: null,
+      supplierInvoiceDate: null,
+      lines: [{ variantId: 1, quantityMilli: 1000, unitCostMinor: 100 }],
+      post: true
+    }
+  ],
+  'purchases:post-receipt': [{ goodsReceiptId: 1 }],
+  'purchases:delete-receipt': [{ goodsReceiptId: 1 }],
+  'purchases:cost-history': [{ variantId: 1 }],
 }
 
 describe('access control over IPC', () => {

@@ -12,6 +12,10 @@ import { PaymentService } from '../../payments/paymentService'
 import { PricingService } from '../../pricing/pricingService'
 import { PrinterRepository } from '../../printing/printerRepository'
 import { PrintingService } from '../../printing/printingService'
+import { PurchaseRepository } from '../../purchasing/purchaseRepository'
+import { PurchaseService } from '../../purchasing/purchaseService'
+import { SupplierRepository } from '../../purchasing/supplierRepository'
+import { SupplierService } from '../../purchasing/supplierService'
 import { SalesRepository } from '../../sales/salesRepository'
 import { SalesService } from '../../sales/salesService'
 import { AuditLog } from '../../audit/auditLog'
@@ -62,6 +66,10 @@ export interface Testbed {
   salesService: SalesService
   printers: PrinterRepository
   printingService: PrintingService
+  supplierRepository: SupplierRepository
+  supplierService: SupplierService
+  purchaseRepository: PurchaseRepository
+  purchaseService: PurchaseService
   /** The signed-in user as the service host resolves them for a request. */
   actor(): Actor
   audit: () => {
@@ -123,7 +131,19 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
     modules: moduleService,
     audit
   })
+  const supplierRepository = new SupplierRepository(db, clock)
+  const purchaseRepository = new PurchaseRepository(db, clock)
   return {
+    supplierRepository,
+    supplierService: new SupplierService({ db, suppliers: supplierRepository, audit }),
+    purchaseRepository,
+    purchaseService: new PurchaseService({
+      db,
+      purchases: purchaseRepository,
+      suppliers: supplierRepository,
+      audit,
+      currency: () => stores.get()?.currency ?? DEFAULT_CURRENCY
+    }),
     taxClasses,
     catalog,
     products,

@@ -33,6 +33,8 @@ export function createRealIpc(bed: Testbed): IpcHarness & { handlers: HandlerMap
     payments: bed.paymentService,
     sales: bed.salesService,
     printing: bed.printingService,
+    suppliers: bed.supplierService,
+    purchases: bed.purchaseService,
     connectivity: new ConnectivityMonitor({
       isOnline: () => true,
       clock: bed.clock,

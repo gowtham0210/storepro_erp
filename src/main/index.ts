@@ -27,6 +27,10 @@ import { ProductService } from './catalog/productService'
 import { TaxClassRepository } from './catalog/taxClassRepository'
 import { InventoryRepository } from './inventory/inventoryRepository'
 import { InventoryService } from './inventory/inventoryService'
+import { PurchaseRepository } from './purchasing/purchaseRepository'
+import { PurchaseService } from './purchasing/purchaseService'
+import { SupplierRepository } from './purchasing/supplierRepository'
+import { SupplierService } from './purchasing/supplierService'
 import { PaymentRepository } from './payments/paymentRepository'
 import { PaymentService } from './payments/paymentService'
 import { PricingService } from './pricing/pricingService'
@@ -240,6 +244,8 @@ function createServices(
   payments: PaymentService
   sales: SalesService
   printing: PrintingService
+  suppliers: SupplierService
+  purchases: PurchaseService
 } {
   const clock = systemClock
   const audit = new AuditLog(db, clock)
@@ -308,6 +314,15 @@ function createServices(
     audit,
     adapter: createElectronPrinterAdapter()
   })
+  const supplierRepository = new SupplierRepository(db, clock)
+  const suppliers = new SupplierService({ db, suppliers: supplierRepository, audit })
+  const purchases = new PurchaseService({
+    db,
+    purchases: new PurchaseRepository(db, clock),
+    suppliers: supplierRepository,
+    audit,
+    currency: () => storeRepository.get()?.currency ?? DEFAULT_CURRENCY
+  })
   return {
     audit,
     auth,
@@ -321,7 +336,9 @@ function createServices(
     inventory,
     payments,
     sales,
-    printing
+    printing,
+    suppliers,
+    purchases,
   }
 }
 

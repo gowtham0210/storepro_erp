@@ -35,6 +35,51 @@ function changes(value: unknown, names: Record<string, string> = USER_FIELDS): s
     .join('; ')
 }
 
+function itemCount(value: unknown): string {
+  const count = Array.isArray(value) ? value.length : 0
+  return `${count} ${count === 1 ? 'item' : 'items'}`
+}
+
+const SUPPLIER_FIELDS: Record<string, string> = {
+  name: 'name',
+  contactPerson: 'contact person',
+  phone: 'phone',
+  email: 'email',
+  address: 'address',
+  taxRegistrationNumber: 'tax number'
+}
+
+const DOCUMENT_FIELDS: Record<string, string> = {
+  supplier: 'supplier',
+  notes: 'note',
+  total: 'total',
+  order: 'order',
+  supplierBill: 'supplier bill',
+  supplierBillDate: 'supplier bill date'
+}
+
+/** "GRN000004 · Anand Wholesale · against PO000002 · bill AW-1042 · 3 items · ₹1,920.00" */
+function documentSummary(d: Record<string, unknown>, number: string): string {
+  return [
+    text(d[number]),
+    text(d['supplier']),
+    d['order'] ? `against ${text(d['order'])}` : '',
+    d['supplierBill'] ? `bill ${text(d['supplierBill'])}` : '',
+    d['items'] ? itemCount(d['items']) : '',
+    d['total'] ? text(d['total']) : ''
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+function costUpdates(value: unknown): string {
+  if (!Array.isArray(value) || value.length === 0) return ''
+  const described = (value as { item?: unknown; from?: unknown; to?: unknown }[])
+    .map((u) => `${text(u.item)} ${text(u.from)} → ${text(u.to)}`)
+    .join(', ')
+  return ` — cost prices updated: ${described}`
+}
+
 /** Any other details, as "key: value" pairs, so nothing recorded is hidden. */
 function generic(details: Record<string, unknown>): string {
   return Object.entries(details)
@@ -171,6 +216,35 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       const note = d['notes'] ? ` — ${text(d['notes'])}` : ''
       return `${text(d['adjustmentNumber'] ?? subject)}: ${items}${note}`
     }
+    case 'supplier.created':
+    case 'supplier.archived':
+    case 'supplier.restored':
+      return text(d['name'] ?? subject)
+    case 'supplier.updated':
+      return `${text(d['name'] ?? subject)}: ${changes(d['changes'], SUPPLIER_FIELDS)}`
+    case 'purchase_order.created':
+      return documentSummary(d, 'orderNumber')
+    case 'purchase_order.updated': {
+      const described = changes(d['changes'], DOCUMENT_FIELDS)
+      return `${text(d['orderNumber'])}: ${described || `items changed (${itemCount(d['items'])})`}`
+    }
+    case 'purchase_order.confirmed':
+      return [text(d['orderNumber']), text(d['supplier']), text(d['total'])].join(' · ')
+    case 'purchase_order.closed':
+    case 'purchase_order.cancelled':
+      return `${text(d['orderNumber'])} · ${text(d['supplier'])}${d['reason'] ? ` — ${text(d['reason'])}` : ''}`
+    case 'purchase_order.deleted':
+      return `${text(d['orderNumber'])} · ${text(d['supplier'])}`
+    case 'goods_receipt.created':
+      return documentSummary(d, 'receiptNumber')
+    case 'goods_receipt.updated': {
+      const described = changes(d['changes'], DOCUMENT_FIELDS)
+      return `${text(d['receiptNumber'])}: ${described || `items changed (${itemCount(d['items'])})`}`
+    }
+    case 'goods_receipt.posted':
+      return `${documentSummary(d, 'receiptNumber')}${d['orderClosed'] === true ? ' — order fully received' : ''}${costUpdates(d['costPricesUpdated'])}`
+    case 'goods_receipt.deleted':
+      return `${text(d['receiptNumber'])} · ${text(d['supplier'])}`
     case 'system.database_upgraded':
       return `From version ${text(d['fromVersion'])} to ${text(d['toVersion'])}${d['backupFile'] ? `. A backup was saved first (${text(d['backupFile'])})` : ''}`
     case 'system.unclean_shutdown': {
