@@ -106,6 +106,12 @@ Every change is recorded in the same transaction as the change (`docs/audit-log.
 
 Entries carry names and formatted amounts (items, quantities, costs, totals), not ids.
 
+**Big documents.** An audit entry is limited to 8,000 characters, and a delivery can have hundreds of
+lines. So an entry spells out the **first 15 lines** and records the **count** of all of them
+(`itemCount`, and `moreItems` for the rest); the same goes for the list of cost prices updated. The
+document itself, which holds every line, is what to look at for the full list. Without this cap a
+receipt of about 80 lines could not be posted at all.
+
 ## 6. Where things are
 
 | What                | Where                                                                             |

@@ -113,6 +113,23 @@ describe('audit descriptions for purchases, expenses, customers and returns (M15
       'CN000001 · invoice INV000001 · 2 items · refunded Cash ₹200.00, UPI ₹120.00 — Torn bag'
     ],
     [
+      'goods_receipt.posted',
+      {
+        receiptNumber: 'GRN000006',
+        supplier: 'Anand Wholesale',
+        itemCount: 150,
+        items: [{}, {}, {}],
+        moreItems: 147,
+        total: '₹48,000.00'
+      },
+      'GRN000006 · Anand Wholesale · 150 items · ₹48,000.00'
+    ],
+    [
+      'return.printed',
+      { returnNumber: 'CN000001', invoiceNumber: 'INV000001' },
+      'CN000001 · invoice INV000001'
+    ],
+    [
       'return.reprinted',
       { returnNumber: 'CN000001', invoiceNumber: 'INV000001' },
       'CN000001 · invoice INV000001'

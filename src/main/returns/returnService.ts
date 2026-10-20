@@ -20,14 +20,22 @@ import {
   type ReturnLineRequest
 } from '@shared/returns'
 import { buildReturnReceiptDocument } from '@shared/returnReceipt'
-import type { AuditLog } from '../audit/auditLog'
+import { summariseLines, type AuditLog } from '../audit/auditLog'
 import { assertCan, forbidden, type Actor } from '../auth/access'
 import { conflict, invalid } from '../catalog/catalogService'
 import type { Database } from '../db/database'
+import type { Clock } from '../lib/clock'
 import type { PaymentRepository } from '../payments/paymentRepository'
 import type { PrintingService } from '../printing/printingService'
 import type { StoreRepository } from '../store/storeRepository'
 import type { ReturnRepository } from './returnRepository'
+
+/**
+ * An original return receipt can only be printed for this long after the return
+ * is recorded (it is printed right then, at the counter). After that, printing
+ * makes a marked duplicate, which needs `sale.reprint` or a manager's approval.
+ */
+export const ORIGINAL_RECEIPT_WINDOW_MS = 15 * 60_000
 
 export interface ReturnServiceDeps {
   db: Database
@@ -36,6 +44,7 @@ export interface ReturnServiceDeps {
   store: StoreRepository
   audit: AuditLog
   printing: PrintingService
+  clock: Clock
 }
 
 /**
@@ -168,12 +177,14 @@ export class ReturnService {
           returnNumber: saved.returnNumber,
           invoiceNumber: saved.invoiceNumber,
           ...(saved.customerName ? { customer: saved.customerName } : {}),
-          items: saved.lines.map((line) => ({
-            item: line.description,
-            quantity: `${formatQuantity(line.quantityMilli)} ${line.unitCode}`,
-            goods: RETURN_DISPOSITION_LABELS[line.disposition],
-            credit: money(line.creditMinor)
-          })),
+          ...summariseLines(
+            saved.lines.map((line) => ({
+              item: line.description,
+              quantity: `${formatQuantity(line.quantityMilli)} ${line.unitCode}`,
+              goods: RETURN_DISPOSITION_LABELS[line.disposition],
+              credit: money(line.creditMinor)
+            }))
+          ),
           refundDue: money(saved.refundDueMinor),
           refunds: saved.refunds.map((refund) => ({
             method: refund.methodName,
@@ -192,7 +203,12 @@ export class ReturnService {
 
   previewReceipt(actor: Actor, input: ReturnReceiptInput): ReturnReceiptPreview {
     assertCan(actor, 'sale.view')
-    const { ret, doc } = this.buildReceipt(actor, input.saleReturnId, Boolean(input.isReprint))
+    const found = this.require(input.saleReturnId)
+    const { ret, doc } = this.buildReceipt(
+      actor,
+      found,
+      this.isDuplicate(found, Boolean(input.isReprint))
+    )
     return {
       saleReturnId: ret.saleReturnId,
       returnNumber: ret.returnNumber,
@@ -206,38 +222,46 @@ export class ReturnService {
 
   /**
    * Print the return receipt. Printing never changes the return, and a failed
-   * print leaves it saved. A reprint needs `sale.reprint` (a manager can
-   * approve it) and is audited, like an invoice reprint.
+   * print leaves it saved. A duplicate (asked for, or any print after the first
+   * few minutes) needs `sale.reprint`, which a manager can approve, and is
+   * audited as a reprint. An original print is audited too, so repeats show.
    */
   async printReceipt(actor: Actor, input: ReturnReceiptPrintInput): Promise<PrintJobResult> {
-    const isReprint = Boolean(input.isReprint)
+    const found = this.require(input.saleReturnId)
+    const isReprint = this.isDuplicate(found, Boolean(input.isReprint))
     if (isReprint) {
       if (!actor.permissions.has('sale.reprint')) throw forbidden('sale.reprint', true)
     } else {
       assertCan(actor, 'sale.view')
     }
-    const { ret, doc, config } = this.buildReceipt(actor, input.saleReturnId, isReprint)
+    const { ret, doc, config } = this.buildReceipt(actor, found, isReprint)
     const refundedInCash = ret.refunds.some((refund) => refund.kind === 'cash')
     const result = await this.deps.printing.printDocument(doc, {
       openCashDrawer: !isReprint && config.openCashDrawer && refundedInCash
     })
+    const entry = {
+      actor,
+      entity: { type: 'sale_return', id: ret.saleReturnId },
+      details: { returnNumber: ret.returnNumber, invoiceNumber: ret.invoiceNumber }
+    }
     if (isReprint) {
-      this.deps.db.transaction(() => {
-        this.deps.audit.change({
-          action: 'return.reprinted',
-          actor,
-          entity: { type: 'sale_return', id: ret.saleReturnId },
-          details: { returnNumber: ret.returnNumber, invoiceNumber: ret.invoiceNumber }
-        })
-      })
+      this.deps.db.transaction(() =>
+        this.deps.audit.change({ action: 'return.reprinted', ...entry })
+      )
+    } else {
+      this.deps.audit.event({ action: 'return.printed', ...entry })
     }
     return result
   }
 
   // ---- Internals -----------------------------------------------------------
 
-  private buildReceipt(actor: Actor, saleReturnId: number, isReprint: boolean) {
-    const ret = this.require(saleReturnId)
+  /** A receipt is a duplicate when one is asked for, or once the original's window has passed. */
+  private isDuplicate(ret: ReturnDetail, asked: boolean): boolean {
+    return asked || this.deps.clock.now() - ret.returnedAt > ORIGINAL_RECEIPT_WINDOW_MS
+  }
+
+  private buildReceipt(actor: Actor, ret: ReturnDetail, isReprint: boolean) {
     const store = this.deps.store.get()
     if (!store) throw new AppError('SETUP_REQUIRED', 'Set up the store before printing receipts')
     const config = this.deps.printing.getPrinterConfig(actor)

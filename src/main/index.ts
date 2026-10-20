@@ -350,7 +350,8 @@ function createServices(
     payments: paymentsRepository,
     store: storeRepository,
     audit,
-    printing
+    printing,
+    clock
   })
   return {
     audit,

@@ -622,4 +622,74 @@ describe('PurchaseService (M15)', () => {
       expect(bed.purchaseService.listReceipts(actor, { supplierId }).items).toHaveLength(1)
     })
   })
+
+  describe('very large documents', () => {
+    /** 150 distinct items, each bought at a cost different from its cost price today. */
+    function manyLines(count = 150): PurchaseLineInput[] {
+      const actor = bed.actor()
+      return Array.from({ length: count }, (_, n) => {
+        const variantId = bed.productService.create(actor, {
+          name: `Bulk item number ${n + 1} with a reasonably long product name`,
+          categoryId: null,
+          taxClassId: taxClassId(bed, 'GST 5%'),
+          hsnCode: null,
+          tracksInventory: true,
+          variants: [variant({ sku: `BULK-${n + 1}`, costPriceMinor: 3000 })]
+        }).variants[0]!.variantId
+        return line(variantId, 2000, 3200 + n)
+      })
+    }
+
+    it('saves, confirms and posts 150 lines, and the audit entry stays small', () => {
+      const actor = bed.actor()
+      const lines = manyLines()
+
+      const order = bed.purchaseService.saveOrder(actor, {
+        supplierId,
+        notes: null,
+        lines,
+        confirm: true
+      })
+      expect(order.lines).toHaveLength(150)
+
+      const posted = bed.purchaseService.saveReceipt(
+        actor,
+        receipt({ purchaseOrderId: order.purchaseOrderId, lines, post: true, updateCosts: true })
+      )
+      expect(posted.status).toBe('posted')
+      expect(posted.lines).toHaveLength(150)
+      expect(onHand(lines[0]!.variantId)).toBe(2000)
+      expect(onHand(lines[149]!.variantId)).toBe(2000)
+      expect(
+        bed.purchaseService.getOrder(actor, { purchaseOrderId: order.purchaseOrderId }).status
+      ).toBe('closed')
+
+      for (const action of ['purchase_order.created', 'goods_receipt.posted']) {
+        const entry = bed.audit().findLast((e) => e.action === action)
+        expect(entry?.details?.length ?? 0, action).toBeLessThan(8000)
+        expect(JSON.parse(entry?.details ?? '{}'), action).toMatchObject({
+          itemCount: 150,
+          moreItems: 135
+        })
+      }
+      const postedEntry = JSON.parse(
+        bed.audit().findLast((e) => e.action === 'goods_receipt.posted')?.details ?? '{}'
+      )
+      expect(postedEntry.items).toHaveLength(15)
+      expect(postedEntry.costPricesUpdated).toHaveLength(15)
+      expect(postedEntry.costPricesUpdatedCount).toBe(150)
+      expect(bed.inventoryService.verifyLedgerConsistency().ok).toBe(true)
+    })
+
+    it('lists every line of a small document without a "more" count', () => {
+      const actor = bed.actor()
+      bed.purchaseService.saveReceipt(actor, receipt({ lines: manyLines(3), post: true }))
+      const entry = JSON.parse(
+        bed.audit().findLast((e) => e.action === 'goods_receipt.posted')?.details ?? '{}'
+      )
+      expect(entry.itemCount).toBe(3)
+      expect(entry.items).toHaveLength(3)
+      expect(entry.moreItems).toBeUndefined()
+    })
+  })
 })

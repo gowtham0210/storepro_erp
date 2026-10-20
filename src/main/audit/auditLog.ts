@@ -77,6 +77,26 @@ export class AuditLog {
   }
 }
 
+/** How many lines of a document an audit entry spells out; the rest are only counted. */
+export const MAX_LISTED_LINES = 15
+
+/**
+ * The lines of a document for an audit entry: the first few in full, and how
+ * many there are in all. An entry is limited to 8,000 characters, and a goods
+ * receipt or return can have hundreds of lines, so listing them all would make
+ * the whole change fail.
+ */
+export function summariseLines<T>(
+  lines: readonly T[],
+  max = MAX_LISTED_LINES
+): { itemCount: number; items: T[]; moreItems?: number } {
+  return {
+    itemCount: lines.length,
+    items: lines.slice(0, max),
+    ...(lines.length > max ? { moreItems: lines.length - max } : {})
+  }
+}
+
 /**
  * The fields that differ between two snapshots of a record, for
  * `details.changes`. Pass values as people read them (names, not ids).

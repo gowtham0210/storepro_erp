@@ -156,7 +156,8 @@ export function createTestbed(db: Database, hashParams = TEST_HASH_PARAMS): Test
       payments,
       store: stores,
       audit,
-      printing: printingService
+      printing: printingService,
+      clock
     }),
     customerRepository,
     customerService: new CustomerService({ db, customers: customerRepository, audit }),

@@ -16,7 +16,7 @@ import { AppError } from '@shared/ipc/errors'
 import { formatMoney, multiplyByQuantity, type CurrencyFormat } from '@shared/money'
 import { formatQuantity, QUANTITY_SCALE } from '@shared/quantity'
 import type { AuditLog } from '../audit/auditLog'
-import { changesBetween } from '../audit/auditLog'
+import { changesBetween, MAX_LISTED_LINES, summariseLines } from '../audit/auditLog'
 import { assertCan, type Actor } from '../auth/access'
 import { conflict, invalid } from '../catalog/catalogService'
 import type { Database } from '../db/database'
@@ -110,7 +110,7 @@ export class PurchaseService {
             orderNumber: created.orderNumber,
             supplier: created.supplierName,
             ...(created.notes ? { notes: created.notes } : {}),
-            items: this.describeLines(input.lines, variants),
+            ...summariseLines(this.describeLines(input.lines, variants)),
             total: this.money(created.totalMinor)
           }
         })
@@ -148,7 +148,7 @@ export class PurchaseService {
                   total: this.money(after.totalMinor)
                 }
               ) ?? {},
-            items: this.describeLines(input.lines, variants)
+            ...summariseLines(this.describeLines(input.lines, variants))
           }
         })
       }
@@ -315,7 +315,7 @@ export class PurchaseService {
                   total: this.money(after.totalMinor)
                 }
               ) ?? {},
-            items: this.describeLines(input.lines, variants)
+            ...summariseLines(this.describeLines(input.lines, variants))
           }
         })
       } else {
@@ -339,7 +339,7 @@ export class PurchaseService {
             ...(created.supplierInvoiceNumber
               ? { supplierBill: created.supplierInvoiceNumber }
               : {}),
-            items: this.describeLines(input.lines, variants),
+            ...summariseLines(this.describeLines(input.lines, variants)),
             total: this.money(created.totalMinor)
           }
         })
@@ -470,9 +470,16 @@ export class PurchaseService {
         supplier: receipt.supplierName,
         ...(receipt.orderNumber ? { order: receipt.orderNumber } : {}),
         ...(receipt.supplierInvoiceNumber ? { supplierBill: receipt.supplierInvoiceNumber } : {}),
-        items: this.describeLines(lines, variants),
+        ...summariseLines(this.describeLines(lines, variants)),
         total: this.money(receipt.totalMinor),
-        ...(costUpdates.length > 0 ? { costPricesUpdated: costUpdates } : {}),
+        ...(costUpdates.length > 0
+          ? {
+              costPricesUpdated: costUpdates.slice(0, MAX_LISTED_LINES),
+              ...(costUpdates.length > MAX_LISTED_LINES
+                ? { costPricesUpdatedCount: costUpdates.length }
+                : {})
+            }
+          : {}),
         ...(orderClosed ? { orderClosed: true } : {})
       }
     })

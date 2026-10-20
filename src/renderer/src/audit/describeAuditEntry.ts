@@ -35,8 +35,14 @@ function changes(value: unknown, names: Record<string, string> = USER_FIELDS): s
     .join('; ')
 }
 
-function itemCount(value: unknown): string {
-  const count = Array.isArray(value) ? value.length : 0
+/** "3 items": the recorded count (entries list only the first lines of a big document), else the lines listed. */
+function itemCount(details: Record<string, unknown>): string {
+  const count =
+    typeof details['itemCount'] === 'number'
+      ? details['itemCount']
+      : Array.isArray(details['items'])
+        ? details['items'].length
+        : 0
   return `${count} ${count === 1 ? 'item' : 'items'}`
 }
 
@@ -81,7 +87,7 @@ function documentSummary(d: Record<string, unknown>, number: string): string {
     text(d['supplier']),
     d['order'] ? `against ${text(d['order'])}` : '',
     d['supplierBill'] ? `bill ${text(d['supplierBill'])}` : '',
-    d['items'] ? itemCount(d['items']) : '',
+    d['items'] ? itemCount(d) : '',
     d['total'] ? text(d['total']) : ''
   ]
     .filter(Boolean)
@@ -259,8 +265,9 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
             .map((r) => `${text(r.method)} ${text(r.amount)}`)
             .join(', ')
         : ''
-      return `${text(d['returnNumber'])} · invoice ${text(d['invoiceNumber'])} · ${itemCount(d['items'])} · refunded ${refunds || text(d['refundDue'])}${d['reason'] ? ` — ${text(d['reason'])}` : ''}`
+      return `${text(d['returnNumber'])} · invoice ${text(d['invoiceNumber'])} · ${itemCount(d)} · refunded ${refunds || text(d['refundDue'])}${d['reason'] ? ` — ${text(d['reason'])}` : ''}`
     }
+    case 'return.printed':
     case 'return.reprinted':
       return `${text(d['returnNumber'])} · invoice ${text(d['invoiceNumber'])}`
     case 'supplier.created':
@@ -273,7 +280,7 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       return documentSummary(d, 'orderNumber')
     case 'purchase_order.updated': {
       const described = changes(d['changes'], DOCUMENT_FIELDS)
-      return `${text(d['orderNumber'])}: ${described || `items changed (${itemCount(d['items'])})`}`
+      return `${text(d['orderNumber'])}: ${described || `items changed (${itemCount(d)})`}`
     }
     case 'purchase_order.confirmed':
       return [text(d['orderNumber']), text(d['supplier']), text(d['total'])].join(' · ')
@@ -286,7 +293,7 @@ export function describeAuditEntry(entry: AuditLogEntry): string {
       return documentSummary(d, 'receiptNumber')
     case 'goods_receipt.updated': {
       const described = changes(d['changes'], DOCUMENT_FIELDS)
-      return `${text(d['receiptNumber'])}: ${described || `items changed (${itemCount(d['items'])})`}`
+      return `${text(d['receiptNumber'])}: ${described || `items changed (${itemCount(d)})`}`
     }
     case 'goods_receipt.posted':
       return `${documentSummary(d, 'receiptNumber')}${d['orderClosed'] === true ? ' — order fully received' : ''}${costUpdates(d['costPricesUpdated'])}`

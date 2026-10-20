@@ -587,4 +587,115 @@ describe('ReturnService (M16)', () => {
       })
     })
   })
+
+  describe('very large returns', () => {
+    it('takes back 60 lines at once, and the audit entry stays small', async () => {
+      const w = await world()
+      const actor = w.bed.actor()
+      const variantIds = Array.from(
+        { length: 60 },
+        (_, n) =>
+          w.bed.productService.create(actor, {
+            name: `Bulk item number ${n + 1} with a reasonably long product name`,
+            categoryId: null,
+            taxClassId: taxClassId(w.bed, 'GST 5%'),
+            hsnCode: null,
+            tracksInventory: true,
+            variants: [variant({ sku: `BULK-${n + 1}`, sellingPriceMinor: 1000, mrpMinor: null })]
+          }).variants[0]!.variantId
+      )
+      const { saleId, saleItemIds } = insertSale(getDb(), {
+        invoiceNumber: 'INV000050',
+        cashierId: 1,
+        completedAt: Date.UTC(2026, 9, 10),
+        lines: variantIds.map((variantId) => ({
+          variantId,
+          quantityMilli: 1000,
+          unitPriceMinor: 1000
+        })),
+        payments: [{ methodCode: 'cash', amountMinor: 60_000 }]
+      })
+
+      const made = w.bed.returnService.create(actor, {
+        saleId,
+        reason: null,
+        lines: saleItemIds.map((saleItemId) => ({
+          saleItemId,
+          quantityMilli: 1000,
+          disposition: 'restock' as const
+        })),
+        refunds: [{ paymentMethodId: w.cashId, amountMinor: 60_000 }]
+      })
+      expect(made.lines).toHaveLength(60)
+      expect(made.refundDueMinor).toBe(60_000)
+
+      const entry = w.bed.audit().findLast((e) => e.action === 'return.created')
+      expect(entry?.details?.length ?? 0).toBeLessThan(8000)
+      const details = JSON.parse(entry?.details ?? '{}')
+      expect(details).toMatchObject({ itemCount: 60, moreItems: 45 })
+      expect(details.items).toHaveLength(15)
+    })
+  })
+
+  describe('original receipts (audit finding: unmarked originals)', () => {
+    const MINUTE = 60_000
+
+    it('audits each original print, and not a print that failed', async () => {
+      const w = await world()
+      const made = refundInCash(w, [take(w, w.riceId, 1000)])
+      await w.bed.returnService.printReceipt(w.bed.actor(), { saleReturnId: made.saleReturnId })
+      const printed = w.bed.audit().filter((e) => e.action === 'return.printed')
+      expect(printed).toHaveLength(1)
+      expect(printed[0]?.user_id).toBe(1)
+      expect(JSON.parse(printed[0]?.details ?? '{}')).toMatchObject({ returnNumber: 'CN000001' })
+
+      const spy = vi
+        .spyOn(w.bed.printingService, 'printDocument')
+        .mockRejectedValue(new Error('printer offline'))
+      await expect(
+        w.bed.returnService.printReceipt(w.bed.actor(), { saleReturnId: made.saleReturnId })
+      ).rejects.toThrow('printer offline')
+      spy.mockRestore()
+      expect(w.bed.audit().filter((e) => e.action === 'return.printed')).toHaveLength(1)
+    })
+
+    it('still prints the original just inside the window', async () => {
+      const w = await world()
+      const made = refundInCash(w, [take(w, w.riceId, 1000)])
+      w.bed.clock.time += 14 * MINUTE
+      await w.bed.signInAs('cashier')
+      const preview = w.bed.returnService.previewReceipt(w.bed.actor(), {
+        saleReturnId: made.saleReturnId
+      })
+      expect(preview.isReprint).toBe(false)
+      expect(
+        (await w.bed.returnService.printReceipt(w.bed.actor(), { saleReturnId: made.saleReturnId }))
+          .printed
+      ).toBe(true)
+    })
+
+    it('makes any print after the window a duplicate that needs a manager', async () => {
+      const w = await world()
+      const made = refundInCash(w, [take(w, w.riceId, 1000)])
+      w.bed.clock.time += 16 * MINUTE
+      await w.bed.signInAs('cashier')
+
+      // Asking for an "original" gets the duplicate, and a cashier is refused it.
+      const preview = w.bed.returnService.previewReceipt(w.bed.actor(), {
+        saleReturnId: made.saleReturnId
+      })
+      expect(preview.isReprint).toBe(true)
+      expect(preview.lines.join('\n')).toContain('DUPLICATE / REPRINT')
+      const denied = await rejection(() =>
+        w.bed.returnService.printReceipt(w.bed.actor(), { saleReturnId: made.saleReturnId })
+      )
+      expect(denied.details).toMatchObject({ permission: 'sale.reprint', overridable: true })
+      expect(w.bed.audit().some((e) => e.action === 'return.printed')).toBe(false)
+
+      await w.bed.signInAs('manager')
+      await w.bed.returnService.printReceipt(w.bed.actor(), { saleReturnId: made.saleReturnId })
+      expect(w.bed.audit().filter((e) => e.action === 'return.reprinted')).toHaveLength(1)
+      expect(w.bed.audit().some((e) => e.action === 'return.printed')).toBe(false)
+    })
+  })
 })

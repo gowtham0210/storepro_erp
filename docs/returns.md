@@ -76,16 +76,23 @@ It fits 58 mm and 80 mm paper, prints through the driver or ESC/POS, and opens t
 **cash** refund when that is switched on (ESC/POS mode, as for sales).
 
 - Straight after a return, **Print receipt** prints the original (and prints automatically if
-  _Automatically print receipt_ is on in **Settings → Receipt printer**).
-- Every later print is a **Reprint**: marked `*** DUPLICATE / REPRINT ***`, needs `sale.reprint`
-  (a manager can approve it) and is audited (`return.reprinted`).
+  _Automatically print receipt_ is on in **Settings → Receipt printer**). Each original print is
+  audited (`return.printed`), so repeats are visible.
+- **An original can only be printed for 15 minutes after the return is recorded.** After that, any
+  print is a **Reprint**, even if the screen asked for an original: marked
+  `*** DUPLICATE / REPRINT ***`, needs `sale.reprint` (a manager can approve it) and audited
+  (`return.reprinted`). So a cashier can't keep printing unmarked originals, or opening the cash drawer
+  with them, long after the return. This is a time limit, not a one-print limit: within the 15 minutes
+  the original can be printed again. A strict single print would need to store that it was printed (a
+  new table), which wasn't judged worth a migration.
 - **A failed print never affects the saved return.** The screen says so and offers to try again.
 
 ## 6. Audit
 
 `return.created` (return and invoice numbers, each item with quantity, what happened to the goods
-and the credit, the refund due, how it was refunded, the reason) and `return.reprinted`, in the
-transaction of the change. See `docs/audit-log.md`.
+and the credit, the refund due, how it was refunded, the reason), `return.printed` and
+`return.reprinted`. A return of many lines lists the first 15 and records the count. See
+`docs/audit-log.md`.
 
 ## 7. Where things are
 
